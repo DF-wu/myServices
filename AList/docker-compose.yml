@@ -7,7 +7,7 @@ services:
       - 5244:5244
     volumes:
       # download data
-      - /mnt/appdata/Alist_dir:/mnt/data
+      - /mnt/mydata/Alist_dir:/mnt/data
       # appdata 
       - /mnt/appdata/alist:/opt/alist/data
 # ---
