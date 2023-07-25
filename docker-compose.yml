@@ -1,6 +1,7 @@
 services:
   adg: 
     image: adguard/adguardhome
+
     ports:
     # dns udp
       - 53:53
