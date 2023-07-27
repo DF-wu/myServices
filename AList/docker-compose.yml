@@ -1,14 +1,12 @@
 services:
-  adg: 
-    image: xhofe/alist:latest
-    container_name: alist
+  heimdall: 
+    image: lscr.io/linuxserver/heimdall
     ports:
     # Web UI port
-      - 5244:5244
+      - 50080:80
+      - 50443:443
     volumes:
-      # download data
-      - /mnt/mydata/Alist_dir:/mnt/data
       # appdata 
-      - /mnt/appdata/alist:/opt/alist/data
+      - /mnt/appdata/heimdall:/config
 # ---
   
