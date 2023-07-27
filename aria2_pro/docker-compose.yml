@@ -4,13 +4,16 @@ services:
     image: p3terx/aria2-pro
     container_name: aria2_pro
     ports:
-    # dns udp
-      - 53:53
-    # dns over tls
-      - 853:853
-    # 853:853 udp
-      - 853:853/udp
-    # WebUI:
+    # bind RPC listen port.
+      - 46800:6800
+    # Bind BT listen port (TCP).
+      - 46888:6888
+    # Bind BT listen port (TCP).
+      - 46888:6888/udp
+  
     volumes:
-    environment:
-      - RPC_SECRET=6319
+    # Location of downloads on disk.
+      - /mnt/disks/2t/aria2DownloadPool:/downloads
+    # Contains all relevant configuration files.
+      - /mnt/user/appdata/aria2-pro:/config
+    env_file: .env
