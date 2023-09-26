@@ -7,7 +7,7 @@ services:
       - 9443:9443
     volumes:
     # don't put in this git repo 
-      - ${PWD}/data:/data
+      - ${PWD}/portainer-ce/data:/data
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
 
