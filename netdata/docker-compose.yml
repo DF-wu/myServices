@@ -1,0 +1,11 @@
+services:
+  netdata: 
+    image: netdata/netdata
+    # ports:
+    volumes:
+      # for netdata data source
+      - /proc:/host/proc
+      - /sys:/host/sys
+      - /var/run/docker.sock:/var/run/docker.sock
+# ---
+  
