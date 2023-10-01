@@ -8,15 +8,15 @@ services:
       - 52345:2342
     # WebUI:
     volumes:
-    # DATA
+    # DATA : SERVICE IS ON AXLOTL!!!!!
     # Storage PATH for generated files like cache and index (Keep cache, settings and database)
-      - /mnt/cachePool/appdata/photoprism:/photoprism/storage
+      - /mnt/appdata/photoprism:/photoprism/storage
     # Storage Path
     # Path to your images and storage folder
-      - /mnt/dfpool/nas/user/mydata/photoprism/Pictures:/photoprism/originals
+      - /mnt/mydata/photoprism/Pictures:/photoprism/originals
     # Photo Import Folder:
     # Only if you want to use the Import function of PhotoPrism (ATTENTION: Don't put the import folder in a subdirectory of the storage folder for your images!)
-      - /mnt/dfpool/nas/user/mydata/photoprism/Import:/photoprism/import
+      - /mnt/mydata/photoprism/Import:/photoprism/import
     env_file: .env
       
 
