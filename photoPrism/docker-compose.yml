@@ -1,14 +1,11 @@
 services:
   photoprism: 
     image: photoprism/photoprism
+    restart: unless-stopped
     container_name: photoprism
     ports:
-    
-      - 53:53
-    # dns over tls
-      - 853:853
-    # 853:853 udp
-      - 853:853/udp
+    # web ui
+      - 52345:2342
     # WebUI:
     volumes:
     # DATA
