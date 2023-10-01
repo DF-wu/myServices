@@ -5,7 +5,7 @@ services:
     container_name: photoprism
     ports:
     # web ui
-      - 52345:2342
+      - 52342:2342
     # WebUI:
     volumes:
     # DATA : SERVICE IS ON AXLOTL!!!!!
