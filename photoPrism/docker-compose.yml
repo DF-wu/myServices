@@ -18,8 +18,8 @@ services:
     # Only if you want to use the Import function of PhotoPrism (ATTENTION: Don't put the import folder in a subdirectory of the storage folder for your images!)
       - /mnt/mydata/photoprism/Import:/photoprism/import
     env_file: 
-    # load secret first
-      - ../.env.sensitive
+      # load secret first!!!!!!
+      - /home/df/.env.sensitive
       - .env
       
       
