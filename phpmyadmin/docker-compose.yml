@@ -12,7 +12,6 @@ services:
       # Set the URL you will use to access the web frontend
       - PMA_ABSOLUTE_URI=http://phpmyadmin.dfder.tw
       # for permission issue
-      - UMASK=022
       - PUID=1000
       - PGID=1000
       - TZ=Asia/Taipei
