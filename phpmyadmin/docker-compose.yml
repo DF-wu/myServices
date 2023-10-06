@@ -11,6 +11,8 @@ services:
       - PMA_ARBITRARY=1
       # Set the URL you will use to access the web frontend
       - PMA_ABSOLUTE_URI=http://phpmyadmin.dfder.tw
+      # for permission issue
+      - UMASK=022
     volumes:
       - /mnt/appdata/phpmyadmin:/config
 
