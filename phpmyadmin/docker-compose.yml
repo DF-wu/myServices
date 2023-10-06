@@ -13,8 +13,8 @@ services:
       - PMA_ABSOLUTE_URI=http://phpmyadmin.dfder.tw
       # for permission issue
       - UMASK=022
-      - PUID=99
-      - PGID=100
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/phpmyadmin:/config
-
