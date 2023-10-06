@@ -1,6 +1,7 @@
 services:
   phpmyadmin: 
     image: lscr.io/linuxserver/phpmyadmin
+    container_name: phpmyadmin
     restart: unless-stopped
     ports:
     # web ui
