@@ -1,6 +1,7 @@
 services:
   heimdall: 
     image: lscr.io/linuxserver/heimdall
+    container_name: heimdall
     ports:
     # Web UI port
       - 50080:80
