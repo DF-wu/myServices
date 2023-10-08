@@ -2,15 +2,12 @@ services:
   alist: 
     image: xhofe/alist:latest
     restart: unless-stopped
+    container_name: alist
     ports:
     # container ports
       - 5244:5244
-      - 6881:6881/udp
-      - 8080:8080
-      - 8118:8118
     volumes:
     # download
       - /mnt/mydata/Alist_dir:/mnt/data
     # appdata config
-      - /mnt/user/appdata/alist:/opt/alist/data
-    env_file: .env
+      - /mnt/appdata/alist:/opt/alist/data
