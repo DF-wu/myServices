@@ -8,12 +8,12 @@ services:
       - 46800:6800
     # Bind BT listen port (TCP).
       - 46888:6888
-    # Bind BT listen port (TCP).
+    # Bind BT listen port (UDP).
       - 46888:6888/udp
   
     volumes:
     # Location of downloads on disk.
-      - /mnt/disks/2t/aria2DownloadPool:/downloads
+      - /mnt/mydata/aria2DownloadPool:/downloads
     # Contains all relevant configuration files.
-      - /mnt/user/appdata/aria2-pro:/config
+      - /mnt/appdata/aria2-pro:/config
     env_file: .env
