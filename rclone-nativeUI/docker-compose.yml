@@ -1,0 +1,15 @@
+services:
+  rclone-nativeUI: 
+    image: lscr.io/linuxserver/phpmyadmin
+    container_name: rclone-nativeUI
+    restart: unless-stopped
+    ports:
+    # web ui
+      - 5572:5572
+    environment:
+      # # for permission issue
+      # - PUID=1000
+      # - PGID=1000
+      - PHP_TZ=Asia/Taipei
+    volumes:
+      - /mnt/appdata/rclone:/config/rclone
