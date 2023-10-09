@@ -14,7 +14,7 @@ services:
       - /mnt/appdata/alist:/opt/alist/data
     networks:
       - app_network
-  networks:
+networks:
   app_network:
     name: mynetwork
     external: true
