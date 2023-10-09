@@ -13,9 +13,9 @@ services:
     # appdata config
       - /mnt/appdata/alist:/opt/alist/data
     networks:
-      - app_network
+      - appnetwork
 networks:
-  app_network:
+  appnetwork:
     name: mynetwork
     external: true
       
