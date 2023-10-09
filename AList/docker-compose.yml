@@ -3,7 +3,6 @@ services:
     image: xhofe/alist:latest
     restart: unless-stopped
     container_name: alist
-      - networkName
     ports:
     # container ports
       - 5244:5244
@@ -12,8 +11,6 @@ services:
       - /mnt/mydata/Alist_dir:/mnt/data
     # appdata config
       - /mnt/appdata/alist:/opt/alist/data
-    networks:
-      - appnetwork
 networks:
   appnetwork:
     name: mynetwork
