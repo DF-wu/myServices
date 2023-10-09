@@ -3,6 +3,7 @@ services:
     image: lscr.io/linuxserver/phpmyadmin
     container_name: rclone-nativeUI
     restart: unless-stopped
+    network_mode: bridge
     ports:
     # web ui
       - 5572:5572

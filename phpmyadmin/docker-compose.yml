@@ -3,6 +3,7 @@ services:
     image: lscr.io/linuxserver/phpmyadmin
     container_name: phpmyadmin
     restart: unless-stopped
+    network_mode: bridge
     ports:
     # web ui
       - 53306:80

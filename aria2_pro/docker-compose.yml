@@ -3,6 +3,7 @@ services:
   aria2_pro: 
     image: p3terx/aria2-pro
     container_name: aria2_pro
+    network_mode: bridge
     ports:
     # bind RPC listen port.
       - 46800:6800

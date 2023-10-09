@@ -4,6 +4,7 @@ services:
     image: lscr.io/linuxserver/nextcloud:latest
     container_name: nextcloud
     restart: unless-stopped
+    network_mode: bridge
     environment:
       - PUID=1000
       - PGID=1000

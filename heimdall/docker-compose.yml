@@ -2,6 +2,8 @@ services:
   heimdall: 
     image: lscr.io/linuxserver/heimdall
     container_name: heimdall
+    restart: unless-stopped
+    network_mode: bridge
     ports:
     # Web UI port
       - 50080:80

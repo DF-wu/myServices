@@ -3,6 +3,8 @@ services:
     image: xhofe/alist:latest
     restart: unless-stopped
     container_name: alist
+    network_mode: bridge
+      - networkName
     ports:
     # container ports
       - 5244:5244
