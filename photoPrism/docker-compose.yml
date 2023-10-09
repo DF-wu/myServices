@@ -19,10 +19,11 @@ services:
       - /mnt/mydata/photoprism/Import:/photoprism/import
     env_file: 
       - .env
+    networks:
+      - appnetwork
 networks:
-  app_network:
+  appnetwork:
     name: mynetwork
     external: true
-            
       
 

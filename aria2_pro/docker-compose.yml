@@ -18,8 +18,10 @@ services:
     # Contains all relevant configuration files.
       - /mnt/appdata/aria2-pro:/config
     env_file: .env
+    networks:
+      - appnetwork
 networks:
-  app_network:
+  appnetwork:
     name: mynetwork
     external: true
       

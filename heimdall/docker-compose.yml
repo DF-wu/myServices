@@ -10,9 +10,10 @@ services:
     volumes:
       # appdata 
       - /mnt/appdata/heimdall:/config
-# ---
+    networks:
+      - appnetwork
 networks:
-  app_network:
+  appnetwork:
     name: mynetwork
     external: true
       

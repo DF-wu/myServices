@@ -14,3 +14,10 @@ services:
     # appdata config
       - /mnt/appdata/binhex-qbittorrentvpn:/config 
     env_file: .env
+    networks:
+      - appnetwork
+networks:
+  appnetwork:
+    name: mynetwork
+    external: true
+      

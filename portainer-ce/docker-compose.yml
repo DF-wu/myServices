@@ -10,5 +10,10 @@ services:
       - ${PWD}/portainer-ce/data:/data
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
-
+# mynetwork lifecycle controll by portainer compose
+networks:
+  appnetwork:
+    name: mynetwork
+    external: true
+      
 

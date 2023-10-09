@@ -18,8 +18,11 @@ services:
       - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/phpmyadmin:/config
+    networks:
+      - appnetwork
 networks:
-  app_network:
+  appnetwork:
     name: mynetwork
     external: true
+      
       

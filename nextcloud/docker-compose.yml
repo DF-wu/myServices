@@ -13,4 +13,10 @@ services:
       - /mnt/mydata/Nextcloud-Data:/data
     ports:
       - 5443:443
-    
+    networks:
+      - appnetwork
+networks:
+  appnetwork:
+    name: mynetwork
+    external: true
+          
