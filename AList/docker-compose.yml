@@ -3,7 +3,6 @@ services:
     image: xhofe/alist:latest
     restart: unless-stopped
     container_name: alist
-    network_mode: bridge
       - networkName
     ports:
     # container ports
@@ -13,3 +12,9 @@ services:
       - /mnt/mydata/Alist_dir:/mnt/data
     # appdata config
       - /mnt/appdata/alist:/opt/alist/data
+networks:
+  app-network:
+    name: mynetwork
+    external: true
+      
+

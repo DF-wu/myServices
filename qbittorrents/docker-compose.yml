@@ -2,7 +2,6 @@ services:
   qbt: 
     image: binhex/arch-qbittorrentvpn
     restart: unless-stopped
-    network_mode: bridge
     ports:
     # container ports
       - 6881:6881

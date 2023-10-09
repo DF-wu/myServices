@@ -3,7 +3,6 @@ services:
     image: photoprism/photoprism
     restart: unless-stopped
     container_name: photoprism
-    network_mode: bridge
     ports:
     # web ui
       - 52342:2342
@@ -20,6 +19,10 @@ services:
       - /mnt/mydata/photoprism/Import:/photoprism/import
     env_file: 
       - .env
-      
+networks:
+  app_network:
+    name: mynetwork
+    external: true
+            
       
 

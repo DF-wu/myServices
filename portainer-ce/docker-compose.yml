@@ -10,4 +10,10 @@ services:
       - ${PWD}/portainer-ce/data:/data
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
+# network lifecycle controlled by portainer
+networks:
+  app_network:
+    name: mynetwork
+      
+
 
