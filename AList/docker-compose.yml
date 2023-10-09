@@ -11,6 +11,8 @@ services:
       - /mnt/mydata/Alist_dir:/mnt/data
     # appdata config
       - /mnt/appdata/alist:/opt/alist/data
+    networks:
+      - appnetwork
 networks:
   appnetwork:
     name: mynetwork
