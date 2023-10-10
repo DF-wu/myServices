@@ -17,4 +17,10 @@ services:
     # working dir
       - /mnt/appdata/adguard_home/workingdir:/opt/adguardhome/work
     # config dir
-      - /mnt/appdata/config:/opt/adguardhome/conf
+      - /mnt/appdata/adguard_home/config:/opt/adguardhome/conf
+    networks:
+      - appnetwork
+networks:
+  appnetwork:
+    name: mynetwork
+    external: true
