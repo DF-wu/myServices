@@ -21,6 +21,13 @@ services:
       - .env
     networks:
       - appnetwork
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: "nvidia"
+              count: 1
+              capabilities: [gpu]
 networks:
   appnetwork:
     name: mynetwork
