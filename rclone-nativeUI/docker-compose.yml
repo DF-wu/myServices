@@ -1,6 +1,6 @@
 services:
   rclone-nativeUI: 
-    image: lscr.io/linuxserver/phpmyadmin
+    image: rclone/rclone
     container_name: rclone-nativeUI
     restart: unless-stopped
     ports:
