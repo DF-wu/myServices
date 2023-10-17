@@ -10,7 +10,8 @@ services:
       # Set to `1` to allow you to connect to any server. Setting to `0` will only allow you to connect to specified hosts (See Application Setup)
       - PMA_ARBITRARY=1
       # Set the URL you will use to access the web frontend
-      - PMA_ABSOLUTE_URI=http://phpmyadmin.dfder.tw,http://axolotl:53306,
+      # leave blank to access anythere yeahhhhhhhhhhh
+      - PMA_ABSOLUTE_URI=
       # for permission issue
       - PUID=1000
       - PGID=1000
