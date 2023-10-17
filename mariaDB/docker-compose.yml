@@ -14,6 +14,7 @@ services:
       - REMOTE_SQL=http://URL1/your.sql,https://URL2/your.sql
       # default db
       - MYSQL_DATABASE=NC
+      - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/mariadb:/config
     networks:
