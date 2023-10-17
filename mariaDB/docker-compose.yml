@@ -1,0 +1,25 @@
+services:
+  mariadb: 
+    image: lscr.io/linuxserver/mariadb
+    container_name: mariadb
+    restart: unless-stopped
+    ports:
+    # db listen port
+      - 3306:3306
+    environment:
+      - MYSQL_USER=df
+      - MYSQL_PASSWORD=${DF_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${DF_PASSWORD}
+      # Set this to ingest sql files from an http/https endpoint (comma seperated array).
+      - REMOTE_SQL=http://URL1/your.sql,https://URL2/your.sql
+      # default db
+      - MYSQL_DATABASE=NC
+    volumes:
+      - /mnt/appdata/mariadb:/config
+    networks:
+      - appnetwork
+networks:
+  appnetwork:
+    name: mynetwork
+    external: true
+      
