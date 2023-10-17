@@ -10,7 +10,7 @@ services:
       - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/nextcloud:/config
-      - /mnt/mydata/Nextcloud-Data:/data
+      - /mnt/mydata/Nextcloud-data:/data
     ports:
       - 5443:443
     networks:
