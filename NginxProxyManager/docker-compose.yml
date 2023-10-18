@@ -1,11 +1,11 @@
 services:
   nginxproxymanager: 
-    image: jc21/nginx-proxy-manager
+    image: jlesage/nginx-proxy-manager
     container_name: nginxproxymanager
     restart: unless-stopped
     ports:
       # web ui : Port used to access the web interface of the application.NOTE: This applies only when Network Type is set to Bridge. For other network types, port 8181 should be used instead.
-      - 7818:81
+      - 7818:8181
       # Port used to serve HTTP requests.NOTE: Your router should be configured to forward port 80 to this port. If your router doesn't allow setting the destination/internal IP address, this must be set to 80.NOTE: This applies only when Network Type is set to Bridge. For other network types, port 8080 should be used instead.
       - 18080:80
       # Port used to serve HTTPs requests.NOTE: Your router should be configured to forward port 443 to this port. If your router doesn't allow setting the destination/internal IP address, this must be set to 443.NOTE: This applies only when Network Type is set to Bridge. For other network types, port 4443 should be used instead.
@@ -18,9 +18,9 @@ services:
       # - PGID=0
       - TZ=Asia/Taipei
     volumes:
-      # - /mnt/appdata/NginxProxyManager:/config
-      - /mnt/appdata/NginxProxyManager:/data
-      - /mnt/appdata/NginxProxyManager/letsencrypt:/etc/letsencrypt
+      - /mnt/appdata/NginxProxyManager:/config
+      # - /mnt/appdata/NginxProxyManager:/data
+      # - /mnt/appdata/NginxProxyManager/letsencrypt:/etc/letsencrypt
     networks:
       - appnetwork
 networks:
