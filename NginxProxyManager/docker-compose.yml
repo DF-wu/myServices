@@ -14,8 +14,8 @@ services:
       #   When set to '1', IPv6 support is disabled.
       - DISABLE_IPV6=0
       # for permission issue
-      # - PUID=1000
-      # - PGID=1000
+      - PUID=0
+      - PGID=0
       - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/NginxProxyManager:/config
