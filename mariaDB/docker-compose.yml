@@ -16,7 +16,9 @@ services:
       - MYSQL_DATABASE=NC
       - TZ=Asia/Taipei
     volumes:
-      - /mnt/appdata/mariadb:/config
+      # for performance
+      # - /mnt/appdata/mariadb:/config
+      - /home/df/serverDataAndScript/mariadb:/config
     networks:
       - appnetwork
 networks:
