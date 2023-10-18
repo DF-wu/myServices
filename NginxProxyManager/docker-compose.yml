@@ -12,7 +12,7 @@ services:
       - 18443:4443
     environment:
       #   When set to '1', IPv6 support is disabled.
-      - DISABLE_IPV6=0
+      - DISABLE_IPV6=1
       # # for permission issue
       # - PUID=0
       # - PGID=0
