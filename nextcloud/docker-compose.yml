@@ -5,8 +5,9 @@ services:
     container_name: nextcloud
     restart: unless-stopped
     environment:
-      # - PUID=1000
-      # - PGID=1000
+    # for dealing with the annoying permission issue
+      - PUID=1000
+      - PGID=1000
       - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/nextcloud:/config
