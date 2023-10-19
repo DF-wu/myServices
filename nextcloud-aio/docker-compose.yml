@@ -62,8 +62,8 @@ volumes:
     name: nextcloud_aio_mastercontainer # This line is not allowed to be changed as otherwise the built-in backup solution will not work
   nextcloud_aio_nextcloud_datadir:
     name: nextcloud_aio_nextcloud_datadir
-  # nfs dir can not pass to NEXTCLOUD_DATADIR. Alternative way to do it.
-  # Shoud be create maually
+  # nfs dir can not pass to NEXTCLOUD_DATADIR. Alternative way to do it .
+  # Shoud be create volume manually
     # driver_opts:
     #   type: "nfs"
     #   o: "addr=truenas,nfsvers=4,rw,timeo=20,noatime"
