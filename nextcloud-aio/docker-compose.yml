@@ -64,7 +64,7 @@ volumes:
   # nfs dir can not pass to NEXTCLOUD_DATADIR. Alternative way to do it.
     driver_opts:
       type: "nfs"
-      o: "addr=truenas,nfsvers=4"
+      o: "addr=truenas,nfsvers=4,rw,timeo=20,noatime"
       device: "/mnt/dfpool/mydata/ncdata"
 
 
