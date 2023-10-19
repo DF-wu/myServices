@@ -62,12 +62,12 @@ volumes:
     name: nextcloud_aio_mastercontainer # This line is not allowed to be changed as otherwise the built-in backup solution will not work
   nextcloud_aio_nextcloud_datadir:
     name: nextcloud_aio_nextcloud_datadir
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/dfpool/mydata/ncdata
   # nfs dir can not pass to NEXTCLOUD_DATADIR. Alternative way to do it .
   # Shoud be create volume manually
-    # driver_opts:
-    #   type: "nfs"
-    #   o: "addr=truenas,nfsvers=4,rw,timeo=20,noatime"
-    #   device: "/mnt/dfpool/mydata/ncdata"
 
 
 # # Optional: If you need ipv6, follow step 1 and 2 of https://github.com/nextcloud/all-in-one/blob/main/docker-ipv6-support.md first and then uncomment the below config in order to activate ipv6 for the internal nextcloud-aio network.
