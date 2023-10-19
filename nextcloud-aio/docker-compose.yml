@@ -65,7 +65,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /mnt/dfpool/mydata/ncdata
+      device: /mnt/mydata/ncdata
   # nfs dir can not pass to NEXTCLOUD_DATADIR. Alternative way to do it .
   # Shoud be create volume manually
 
