@@ -1,5 +1,5 @@
 # myServices
-df home lab services
+df home lab services 👊😎💥
 
 ## note
 1. remember to set up enviroment variable when system boot.
