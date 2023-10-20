@@ -4,7 +4,9 @@ services:
     container_name: n8n
     restart: unless-stopped
     environment:
+    # guide https://docs.n8n.io/hosting/installation/docker/#setting-timezone
       - TZ=Asia/Taipei
+      - GENERIC_TIMEZONE=Asia/Taipei
     volumes:
       - /mnt/appdata/n8n:/home/node/.n8n
     ports:
