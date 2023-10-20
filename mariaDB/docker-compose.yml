@@ -21,6 +21,28 @@ services:
       - /home/df/_serverDataAndScript/mariadb:/config
     networks:
       - appnetwork
+# ----------below for panel use-------------- 
+  phpmyadmin: 
+    image: lscr.io/linuxserver/phpmyadmin
+    container_name: phpmyadmin
+    restart: unless-stopped
+    ports:
+    # web ui
+      - 53306:80
+    environment:
+      # Set to `1` to allow you to connect to any server. Setting to `0` will only allow you to connect to specified hosts (See Application Setup)
+      - PMA_ARBITRARY=1
+      # Set the URL you will use to access the web frontend
+      # leave blank to access anythere yeahhhhhhhhhhh
+      # - PMA_ABSOLUTE_URI=
+      # for permission issue
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Taipei
+    volumes:
+      - /mnt/appdata/phpmyadmin:/config
+    networks:
+      - appnetwork
 networks:
   appnetwork:
     name: mynetwork
