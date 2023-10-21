@@ -1,0 +1,16 @@
+# ref https://hub.docker.com/r/serjs/go-socks5-proxy/
+services:
+  socks5_server: 
+    image: serjs/go-socks5-proxy
+    container_name: socks5_server
+    restart: unless-stopped
+    ports:
+    # expose socks port
+      - 21080:1080 
+    environment:
+      - PROXY_USER=df
+      - PROXY_PASSWORD=${DF_PASSWORD}
+      - PROXY_PORT=1080
+      - TZ=Asia/Taipei
+
+
