@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     environment:
       - auth_token=${DF_AUTHTOKEN}  # my own token
-      - category=Tom Clancy's Rainbow Six Siege
+      - category=WarThunder_eSports
       - watchAlwaysTopStreamer=true
       - claimDrops=true
       #- channelsWithPriority=illojuan,alexby11,aroyitt
