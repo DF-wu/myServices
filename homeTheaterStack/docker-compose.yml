@@ -1,0 +1,117 @@
+services:
+  jellyseerr: 
+    image: fallenbagel/jellyseerr:latest
+    restart: unless-stopped
+    container_name: jellyseerr
+    ports:
+    # WebUI  port
+      - 55055:5055
+    volumes:
+      # appdata
+      - /mnt/appdata/jellyseerr:/app/config/
+    environment:
+      # Log verbosity.
+      - LOG_LEVEL=info
+      # Emby users need to fill 'emby' to enable emby support! Enabling emby support will cause problems with Plex and make Jellyfin unavailable.
+      - JELLYFIN_TYPE=jellyfin
+    networks:
+      - appnetwork
+ 
+  jellyfin:
+    restart: unless-stopped
+    container_name: jellyfin
+    image: lscr.io/linuxserver/jellyfin:latest
+    ports:
+      # Http webUI.
+      - 8096:8096
+      # ptional - Https webUI (you need to set up your own certificate).
+      - 8920:8920
+      # Optional - Allows clients to discover Jellyfin on the local network
+      - 7359:7359
+      # Optional - Service discovery used by DNLA and clients.
+      - 1900:1900
+    volumes:
+      # Jellyfin data storage location. *This can grow very large, 50gb+ is likely for a large collection.*
+      - /mnt/appdata/jellyfin:/config
+      # Media goes here. Add as many as needed e.g. `/data/movies`, `/data/tv`, etc.
+      - /mnt/mydata/Public/movies:/data/movies
+      - /mnt/mydata/Public/ACGN:/data/ACGN
+      - /mnt/mydata/Public/Music:/data/music
+      - /mnt/mydata/Public/TVs:/data/tvs
+    environment:
+      # https://github.com/linuxserver/docker-jellyfin#nvidia or https://jellyfin.org/docs/general/administration/hardware-acceleration/nvidia/
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      # Set the autodiscovery response domain or IP address.
+      - JELLYFIN_PublishedServerUrl=theater.dfder.tw
+    networks:
+      - appnetwork
+    # for nvidia gpu pass
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+  jackett:
+    restart: unless-stopped
+    container_name: jackett
+    image: lscr.io/linuxserver/jackett
+    ports:
+      # webui 
+      - 9117:9117
+    volumes:
+      # Path to torrent blackhole.
+      - /mnt/mydata/theaterStack/jackeetTorrents:/downloads
+      # Where Jackett should store its config file.
+      - /mnt/appdata/jackett:/config
+    environment:
+      #Allow Jackett to update inside of the container (currently recommended by Jackett and enabled by default)
+      - AUTO_UPDATE=true
+      #Optionally specify additional arguments to be passed
+      - RUN_OPTS=
+    networks:
+      - appnetwork
+  jproxy:
+    image: luckypuppy514/jproxy:latest
+    container_name: jproxy
+    restart: unless-stopped
+    ports:
+      # web ui
+      - 8117:8117
+    environment:
+      - TZ=Asia/Taipei
+      - JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      # appdata
+      - /mnt/user/appdata/jproxy:/app/database
+
+# ---
+  db:
+    image: postgres
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_NAME=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    depends_on:
+      - db
+
+
+networks:
+  appnetwork:
+    name: mynetwork
+    external: true
