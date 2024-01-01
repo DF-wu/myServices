@@ -6,11 +6,12 @@ services:
     # container ports
       - 6881:6881
       - 6881:6881/udp
-      - 8080:8080
+      - 58080:58080
       - 8118:8118
     volumes:
-    # download
-      - /mnt/disks/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
+    # download dir. 
+      # - /mnt/disks/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
+      - mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
     # appdata config
       - /mnt/appdata/binhex-qbittorrentvpn:/config 
     env_file: .env
