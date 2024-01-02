@@ -61,7 +61,7 @@ services:
               count: 1
               capabilities: [gpu]  
     # for nvidia gpu pass. 反正flag我就給爆。垃圾nv
-    runtime: nvidia
+    # runtime: nvidia   # 這個不能給 不然會爆 阿為什麼窩不知道
     # deploy:
     #   resources:
     #     reservations:
