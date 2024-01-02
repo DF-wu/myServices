@@ -18,9 +18,9 @@ services:
       - appnetwork
  
   jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
     restart: unless-stopped
     container_name: jellyfin
-    image: lscr.io/linuxserver/jellyfin:latest
     ports:
       # Http webUI.
       - 8096:8096
@@ -73,6 +73,7 @@ services:
       - RUN_OPTS=
     networks:
       - appnetwork
+
   jproxy:
     image: luckypuppy514/jproxy:latest
     container_name: jproxy
@@ -83,10 +84,12 @@ services:
     environment:
       - TZ=Asia/Taipei
       - JAVA_OPTS=-Xms512m -Xmx512m
+    networks:
+      - appnetwork
     volumes:
       # appdata
-      - /mnt
-      
+      - /mnt/appdata/jproxy:/app/database
+
 networks:
   appnetwork:
     name: mynetwork
