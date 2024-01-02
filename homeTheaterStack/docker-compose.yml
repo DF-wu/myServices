@@ -60,8 +60,8 @@ services:
             - driver: "nvidia"
               count: 1
               capabilities: [gpu]  
-    # for nvidia gpu pass.
-    # runtime: nvidia
+    # for nvidia gpu pass. 反正flag我就給爆。垃圾nv
+    runtime: nvidia
     # deploy:
     #   resources:
     #     reservations:
