@@ -10,6 +10,13 @@ services:
       - ${PWD}/portainer-ce/data:/data
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 86400
 # mynetwork lifecycle controll by portainer compose
 networks:
   appnetwork:
