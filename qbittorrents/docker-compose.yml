@@ -11,7 +11,7 @@ services:
     volumes:
     # download dir. 
       # - /mnt/disks/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
-      - mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
+      - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
     # appdata config
       - /mnt/appdata/binhex-qbittorrentvpn:/config 
     env_file: .env
