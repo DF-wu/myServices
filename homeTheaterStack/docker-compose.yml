@@ -1,3 +1,4 @@
+name: hometheaterstack
 services:
   jellyseerr: 
     image: fallenbagel/jellyseerr:latest
@@ -104,6 +105,19 @@ services:
     volumes:
       # appdata
       - /mnt/appdata/jproxy:/app/database
+
+  # This is for metatube scratching metadata. Ref: https://metatube-community.github.io/wiki/server-deployment/
+  # I use sqlite for easier deployment
+  metatube-server:
+    container_name: metatube
+    image: metatube/metatube-server:latest
+    ports:
+      - 48080:8080
+    volumes:
+      - /mnt/appdata/metatube-server/config:/config
+    command: -dsn /config/metatube.db
+
+
 
 networks:
   appnetwork:
