@@ -15,7 +15,8 @@ services:
     # appdata config
       - /mnt/appdata/binhex-qbittorrentvpn:/config 
     env_file: .env
-    
+    cap_add:
+      - NET_ADMIN
     # for NET_CAP
     # networks:
       # - appnetwork
