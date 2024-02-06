@@ -136,7 +136,8 @@ services:
       - appnetwork
     dns:
     # the default use aliyun. I replace it with my own dns
-      - 192.168.10.13
+    # my own dns seems not work. use cloudflare
+      - 1.1.1.1
     environment:
       - TZ=Asia/Taipei
       - PGID=$(id -g)
