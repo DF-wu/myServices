@@ -119,6 +119,29 @@ services:
     volumes:
       - /mnt/appdata/metatube-server/config:/config
     command: -dsn /config/metatube.db
+  
+  # Autobangumi for 自動追番。 replace my own rough download chain. REF: https://www.autobangumi.org/home/
+
+  AutoBangumi:
+    image: "ghcr.io/estrellaxd/auto_bangumi:latest"
+    container_name: AutoBangumi
+    restart: unless-stopped
+    volumes:
+      - /mnt/appdata/AutoBangumi/config:/app/config
+      # The data folder seems not used too much storage, so I just put it in the appdata  folder
+      - /mnt/appdata/AutoBangumi/data:/app/data
+    ports:
+      - "7892:7892"
+    networks:
+      - appnetwork
+    dns:
+    # the default use aliyun. I replace it with my own dns
+      - 192.168.10.13
+    environment:
+      - TZ=Asia/Taipei
+      - PGID=$(id -g)
+      - PUID=$(id -u)
+      - UMASK=022
 
 
 
