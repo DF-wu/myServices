@@ -31,6 +31,7 @@ services:
       - 7359:7359
       # Optional - Service discovery used by DNLA and clients.
       - 1900:1900
+  
     volumes:
       # Jellyfin data storage location. *This can grow very large, 50gb+ is likely for a large collection.*
       - /mnt/appdata/jellyfin:/config
@@ -41,6 +42,8 @@ services:
       - /mnt/mydata/Public/TVs:/data/tvs
       # pass downloader ACGN-online folder to auto import to library
       - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data/FinishedBox/ACGN-online:/data/ACGN-online
+      # pass autobangumi folder
+      - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data/AutoBangumi:/data/AutoBangumi
       
     environment:
       # https://github.com/linuxserver/docker-jellyfin#nvidia or https://jellyfin.org/docs/general/administration/hardware-acceleration/nvidia/
