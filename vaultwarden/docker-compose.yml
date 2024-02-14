@@ -1,25 +1,13 @@
+name: vaultwarden
 services:
-  qbt: 
-    image: binhex/arch-qbittorrentvpn
+  vaultwarden:
+    image: vaultwarden/server:latest
     restart: unless-stopped
-    ports:
-    # container ports
-      - 6881:6881
-      - 6881:6881/udp
-      - 58080:58080
-      - 8118:8118
+    container_name: vaultwarden
     volumes:
-    # download dir. 
-      # - /mnt/disks/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
-      - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
-    # appdata config
-      - /mnt/appdata/binhex-qbittorrentvpn:/config 
-    env_file: .env
-    cap_add:
-      - NET_ADMIN
-    # for NET_CAP
-    # networks:
-      # - appnetwork
+        - /mnt/appdata/vaultwarden:/data/
+    ports:
+        - 40080:80
 networks:
   appnetwork:
     name: mynetwork
