@@ -48,7 +48,7 @@ services:
       - DATABASE_NAME=teslamate
       - DATABASE_HOST=database
     ports:
-      - 3000:3000
+      - 53000:3000
     volumes:
       - teslamate-grafana-data:/var/lib/grafana
 
