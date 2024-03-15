@@ -1,0 +1,69 @@
+#  2024.3.15
+#  Author:  df
+#  Function:  teslamate
+#  Reference:  https://docs.teslamate.org/docs/installation/docker
+#  Description:
+#  1.  teslamate is a self-hosted data logger for your Tesla vehicle.
+
+# The ${DF_PASSWORD} is environment variable that I set in my portainer
+
+
+version: "3"
+
+services:
+  teslamate:
+    image: teslamate/teslamate:latest
+    restart: always
+    environment:
+      - ENCRYPTION_KEY=${DF_PASSWORD} #replace with a secure key to encrypt your Tesla API tokens
+      - DATABASE_USER=df
+      - DATABASE_PASS=${DF_PASSWORD} # password injecy from my portainer
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+      - MQTT_HOST=mosquitto
+    ports:
+      - 54000:4000
+    volumes:
+      # - ./import:/opt/app/import
+      - /mnt/appdata/teslamate:/opt/app/import
+    cap_drop:
+      - all
+
+  database:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=df
+      - POSTGRES_PASSWORD=${DF_PASSWORD} # my own password
+      - POSTGRES_DB=teslamate
+    volumes:
+      - teslamate-db:/var/lib/postgresql/data
+
+  grafana:
+    image: teslamate/grafana:latest
+    restart: always
+    environment:
+      - DATABASE_USER=df
+      - DATABASE_PASS=${DF_PASSWORD} #insert your secure database password!
+      - DATABASE_NAME=teslamate
+      - DATABASE_HOST=database
+    ports:
+      - 3000:3000
+    volumes:
+      - teslamate-grafana-data:/var/lib/grafana
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: always
+    command: mosquitto -c /mosquitto-no-auth.conf
+    # ports:
+    #   - 1883:1883
+    volumes:
+      - mosquitto-conf:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+
+volumes:
+  teslamate-db:
+  teslamate-grafana-data:
+  mosquitto-conf:
+  mosquitto-data:
