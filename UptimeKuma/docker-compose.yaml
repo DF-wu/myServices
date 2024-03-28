@@ -22,11 +22,13 @@ services:
       - /home/df/uptime-kuma-data:/app/data 
     ports:
       - 53001:3001  # <Host Port>:<Container Port>
-    networks:
-      - appnetwork
 
-networks:
-  appnetwork:
-    name: mynetwork
-    external: true
+      # oracle 1c don't have this.
+    # networks:
+    #   - appnetwork
+
+# networks:
+#   appnetwork:
+#     name: mynetwork
+#     external: true
       
