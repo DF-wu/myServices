@@ -9,7 +9,7 @@
 # It's recommended to use a reverse proxy like Nginx to serve the application.
 
 
-version: '3.3'
+# version: '3.3'
 
 services:
   uptime-kuma:
