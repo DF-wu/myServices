@@ -47,6 +47,8 @@ services:
       - DATABASE_PASS=${DF_PASSWORD} #insert your secure database password!
       - DATABASE_NAME=teslamate
       - DATABASE_HOST=database
+      # enable gzip compression
+      - GF_ENABLE_GZIP=true
     ports:
       - 53000:3000
     volumes:
@@ -61,6 +63,10 @@ services:
     volumes:
       - mosquitto-conf:/mosquitto/config
       - mosquitto-data:/mosquitto/data
+
+
+
+
 
 volumes:
   teslamate-db:
