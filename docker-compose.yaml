@@ -1,0 +1,27 @@
+# Simple docker-compose.yml
+# You can change your port or volume location
+
+# Author: DF
+# Version: 1.0
+# Date: 2024.3.28
+# Description: Uptime Kuma is a status page that monitors your websites and APIs. It's a Node.js application that uses the Express framework.
+
+version: '3.3'
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: unless-stopped
+    volumes:
+      - /mnt/appdata/uptime-kuma-data:/app/data
+    ports:
+      - 53001:3001  # <Host Port>:<Container Port>
+    networks:
+      - appnetwork
+
+networks:
+  appnetwork:
+    name: mynetwork
+    external: true
+      
