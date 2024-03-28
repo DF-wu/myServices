@@ -17,7 +17,9 @@ services:
     container_name: uptime-kuma
     restart: unless-stopped
     volumes:
-      - /mnt/appdata/uptime-kuma-data:/app/data
+      # - /mnt/appdata/uptime-kuma-data:/app/data
+      # deploy on oracle-1c, so....
+      - ~/uptime-kuma-data:/app/data 
     ports:
       - 53001:3001  # <Host Port>:<Container Port>
     networks:
