@@ -5,6 +5,9 @@
 # Version: 1.0
 # Date: 2024.3.28
 # Description: Uptime Kuma is a status page that monitors your websites and APIs. It's a Node.js application that uses the Express framework.
+# The application should be deployed in a stable environment with a public IP address.\
+# It's recommended to use a reverse proxy like Nginx to serve the application.
+
 
 version: '3.3'
 
