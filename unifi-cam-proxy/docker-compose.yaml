@@ -1,0 +1,8 @@
+version: "3.9"
+services:
+  unifi-cam-proxy:
+    restart: unless-stopped
+    image: keshavdv/unifi-cam-proxy
+    volumes:
+      - "/mnt/appdata/unifi-cam-proxy/client.pem:/client.pem"
+    command: unifi-cam-proxy --host 192.168.10.1 --cert /client.pem --token {Adoption token} rtsp -s rtsp://192.168.201.15:8554/cam'
