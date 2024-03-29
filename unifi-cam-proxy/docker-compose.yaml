@@ -5,4 +5,4 @@ services:
     image: keshavdv/unifi-cam-proxy
     volumes:
       - "/mnt/appdata/unifi-cam-proxy/client.pem:/client.pem"
-    command: unifi-cam-proxy --host 192.168.10.1 --cert /client.pem --token oYOGWN7wIkq7N35Na7Sqqw6oVXIoC1hk rtsp -s rtsp://tapocam:zxcv6319@192.168.11.109:554/stream1'
+    command: unifi-cam-proxy --host 192.168.10.1 --cert /client.pem --token oYOGWN7wIkq7N35Na7Sqqw6oVXIoC1hk rtsp -s rtsp://tapocam:zxcv6319@192.168.11.109:554/stream1
