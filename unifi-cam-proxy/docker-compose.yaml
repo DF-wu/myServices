@@ -6,6 +6,6 @@ services:
     image: keshavdv/unifi-cam-proxy:dev
     volumes:
       - /mnt/appdata/unifi-cam-proxy/client.pem:/client.pem
-    command: unifi-cam-proxy --host 192.168.10.1 --cert /client.pem --token oYOGWN7wIkq7N35Na7Sqqw6oVXIoC1hk rtsp -s rtsp://tapocam:zxcv6319@192.168.11.109:554/stream1 --ffmpeg-args='-hwaccel vaapi -hwaccel_device /dev/dri/renderD129 -hwaccel_output_format yuv420p -c:a copy -c:v copy -bsf:v '
+    command: unifi-cam-proxy --host 192.168.10.1 --cert /client.pem --token oYOGWN7wIkq7N35Na7Sqqw6oVXIoC1hk rtsp -s rtsp://tapocam:zxcv6319@192.168.11.109:554/stream1 --ffmpeg-args='-c:a copy -c:v copy -bsf:v '
     devices:
       - /dev/dri/renderD129:/dev/dri/renderD129
