@@ -1,7 +1,7 @@
 version: '3'
 services:
   netdata:
-    image: netdata/netdata
+    image: netdata/netdata:stable
     container_name: netdata
     pid: host
     network_mode: host
@@ -17,15 +17,21 @@ services:
       - netdatacache:/var/cache/netdata
       - /etc/passwd:/host/etc/passwd:ro
       - /etc/group:/host/etc/group:ro
+      - /etc/localtime:/etc/localtime:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /etc/os-release:/host/etc/os-release:ro
+      - /var/log:/host/var/log:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-
+    environment:
+      - NETDATA_CLAIM_TOKEN=btxZQGTFnRaeJg8_k3_CEL1zTlgfct2kAI0y01PhUPdzbVHPmoojfVLfAD6a1K73LZ1QjkqNaSiAQyZ166lEOHJEtjijgDN2RnY0mbzBizLBCNnDfZOEREwgUnObZp53-mnRIwI
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=11a3f43f-cf13-4686-9ad5-b42457ba72f5
 volumes:
   netdataconfig:
   netdatalib:
   netdatacache:
+
   
 # services:
 #   netdata: 
