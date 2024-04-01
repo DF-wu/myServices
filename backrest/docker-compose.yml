@@ -1,0 +1,26 @@
+# author: df
+# version: 1.0
+# date: 2024.4.1
+# description: backrest is a simple backup solution that uses restic as the backend. It provides a simple WebUI to manage backups and restore files.
+
+
+version: "3.2"
+services:
+  backrest:
+    image: garethgeorge/backrest
+    container_name: backrest
+    hostname: backrest #Use this to set the hostname instead of container ID to the config.json and WebUI.
+    volumes:
+      - /mnt/appdata/backrest/data:/data
+      - /mnt/appdata/backrest/config:/config
+      # just for performance. restic cache is stored here.
+      - ~/.cache/backrest:/cache
+      - /mnt/mydata:/userdata # mount your directories to backup somewhere in the filesystem
+      # - /MY-REPOS:/repos # (optional) mount your restic repositories somewhere in the filesystem.
+    environment:
+      - BACKREST_DATA=/data # path for backrest data. restic binary and the database are placed here.
+      - BACKREST_CONFIG=/config/config.json # path for the backrest config file.
+      - XDG_CACHE_HOME=/cache # path for the restic cache which greatly improves performance.
+    restart: unless-stopped
+    ports:
+      - 59898:9898
