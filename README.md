@@ -8,7 +8,12 @@ df home lab services 👊😎💥
 
 ## Configuration for Nvidia driver
 **!!Fuck you Nvidia!!**
-+ Esxi options
+### New discorvery !!
++ The dkms `nvidia-open-driver` in AUR is working for my system. You can just install by AUR helper easily.
+
+
+### Proprietary driver.
++ ESXI options
   + hypervisor.cpuid.v0 false
   + isolation.tools.copy.disable false   (for clipboard)
 + modprob.d 
@@ -25,8 +30,9 @@ options nvidia NVreg_EnableGpuFirmware=0
 options nvidia NVreg_OpenRmEnableUnsupportedGpus=1
 ```
 + ***IMPORTANT TO UPDATE INITRAMFS***
-  + for debian or its series = `sudo update-initramfs -u`
-  + for endeavour or arch is = `sudo dracut-rebuild`
+  + This step is to update bootloder. It loads kernal module when booting kernal
+    + for debian or its series = `sudo update-initramfs -u`
+    + for endeavour or arch is = `sudo dracut-rebuild`
 
 + driver install form Nvidia official binary installer
   + install with `-m=kernel-open` arguments
