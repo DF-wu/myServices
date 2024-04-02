@@ -12,6 +12,15 @@ df home lab services 👊😎💥
 + The dkms `nvidia-open-driver` in AUR is working for my system. You can just install by AUR helper easily.
 
 
+## TODO
++ My CI/CD toolchain  
+  + Github/gitlab ci or my jenkins?
++ Discord_CDN dockerize and deploy as a bot for discord.
+  1. a bot proxy url and publish proxyed url to target channel.
+  2. containerize.
+
+
+
 ### Proprietary driver.
 + ESXI options
   + hypervisor.cpuid.v0 false
