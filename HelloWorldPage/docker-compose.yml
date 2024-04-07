@@ -1,0 +1,14 @@
+services:
+  helloworldpage: 
+    image: nginx
+    container_name: helloworldpage
+    restart: unless-stopped
+    ports:
+    # Web UI port
+      - 58080:80
+    networks:
+      - appnetwork
+networks:
+  appnetwork:
+    name: mynetwork
+    external: true
