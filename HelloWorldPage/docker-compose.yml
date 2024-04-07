@@ -1,12 +1,12 @@
 services:
   helloworldpage: 
-    image: nginx:lastest
+    image: nginx
     container_name: helloworldpage
     restart: unless-stopped
     ports:
     # Web UI port
       - 58080:80
-    # for remote vm. no need to use this
+    # for remote vm. no need to use
     # networks:
     #   - appnetwork
 networks:
