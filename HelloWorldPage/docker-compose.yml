@@ -1,6 +1,6 @@
 services:
   helloworldpage: 
-    image: nginx
+    image: nginx:lastest
     container_name: helloworldpage
     restart: unless-stopped
     ports:
