@@ -6,8 +6,9 @@ services:
     ports:
     # Web UI port
       - 58080:80
-    networks:
-      - appnetwork
+    # for remote vm. no need to use this
+    # networks:
+    #   - appnetwork
 networks:
   appnetwork:
     name: mynetwork
