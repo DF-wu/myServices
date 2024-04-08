@@ -143,8 +143,9 @@ services:
       - 1.1.1.1
     environment:
       - TZ=Asia/Taipei
-      - PGID=$(id -g)
-      - PUID=$(id -u)
+      # the logs show the PUID and PGID is not set. use my default env
+      # - PGID=$(id -g)
+      # - PUID=$(id -u)
       - UMASK=022
 
 
