@@ -7,7 +7,7 @@ services:
       - 5487:5487
     volumes:
       # appdata 
-      - /mnt/sdaDATA/H@H:/hath
+      - /mnt/sdaDATA/H@H/database:/hath
     environment:
       - CLIENT_ID=28238
       - CLIENT_KEY=xnHXaKHndnrtXX2Ee7MU
