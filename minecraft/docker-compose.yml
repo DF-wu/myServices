@@ -12,3 +12,6 @@ services:
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - /mnt/appdata/minecraft:/data
+      #  Timezone
+      - /etc/localtime:/etc/localtime:ro 
+      - /etc/timezone:/etc/timezone:ro
