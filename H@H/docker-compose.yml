@@ -6,17 +6,10 @@ services:
     ports:
       - 5487:5487
     volumes:
-      # appdata 
       - /mnt/sdaDATA/H@H/database:/hath
     environment:
       - CLIENT_ID=28238
       - CLIENT_KEY=xnHXaKHndnrtXX2Ee7MU
-    networks:
-      - appnetwork
 
-networks:
-  appnetwork:
-    name: mynetwork
-    external: true
       
   
