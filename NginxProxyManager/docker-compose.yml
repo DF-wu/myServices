@@ -2,7 +2,7 @@ services:
   nginxproxymanager: 
     image: jlesage/nginx-proxy-manager
     container_name: nginxproxymanager
-    restart: unless-stopped
+    restart: always
     ports:
       # web ui : Port used to access the web interface of the application.NOTE: This applies only when Network Type is set to Bridge. For other network types, port 8181 should be used instead.
       - 7818:8181

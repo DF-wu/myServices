@@ -2,10 +2,11 @@ version: "3.3"
 services:
   portainer_agent:
     image: portainer/agent
+    restart: always
     container_name: portainer_agent
     ports:
       - 29001:9001
-    restart: always
+    
     volumes:
       # To enable host management. Ref: https://docs.portainer.io/user/docker/host/setup#enable-host-management-features
       - /:/host
