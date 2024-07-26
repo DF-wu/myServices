@@ -1,9 +1,9 @@
 #!/bin/bash
 # do it before start photoPrism
 
-rm -r ./built-ui-componets
+rm -rf ./built-ui-componets
 mkdir ./built-ui-componets
-rm -r ./photoprism_src
+rm -rf ./photoprism_src
 git clone --branch release https://github.com/photoprism/photoprism.git ./photoprism_src
 pushd photoprism_src
 sed -i '/name: "Test",/a\  sponsor: true,' ./frontend/src/common/config.js
