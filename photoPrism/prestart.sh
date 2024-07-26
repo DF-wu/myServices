@@ -32,7 +32,7 @@ echo "Building front-end application with Docker..."　| lolcat
 docker run --rm \
   -v ./photoprism_src:/workspace \
   --entrypoint /bin/sh \
-  node:lts-alpine -c "cd /workspace/frontend && npm i && npm run build"
+  node:lts-alpine -c "cd /workspace/frontend && npm ci --no-update-notifier --no-audit && env NODE_ENV=production npm run build"
 
 # Remove old build results
 echo "Removing old build results..."         | lolcat
