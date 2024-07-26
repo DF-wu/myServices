@@ -12,6 +12,6 @@ docker run --rm \
   -v ./photoprism_src:/workspace \
   --entrypoint /bin/sh \
   node:lts-alpine -c "cd /workspace/frontend && npm i && npm run build"
-cp -r ./photoprism_src/assets/static/build ./built-ui-componets
+cp -r ./photoprism_src/assets/static/build /mnt/appdata/photoprism/df-built-ui-componets 
 
 
