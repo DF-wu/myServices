@@ -17,6 +17,8 @@ services:
     # Photo Import Folder:
     # Only if you want to use the Import function of PhotoPrism (ATTENTION: Don't put the import folder in a subdirectory of the storage folder for your images!)
       - /mnt/mydata/photoprism/Import:/photoprism/import
+    # inject with my built ui compoments  
+      - ./built-ui-componets:/opt/photoprism/assets/static/build:ro
     env_file: 
       - .env
     networks:
