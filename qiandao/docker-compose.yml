@@ -3,7 +3,7 @@
 # date: 2024.8.7
 # description: pt站簽到服務
 # doc: https://qd-today.github.io/qd/zh_CN/guide/deployment.html
-# repo
+# repo 
 
 version: "3"
 
