@@ -18,11 +18,11 @@ services:
     environment:
       NVIDIA_VISIBLE_DEVICES: "all"
     command:
-      - "--language zh"
-      - "--log-format '%(asctime)s [%(levelname)s]%(message)s' "
-      - "--device cuda"
-      - "--model medium"
-      - "--initial-prompt 以下是基於台灣繁體中文的語音句子"
+      - "--language=zh"
+      - "--log-format='%(asctime)s [%(levelname)s]%(message)s' "
+      - "--device=cuda"
+      - "--model=medium"
+      - "--initial-prompt=以下是基於台灣繁體中文的語音句子"
     deploy:
       resources:
         reservations:
