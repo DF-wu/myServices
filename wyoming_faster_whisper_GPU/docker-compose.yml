@@ -9,6 +9,7 @@ version: '3.8'
 services:
   whisper:
     image: ghcr.io/hass-demacia/wyoming_faster_whisper:dev
+    restart: unless-stopped
     container_name: whisper
     ports:
       - "10300:10300"
