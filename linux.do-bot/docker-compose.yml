@@ -1,0 +1,24 @@
+# author: df
+# version: 1.0
+# date: 2024.8.19
+# description: linux-do-bot for keep alive in linux.do
+
+
+# Run by 
+
+version: '3'
+services:
+  app:
+    build: .
+    container_name: linux-do-bot-container
+    environment:
+      - LINUXDO_USERNAME=${DF_ID}
+      - LINUXDO_PASSWORD=${DF_PASSWORD}
+      - LIKE_PROBABILITY=0.1
+      - REPLY_PROBABILITY=0
+      - COLLECT_PROBABILITY=0.1
+      - MAX_TOPICS=64
+      - USE_WXPUSHER=false
+      - APP_TOKEN=your_app_token
+      - TOPIC_ID=your_topic_id
+    command: python main.py
