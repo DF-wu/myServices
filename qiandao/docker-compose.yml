@@ -30,7 +30,7 @@ services:
       # - DISPLAY_IMPORT_WARNING=True
       # - USER0ISADMIN=True
       # - STATIC_URL_PREFIX=/static/
-      - DOMAIN=*.dfder.tw
+      - DOMAIN=dfder.tw
       # - COOKIE_DAY=5
       # - COOKIE_SECURE_MODE=False
       - COOKIE_SECRET=df
