@@ -2,7 +2,7 @@
 # version: 1.0
 # date: 2024.8.19
 # description: linux-do-bot for keep alive in linux.do
-
+# doc: https://github.com/lee0692/linux-do-bot
 
 version: '3'
 services:
