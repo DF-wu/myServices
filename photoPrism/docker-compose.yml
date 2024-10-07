@@ -25,7 +25,7 @@ services:
       # - /mnt/mydata/photoprism/Import:/photoprism/import
 
 
-    # # no auto buidl script now!
+    # no auto buidl script.  disable now
     # # inject with my built ui compoments. no auto buidl script now!
     #   - /mnt/appdata/photoprism/df-built-ui-componets:/opt/photoprism/assets/static/build:ro
     env_file: 
