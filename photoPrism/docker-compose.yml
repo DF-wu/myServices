@@ -9,16 +9,25 @@ services:
     # WebUI:
     volumes:
     # DATA : SERVICE IS ON AXLOTL!!!!!
-    # Storage PATH for generated files like cache and index (Keep cache, settings and database)
+    # /photoprism/storage generated files like cache and index (Keep cache, settings and database)
       - /mnt/appdata/photoprism:/photoprism/storage
+
     # Storage Path
+      # use  fastpool  to speedup
+      - /mnt/fastpool/photoprism/Import:/photoprism/import
+      - /mnt/fastpool/photoprism/Pictures:/photoprism/originals
+
     # Path to your images and storage folder
-      - /mnt/mydata/photoprism/Pictures:/photoprism/originals
+      # - /mnt/mydata/photoprism/Pictures:/photoprism/originals
+
     # Photo Import Folder:
     # Only if you want to use the Import function of PhotoPrism (ATTENTION: Don't put the import folder in a subdirectory of the storage folder for your images!)
-      - /mnt/mydata/photoprism/Import:/photoprism/import
-    # inject with my built ui compoments  
-      - /mnt/appdata/photoprism/df-built-ui-componets:/opt/photoprism/assets/static/build:ro
+      # - /mnt/mydata/photoprism/Import:/photoprism/import
+
+
+    # # no auto buidl script now!
+    # # inject with my built ui compoments. no auto buidl script now!
+    #   - /mnt/appdata/photoprism/df-built-ui-componets:/opt/photoprism/assets/static/build:ro
     env_file: 
       - .env
     networks:
