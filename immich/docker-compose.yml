@@ -45,11 +45,12 @@ services:
 # This container requires an external application to be run separately.
 # By default, ports for the databases are opened, be careful when deploying it
 # Redis:
-  immich-redis:
+  redis:
+    container_name: immich_redis
     image: redis
     ports:
       - 6379:6379
-    container_name: redis
+    
 # PostgreSQL 14:
   postgres14:
     image: tensorchord/pgvecto-rs:pg14-v0.2.0
