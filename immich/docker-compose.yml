@@ -45,7 +45,7 @@ services:
 # This container requires an external application to be run separately.
 # By default, ports for the databases are opened, be careful when deploying it
 # Redis:
-  redis:
+  immich-redis:
     image: redis
     ports:
       - 6379:6379
