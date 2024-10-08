@@ -1,0 +1,73 @@
+# author : df
+# version: 1.0
+# date: 2024.10.8
+# description: immich photo manager
+# doc: https://github.com/imagegenius/docker-immich/
+# This is the community aio version
+
+
+---
+services:
+  immich:
+    image: ghcr.io/imagegenius/immich:latest
+    container_name: immich
+    networks:
+      - appnetwork
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Taipei
+      - DB_HOSTNAME=192.168.1.x
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_DATABASE_NAME=immich
+      - REDIS_HOSTNAME=192.168.1.x
+      - DB_PORT=5432 #optional  
+      - REDIS_PORT=6379 #optional
+      - REDIS_PASSWORD= #optional
+      - MACHINE_LEARNING_HOST=0.0.0.0 #optional
+      - MACHINE_LEARNING_PORT=3003 #optional
+      - MACHINE_LEARNING_WORKERS=1 #optional
+      - MACHINE_LEARNING_WORKER_TIMEOUT=120 #optional
+    volumes:
+      - /mnt/appdata/immich/config:/config
+      - /mnt/appdata/immich/photos:/photos
+      - /mnt/appdata/immich/libraries:/libraries #optional
+    ports:
+      - 38080:8080
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: "nvidia"
+              count: 1
+              capabilities: [gpu]
+
+# This container requires an external application to be run separately.
+# By default, ports for the databases are opened, be careful when deploying it
+# Redis:
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    container_name: redis
+# PostgreSQL 14:
+  postgres14:
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    ports:
+      - 5432:5432
+    container_name: postgres14
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: immich
+    volumes:
+      - /mnt/appdata/immich/postgres:/var/lib/postgresql/data
+
+networks:
+  appnetwork:
+    name: mynetwork
+    external: true
+      
+
