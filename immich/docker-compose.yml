@@ -15,11 +15,11 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Asia/Taipei
-      - DB_HOSTNAME=192.168.1.x
+      - DB_HOSTNAME=postgres14
       - DB_USERNAME=postgres
       - DB_PASSWORD=postgres
       - DB_DATABASE_NAME=immich
-      - REDIS_HOSTNAME=192.168.1.x
+      - REDIS_HOSTNAME=redis
       - DB_PORT=5432 #optional  
       - REDIS_PORT=6379 #optional
       - REDIS_PASSWORD= #optional
