@@ -24,7 +24,7 @@ services:
     env_file:
       - .env
     ports:
-      - 52283:3001
+      - 52283:2283
     depends_on:
       - redis
       - database
