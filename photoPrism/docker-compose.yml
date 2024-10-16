@@ -13,10 +13,14 @@ services:
       - /mnt/appdata/photoprism:/photoprism/storage
 
     # Storage Path
-      # use  fastpool  to speedup
+    # use  fastpool  to speedup instead of HDD array.
       - /mnt/fastpool/photoprism/Import:/photoprism/import
-      - /mnt/fastpool/photoprism/Pictures:/photoprism/originals
 
+      # - /mnt/fastpool/photoprism/Pictures:/photoprism/originals
+      # I move the files to /mnt/fastpool/HomePhotos. Then  mount it to Photoprism .
+      - /mnt/fastpool/HomePhotos:/photoprism/originals
+
+      
     # Path to your images and storage folder
       # - /mnt/mydata/photoprism/Pictures:/photoprism/originals
 
