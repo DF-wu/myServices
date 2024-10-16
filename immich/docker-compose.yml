@@ -16,6 +16,11 @@ services:
       # Do not edit the next line. If you want to change the media storage location on your system, edit the value of UPLOAD_LOCATION in the .env file
       - ${UPLOAD_LOCATION}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
+      
+      # mount my photos to immich server with External Library
+      # doc: https://immich.app/docs/features/libraries/#external-libraries
+      # add read-only permission in case of my stupid
+      - /mnt/fastpool/HomePhotos:/mnt/media/HomePhotos:ro
     env_file:
       - .env
     ports:
@@ -44,7 +49,7 @@ services:
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-cuda
     volumes:
       - ${MODEL_CACHE}:/cache
-    env_file:
+    env_file: 
       - .env
     restart: always
     healthcheck:
