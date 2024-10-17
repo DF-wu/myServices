@@ -19,7 +19,7 @@ services:
       
       # mount my photos to immich server with External Library
       # doc: https://immich.app/docs/features/libraries/#external-libraries
-      # add read-only permission in case of my stupid
+      # add read-only permission in case of my stupidity
       - /mnt/fastpool/HomePhotos:/mnt/media/HomePhotos:ro
     env_file:
       - .env
