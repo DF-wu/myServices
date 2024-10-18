@@ -13,11 +13,11 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Asia/Taipei
-      - DB_HOSTNAME=postgres14
+      - DB_HOSTNAME=immich-aio-postgres14
       - DB_USERNAME=postgres
       - DB_PASSWORD=postgres
       - DB_DATABASE_NAME=immich
-      - REDIS_HOSTNAME=redis
+      - REDIS_HOSTNAME=immich-aio-redis
       - DB_PORT=5432 #optional
       - REDIS_PORT=6379 #optional
       - REDIS_PASSWORD= #optional
@@ -38,17 +38,17 @@ services:
 # This container requires an external application to be run separately.
 # By default, ports for the databases are opened, be careful when deploying it
 # Redis:
-  redis:
+  immich-aio-redis:
     image: redis
     ports:
       - 6379:6379
-    container_name: redis
+    container_name: immich-aio-redis
 # PostgreSQL 14:
-  postgres14:
+  immich-aio-postgres14:
     image: tensorchord/pgvecto-rs:pg14-v0.3.0
     ports:
       - 5432:5432
-    container_name: postgres14
+    container_name: immich-aio-postgres14
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
