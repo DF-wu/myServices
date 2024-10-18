@@ -55,7 +55,7 @@ services:
     container_name: immich-aio-redis
 # PostgreSQL 14:
   immich-aio-postgres14:
-    image: tensorchord/pgvecto-rs:pg14-v0.3.0
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0
     ports:
       - 5432:5432
     container_name: immich-aio-postgres14
