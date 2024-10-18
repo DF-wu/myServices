@@ -34,6 +34,16 @@ services:
     ports:
       - 38080:8080
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities:
+                - gpu
+                - compute
+                - video
 
 # This container requires an external application to be run separately.
 # By default, ports for the databases are opened, be careful when deploying it
