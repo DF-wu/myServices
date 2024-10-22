@@ -6,6 +6,12 @@ df home lab services 👊😎💥
 2. set up `.env.sensitive` or no secret be loaded.
 3. `crontab` and `@restart` is a simple way to do it.
 
+
+## Esxi config
++ for ssd TRIM optimization. set below options to 1 (enable).
+  + `HBR.UnmapOptimization`
+  + `VMFS3.EnableBlockDelete`
+
 ## Configuration for Nvidia driver
 **!!Fuck you Nvidia!!**
 ### New discorvery !!
