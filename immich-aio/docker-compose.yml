@@ -35,7 +35,7 @@ services:
     ports:
       - 38080:8080
     depends_on:
-      - redis
+      - immich-aio-redis
       - immich-aio-postgres14
     deploy:
       resources:
