@@ -10,6 +10,7 @@ version: "3"
 services:
   qd:
     image: qdtoday/qd:latest
+    restart: unless-stopped
     # image: qdtoday/qd:lite-latest # 精简版
     # image: qdtoday/qd:dev # 开发版
     container_name: qd
@@ -101,7 +102,7 @@ services:
 
   redis-for-qiandao:
     image: redis:alpine
-    container_name: redis
+    container_name: redis-for-qiandao
     command: ["--loglevel warning"]
     # command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
