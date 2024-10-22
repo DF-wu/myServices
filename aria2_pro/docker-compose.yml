@@ -1,6 +1,7 @@
 # TODO
 services:
-  aria2_pro: 
+  aria2_pro:
+    restart: always 
     image: p3terx/aria2-pro
     container_name: aria2_pro
     ports:
