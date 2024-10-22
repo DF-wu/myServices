@@ -116,6 +116,7 @@ services:
   # I use sqlite for easier deployment
   metatube-server:
     container_name: metatube
+    restart: unless-stopped
     image: metatube/metatube-server:latest
     ports:
       - 48080:8080
