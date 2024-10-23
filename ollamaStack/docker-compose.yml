@@ -1,0 +1,25 @@
+# author : df
+# version: 1.0
+# date: 2024.10.24
+# description: open-webui
+# doc: https://github.com/open-webui/open-webui
+
+version: '3.8'
+
+services:
+  llmStack:
+    image: ghcr.io/open-webui/open-webui:ollama
+    container_name: open-webui-llmStack
+    ports:
+      - "3000:8080"
+    volumes:
+      - /mnt/appdata/llmStack/ollama:/root/.ollama
+      - /mnt/appdata/llmStack/open-webui:/app/backend/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
