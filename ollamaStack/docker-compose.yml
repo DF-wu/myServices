@@ -7,14 +7,14 @@
 version: '3.8'
 
 services:
-  llmStack:
+  ollamaStack:
     image: ghcr.io/open-webui/open-webui:ollama
-    container_name: open-webui-llmStack
+    container_name: open-webui-ollamaStack
     ports:
       - "3000:8080"
     volumes:
-      - /mnt/appdata/llmStack/ollama:/root/.ollama
-      - /mnt/appdata/llmStack/open-webui:/app/backend/data
+      - /mnt/appdata/ollamaStack/ollama:/root/.ollama
+      - /mnt/appdata/ollamaStack/open-webui:/app/backend/data
     deploy:
       resources:
         reservations:
