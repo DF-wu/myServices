@@ -11,7 +11,7 @@ services:
     image: ghcr.io/open-webui/open-webui:ollama
     container_name: open-webui-ollamaStack
     ports:
-      - "3000:8080"
+      - "43000:8080"
     volumes:
       - /mnt/appdata/ollamaStack/ollama:/root/.ollama
       - /mnt/appdata/ollamaStack/open-webui:/app/backend/data
