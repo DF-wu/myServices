@@ -1,0 +1,12 @@
+# doc: https://github.com/aurora-develop/Duck2api/blob/main/docker-compose.yml
+# free ai model use
+
+version: '3'
+
+services:
+  app:
+    image: ghcr.io/aurora-develop/duck2api:latest
+    container_name: duck2api
+    restart: unless-stopped
+    ports:
+      - '28080:8080'
