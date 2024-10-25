@@ -38,6 +38,6 @@ services:
     container_name: duck2api
     restart: unless-stopped
     ports:
-      - '28080:28080'
+      - 28080:8081
     environment:
       - Authorization=123
