@@ -32,12 +32,3 @@ services:
     ports:
       - "33000:3000"
     restart: unless-stopped
-
-  duck2api:
-    image: ghcr.io/aurora-develop/duck2api:latest
-    container_name: duck2api
-    restart: unless-stopped
-    ports:
-      - 28080:8081
-    environment:
-      - Authorization=123
