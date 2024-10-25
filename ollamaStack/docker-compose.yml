@@ -23,3 +23,21 @@ services:
               count: all
               capabilities: [gpu]
     restart: unless-stopped
+
+  chatgpt-next-web:
+    image: yidadaa/chatgpt-next-web
+    environment:
+      - OPENAI_API_KEY=
+      - CODE=6319
+    ports:
+      - "33000:3000"
+    restart: unless-stopped
+
+  duck2api:
+    image: ghcr.io/aurora-develop/duck2api:latest
+    container_name: duck2api
+    restart: unless-stopped
+    ports:
+      - '28080:28080'
+    environment:
+      - Authorization=123
