@@ -8,13 +8,13 @@ version: '3.8'
 
 services:
   open-webui:
-    image: ghcr.io/open-webui/open-webui:cuda
+    image: ghcr.io/open-webui/open-webui:ollama
     container_name: open-webui-ollama
     ports:
       - "43000:8080"
     environment:
       # - OLLAMA_BASE_URL=ollama:11434
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://localhost:11434
     volumes:
       - /mnt/appdata/ollamaStack/ollama:/root/.ollama
       - /mnt/appdata/ollamaStack/open-webui:/app/backend/data
@@ -27,21 +27,21 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
   
-  ollama:
-      image: ollama/ollama
-      container_name: ollama
-      restart: always
-      ports:
-        - "11434:11434"
-      volumes:
-        - /mnt/appdata/ollamaStack/ollama:/root/.ollama
-      deploy:
-        resources:
-          reservations:
-            devices:
-              - driver: nvidia
-                count: all
-                capabilities: [gpu]
+  # ollama:
+  #     image: ollama/ollama
+  #     container_name: ollama
+  #     restart: always
+  #     ports:
+  #       - "11434:11434"
+  #     volumes:
+  #       - /mnt/appdata/ollamaStack/ollama:/root/.ollama
+  #     deploy:
+  #       resources:
+  #         reservations:
+  #           devices:
+  #             - driver: nvidia
+  #               count: all
+  #               capabilities: [gpu]
   
 
   chatgpt-next-web:
