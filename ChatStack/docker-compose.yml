@@ -47,24 +47,25 @@ services:
   
 
   # api disctrubition
-  voapi:
-    image: voapi/voapi:latest
-    container_name: voapi
+  new-api:
+    image: calciumion/new-api:latest
+    # build: .
+    container_name: new-api
     restart: always
     command: --log-dir /app/logs
     ports:
       - "43001:3000"
     volumes:
-      - ./data:/data
-      - ./logs:/app/logs
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - /mnt/appdata/ChatStack/new-api/data:/data
+      - /mnt/appdata/ChatStack/new-api/logs:/app/logs
     environment:
-      # - SQL_DSN=root:123456@tcp(host.docker.internal:3306)/voapi?charset=utf8mb4&parseTime=True&loc=Local  # 修改此行，或注释掉以使用 SQLite 作为数据库
+      # - SQL_DSN=root:123456@tcp(host.docker.internal:3306)/new-api  # 修改此行，或注释掉以使用 SQLite 作为数据库
       - REDIS_CONN_STRING=redis://redis
-      - SESSION_SECRET=123  # 启动前必须手动修改此值为随机字符串
+      - SESSION_SECRET=0  # 修改为随机字符串
       - TZ=Asia/Taipei
-
+#      - NODE_TYPE=slave  # 多机部署时从节点取消注释该行
+#      - SYNC_FREQUENCY=60  # 需要定期从数据库加载数据时取消注释该行
+#      - FRONTEND_BASE_URL=https://openai.justsong.cn  # 多机部署时从节点取消注释该行=
     depends_on:
       - redis
     healthcheck:
@@ -75,10 +76,8 @@ services:
 
   redis:
     image: redis:latest
-    container_name: voapi-redis
+    container_name: new-api-redis
     restart: always
-
-
 
 
 
