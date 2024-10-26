@@ -15,6 +15,8 @@ services:
     environment:
       # - OLLAMA_BASE_URL=ollama:11434
       - OLLAMA_BASE_URL=http://localhost:11434
+      # 聽說家這個可以解神奇的問題
+      - OPENAI_API_KEY=0
     volumes:
       - /mnt/appdata/ollamaStack/ollama:/root/.ollama
       - /mnt/appdata/ollamaStack/open-webui:/app/backend/data
