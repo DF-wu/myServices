@@ -13,7 +13,7 @@ services:
     ports:
       - "43000:8080"
     environment:
-      - OLLAMA_BASE_URL=ollama:11434
+      # - OLLAMA_BASE_URL=ollama:11434
     volumes:
       - /mnt/appdata/ollamaStack/ollama:/root/.ollama
       - /mnt/appdata/ollamaStack/open-webui:/app/backend/data
