@@ -13,9 +13,9 @@
 version: '3.7'
 
 services:
-  linux.do-keep-alive-master:
+  linux-do-keep-alive-master:
     image: oozzbb/linux.do-keep-alive:latest
-    container_name: linux.do-keep-alive
+    container_name: linux-do-keep-alive-master
     environment:
       LINUXDO_USERNAME: ${LINUXDO_USERNAME_ID1}  # 替换为你的 LinuxDO 用户名
       LINUXDO_PASSWORD: ${LINUXDO_PASSWORD_PASS1}  # 替换为你的 LinuxDO 密码
@@ -25,12 +25,12 @@ services:
     restart: unless-stopped
 
 
-  linux.do-keep-alive-vice:
+  linux-do-keep-alive-vice:
     image: oozzbb/linux.do-keep-alive:latest
-    container_name: linux.do-keep-alive
+    container_name: linux-do-keep-alive-vice
     environment:
       LINUXDO_USERNAME: ${LINUXDO_USERNAME_ID2}  # 替换为你的 LinuxDO 用户名
-      LINUXDO_PASSWORD: ${LINUXDO_PASSWORD_PASSWD2}  # 替换为你的 LinuxDO 密码
+      LINUXDO_PASSWORD: ${LINUXDO_PASSWORD_PASS2}  # 替换为你的 LinuxDO 密码
       SCROLL_DURATION: 5
       VIEW_COUNT: 500
       CRON_RULE: '0 13 * * *'
