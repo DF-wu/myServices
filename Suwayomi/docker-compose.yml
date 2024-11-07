@@ -7,7 +7,7 @@ services:
       - TZ=Asia/Taipei # Use TZ database name from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
       # Comment these out if you do not use the flaresolverr container at the bottom of this file
       - FLARESOLVERR_ENABLED=true
-      - FLARESOLVERR_URL=http://flaresolverr:8191
+      - FLARESOLVERR_URL=http://suwayomi-flaresolverr:8191
       - DEBUG=true
       - WEB_UI_ENABLED=true
       - MAX_SOURCES_IN_PARALLEL=10
@@ -35,9 +35,9 @@ services:
       - "4567:4567"
     restart: unless-stopped
 
-  flaresolverr:
+  suwayomi-flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
-    container_name: flaresolverr
+    container_name: suwayomi-flaresolverr
     environment:
       - TZ=Asia/Taipei # Use TZ database name from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
     ports:
