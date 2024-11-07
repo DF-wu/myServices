@@ -1,0 +1,45 @@
+---
+version: '3.7'
+services:
+  suwayomi:
+    image: ghcr.io/suwayomi/tachidesk:preview
+    environment:
+      - TZ=Etc/UTC # Use TZ database name from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+      # Comment these out if you do not use the flaresolverr container at the bottom of this file
+      - FLARESOLVERR_ENABLED=true
+      - FLARESOLVERR_URL=http://flaresolverr:8191
+      - DEBUG=true
+      - WEB_UI_ENABLED=true
+      - MAX_SOURCES_IN_PARALLEL=10
+#  #################################################################################################
+#
+#    !!! IMPORTANT !!!
+#     - server settings can be changed during runtime in the WebUI
+#     - providing an environment variable will OVERWRITE the current setting value when starting the container
+#
+#  #################################################################################################
+#
+#    example for setting env vars:
+#
+#      - BIND_IP=0.0.0.0
+      - BIND_PORT=4567
+#      - SOCKS_PROXY_ENABLED=false
+#      - DOWNLOAD_AS_CBZ=true
+#      - BASIC_AUTH_ENABLED=false
+#      - BASIC_AUTH_USERNAME=df
+#      - BASIC_AUTH_PASSWORD=0
+#      - EXTENSION_REPOS=["http://github.com/orginazation-name/repo-name", "http://github.com/orginazation-name-2/repo-name-2"]
+    volumes:
+      - /mnt/appdata/suwayomi:/home/suwayomi/.local/share/Tachidesk
+    ports:
+      - "4567:4567"
+    restart: unless-stopped
+    
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - TZ=Asia/Taipei # Use TZ database name from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+    ports:
+      - "8191:8191"
+    restart: unless-stopped
