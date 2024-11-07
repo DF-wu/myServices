@@ -67,6 +67,7 @@ services:
 #      - SYNC_FREQUENCY=60  # 需要定期从数据库加载数据时取消注释该行
 #      - FRONTEND_BASE_URL=https://openai.justsong.cn  # 多机部署时从节点取消注释该行=
       - DEBUG=true
+      - GIN_MODE=debug
     depends_on:
       - redis
     healthcheck:
