@@ -25,7 +25,7 @@ services:
     ports:
       # Http webUI.
       - 8096:8096
-      # ptional - Https webUI (you need to set up your own certificate).
+      # optional - Https webUI (you need to set up your own certificate).
       - 8920:8920
       # Optional - Allows clients to discover Jellyfin on the local network
       - 7359:7359
