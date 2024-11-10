@@ -1,0 +1,14 @@
+version: '3'
+services:
+  mtg-proxy:
+    image: nineseconds/mtg:2
+    container_name: mtg-proxy
+    ports:
+      - "5443:3128"
+    volumes:
+      #  for remote server deploye. remember to modify the value
+      - ./config.toml:/config.toml
+    restart: unless-stopped
+
+
+
