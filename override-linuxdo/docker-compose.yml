@@ -1,9 +1,9 @@
-# doc: https://github.com/linux-do/override
+# doc: https://github.com/linux-do/override https://linux.do/t/topic/200804
 # for ai model url inject
 
 services:
   override-app:
-    image: ghcr.io/linux-do/override:latest
+    image: ghcr.io/es-v/override:latest
     container_name: override-app
     restart: unless-stopped
     volumes:
