@@ -1,0 +1,12 @@
+# doc: https://github.com/linux-do/override
+# for ai model url inject
+
+services:
+  override-app:
+    image: ghcr.io/linux-do/override:latest
+    container_name: override-app
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/app/config.json
+    ports:
+        - "38181:8181"
