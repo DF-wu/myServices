@@ -36,7 +36,7 @@ services:
       # this is for mount my legacy google photos
       - /mnt/fastpool/GooglePhotos:/libraries/GooglePhotos:ro #optional
       # dad photos imports
-      - /mnt/fastpool/GooglePhotos:/libraries/dadPhotos:ro #optional
+      - /mnt/fastpool/immichUserMount/dadPhotos:/libraries/dadPhotos:ro #optional
  
     ports:
       - 38080:8080
