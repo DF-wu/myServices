@@ -28,14 +28,16 @@ services:
       - MACHINE_LEARNING_WORKER_TIMEOUT=120 #optional
     volumes:
       - /mnt/appdata/immich-aio/config:/config
+
       # this is the upload location
       - /mnt/appdata/immich-aio/photos:/photos
       # this is for external library
       - /mnt/fastpool/HomePhotos:/libraries/HomePhotos:ro #optional
       # this is for mount my legacy google photos
       - /mnt/fastpool/GooglePhotos:/libraries/GooglePhotos:ro #optional
-      
-      - /mmnt 
+      # dad photos imports
+      - /mnt/fastpool/GooglePhotos:/libraries/dadPhotos:ro #optional
+ 
     ports:
       - 38080:8080
     depends_on:
