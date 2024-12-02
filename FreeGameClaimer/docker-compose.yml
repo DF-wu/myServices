@@ -1,0 +1,29 @@
+# auther: df
+# date: 2024.12.3
+# description: free games claimer
+# doc: https://github.com/vogler/free-games-claimer
+
+
+version: '3' # or '2.4' if you need to support older Docker versions
+
+services:
+  free-games-claimer:
+    container_name: free-games-claimer # Optional, for explicit container naming
+    image: ghcr.io/vogler/free-games-claimer
+    pull_policy: always # Equivalent to --pull=always
+    environment:
+    # modified in portainer
+      - EMAIL=EMAIL
+      - PASSWORD=PASSWORD
+    volumes:
+      - fgc:/fgc/data # Mounted volume
+
+    ports:
+      - "6080:6080" # Exposed and mapped port
+
+    # Options that have direct equivalents:
+    #   - --rm is not directly needed in compose since compose manages lifecycles; instead, use `docker-compose up --force-recreate` or similar flags when invoking
+    #   - -it is primarily for interactive use; in a compose scenario, you'd typically run in detached mode (-d) or access the container differently for interactive shell (e.g., `docker-compose exec`)
+    
+    # If you really need to emulate -it for a compose service, consider how you interact with the service (e.g., logs, exec commands). 
+    # For more interactive scenarios in development, you might still fall back to docker run or use `docker-compose exec` for shell access.
