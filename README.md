@@ -5,9 +5,13 @@ df home lab services 👊😎💥
 1. remember to set up enviroment variable when system boot.
    1.  `DF_PASSWORD`
    2.  `IDRAC_PASSWORD`
-2. set up `.env.sensitive` or no secret be loaded.
-3. `crontab` and `@restart` is a simple way to do it.
+2. source them in `.bashrc`
 
+## cronjob
+```
+0 2 * * 0 /home/df/_serverDataAndScript/crontab/mariadb-backup.sh
+0 */6 * * * /home/df/workspace/myServices/_CRONJOBS/tsdm-autosign/tsdm-work.sh
+```
 
 ## Esxi config
 + for ssd TRIM optimization. set below options to 1 (enable).
@@ -15,8 +19,8 @@ df home lab services 👊😎💥
   + `VMFS3.EnableBlockDelete`
 
 ## Configuration for Nvidia driver
-**!!Fuck you Nvidia!!**
-### New discorvery !!
+
+#### New discorvery !!
 + The dkms `nvidia-open-driver` in AUR is working for my system. You can just install by AUR helper easily.
 
 
@@ -28,7 +32,7 @@ df home lab services 👊😎💥
   2. containerize.
 
 
-
+**!!Fuck you Nvidia!!**
 ### Proprietary driver.
 + ESXI options
   + hypervisor.cpuid.v0 false
