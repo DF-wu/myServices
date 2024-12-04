@@ -126,3 +126,6 @@ def sign_multi_post():
 
 def main_handler(event, context):
     sign_multi_post()
+    
+if __name__ == '__main__':
+    sign_multi_post()

@@ -133,3 +133,6 @@ def work_multi_post():
 
 def main_handler(event, context):
     work_multi_post()
+    
+if __name__ == '__main__':
+    work_multi_post()
