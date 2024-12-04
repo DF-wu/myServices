@@ -6,6 +6,7 @@ df home lab services 👊😎💥
    1.  `DF_PASSWORD`
    2.  `IDRAC_PASSWORD`
 2. source them in `.bashrc`
+3. remember your mariadb is in vm home disk!!!
 
 ## cronjob
 ```
