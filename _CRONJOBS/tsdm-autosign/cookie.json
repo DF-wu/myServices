@@ -1,0 +1,29 @@
+{
+    "user1": [
+        {
+            "domain": ".tsdm39.com",
+            "hostOnly": false,
+            "httpOnly": true,
+            "name": "s_gkr8_682f_auth",
+            "path": "/",
+            "sameSite": null,
+            "secure": true,
+            "session": true,
+            "storeId": null,
+            "value": "a284NqsMT5QkaGRr5d3EqLKCB6wTzT3fe6eoiONQKCtMCGwCEQNt7T5v3VcxC5c30DnJ8%2F%2BP%2F5fFajM5MU0EcNSRKPxr"
+        },
+        {
+            "domain": ".tsdm39.com",
+            "expirationDate": 1735583800.08072,
+            "hostOnly": false,
+            "httpOnly": true,
+            "name": "s_gkr8_682f_saltkey",
+            "path": "/",
+            "sameSite": null,
+            "secure": true,
+            "session": false,
+            "storeId": null,
+            "value": "qqwxdsuu"
+        }
+    ]
+}
