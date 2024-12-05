@@ -37,6 +37,9 @@ services:
       - /mnt/fastpool/GooglePhotos:/libraries/GooglePhotos:ro #optional
       # dad photos imports
       - /mnt/fastpool/immichUserMount/dadPhotos:/libraries/dadPhotos:ro #optional
+      
+      #my old phots
+      - /mnt/fastpool/immichUserMount/dfPhotos:/libraries/dfPhotos:ro #optional
  
     ports:
       - 38080:8080
