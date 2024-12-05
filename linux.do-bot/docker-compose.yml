@@ -14,7 +14,7 @@ services:
     image: 14790897/auto-read:latest
     container_name: auto-read-1
     env_file:
-      - ./1.env
+      - ./.1.env
     restart: unless-stopped
     #  replace the auther post. then run node
     command: ["/bin/bash", "-c", "sed -i 's|https://linux.do/t/topic/13716/400|https://linux.do/t/topic/1|g' /app/bypasscf.js && node /app/bypasscf.js"]
@@ -23,7 +23,7 @@ services:
     image: 14790897/auto-read:latest
     container_name: auto-read-2
     env_file:
-      - ./2.env
+      - ./.2.env
     restart: unless-stopped
     #  replace the auther post. then run node
     command: ["/bin/bash", "-c", "sed -i 's|https://linux.do/t/topic/13716/400|https://linux.do/t/topic/1|g' /app/bypasscf.js && node /app/bypasscf.js"]

@@ -9,14 +9,14 @@ WORKDIR=$(dirname $(readlink -f $0))
 cd $WORKDIR
 
 # 停止 Docker Compose
-/usr/local/bin/docker-compose down --remove-orphans --volumes
+docker-compose down --remove-orphans --volumes
 
 # 重新启动 Docker Compose
-/usr/local/bin/docker-compose up -d >> ./cron.log 2>&1
+docker-compose up -d >> ./cron.log 2>&1
 
 # 等待60分钟
 sleep 60m
-/usr/local/bin/docker-compose logs >> ./cron.log 2>&1
+docker-compose logs >> ./cron.log 2>&1
 
 # 停止 Docker Compose
-/usr/local/bin/docker-compose down --remove-orphans --volumes >> ./cron.log 2>&1
+docker-compose down --remove-orphans --volumes >> ./cron.log 2>&1
