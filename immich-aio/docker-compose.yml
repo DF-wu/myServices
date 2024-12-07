@@ -29,8 +29,17 @@ services:
     volumes:
       - /mnt/appdata/immich-aio/config:/config
 
+      # In case of potential data safty issue, I have to seperate the library, aka the photos, to zfs hdd array.
+      # 而官方有特別提到部分特別的實作 (doc: https://immich.app/docs/guides/custom-locations/)，library 和 upload 如果在相同的裝置則不推薦分開掛載
+      # 我的想法是保護原始檔案，其他資料則因為io速度而放在ssd上。
+      # 在掛載的時候要注意 override 順序的問題避免資料消失
+
       # this is the upload location
       - /mnt/appdata/immich-aio/photos:/photos
+      # this is immich library data. !!! remember do not overrider your data!!
+      - /mnt/mydata/immich-aio/photos/library:/photos/library
+
+
       # this is for external library
       - /mnt/fastpool/HomePhotos:/libraries/HomePhotos:ro #optional
       # this is for mount my legacy google photos
