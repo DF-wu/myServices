@@ -1,6 +1,6 @@
 # doc: https://github.com/linux-do/override https://linux.do/t/topic/200804
 # for ai model url inject
-
+# auth code (Oauth): Copilot-Free
 services:
   override-app:
     image: ghcr.io/es-v/override:latest
