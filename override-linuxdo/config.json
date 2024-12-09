@@ -7,14 +7,14 @@
   "codex_api_organization": "",
   "codex_api_project": "",
   "codex_max_tokens": 500,
-  "code_instruct_model": "deepseek-coder",
-  "chat_api_base": "https://api-proxy.oaipro.com/v1",
+  "code_instruct_model": "deepseek-chat",
+  "chat_api_base": "https://api.deepseek.com/beta/v1",
   "chat_api_key": "sk-xxx",
   "chat_api_organization": "",
   "chat_api_project": "",
   "chat_max_tokens": 4096,
-  "chat_model_default": "gpt-4o",
+  "chat_model_default": "deepseek-chat",
   "chat_model_map": {},
-  "chat_locale": "zh_CN",
+  "chat_locale": "zh_TW",
   "auth_token": ""
 }
