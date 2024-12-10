@@ -1,0 +1,12 @@
+# doc: https://linux.do/t/topic/67344
+
+
+version: '3.8'  # Specify the version of the Docker Compose file format
+
+services:
+  jetbrains-help:
+    image: luxcis/jetbrains-help-go  # Specify the image to use
+    ports:
+      - "56666:8080"  # Map port 8080 on the host to port 8080 in the container
+    # tty: true  # Keep the container running interactively
+    # stdin_open: true  # Allow for interactive input
