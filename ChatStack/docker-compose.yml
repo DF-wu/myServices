@@ -12,6 +12,8 @@ services:
     container_name: open-webui-ollama
     ports:
       - "43000:8080"
+      # This is to expose the ollama port
+      - "43002:11434"
     environment:
       # - OLLAMA_BASE_URL=ollama:11434
       - OLLAMA_BASE_URL=http://localhost:11434
