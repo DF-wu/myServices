@@ -39,9 +39,9 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - 28888:8888/tcp # HTTP proxy
-      - 28388:8388/tcp # Shadowsocks
-      - 28388:8388/udp # Shadowsocks
+      # - 28888:8888/tcp # HTTP proxy
+      # - 28388:8388/tcp # Shadowsocks
+      # - 28388:8388/udp # Shadowsocks
     volumes:
         # /gluetun/wireguard/wg0.conf  is the wireguard configuration file
       - /mnt/appdata/gluetun:/gluetun
@@ -77,9 +77,9 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - 28888:8888/tcp # HTTP proxy
-      - 28388:8388/tcp # Shadowsocks
-      - 28388:8388/udp # Shadowsocks
+      # - 28888:8888/tcp # HTTP proxy
+      # - 28388:8388/tcp # Shadowsocks
+      # - 28388:8388/udp # Shadowsocks
     volumes:
         # /gluetun/wireguard/wg0.conf  is the wireguard configuration file
       - /mnt/appdata/gluetun:/gluetun
