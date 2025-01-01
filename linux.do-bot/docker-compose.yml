@@ -38,7 +38,7 @@ services:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
-    ports:
+    # ports:
       # - 28888:8888/tcp # HTTP proxy
       # - 28388:8388/tcp # Shadowsocks
       # - 28388:8388/udp # Shadowsocks
@@ -76,7 +76,7 @@ services:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
-    ports:
+    # ports:
       # - 28888:8888/tcp # HTTP proxy
       # - 28388:8388/tcp # Shadowsocks
       # - 28388:8388/udp # Shadowsocks
