@@ -9,7 +9,7 @@
 services:
   linuxdo-a:
     image: ruk1ng/auto-linuxdo:latest
-    container_name: auto-linuxdo
+    container_name: auto-linuxdo-a
     environment:
       - TZ=Asia/Taipei
     volumes:
@@ -19,7 +19,7 @@ services:
 
   linuxdo-b:
     image: ruk1ng/auto-linuxdo:latest
-    container_name: auto-linuxdo
+    container_name: auto-linuxdo-b
     environment:
       - TZ=Asia/Taipei
     volumes:
