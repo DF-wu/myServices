@@ -1,0 +1,29 @@
+log:
+  dir: logs  # 日志文件存储的目录
+  level: info  # 日志记录的级别，info 表示记录一般信息
+
+linuxDo:
+  - account: XXXXXX@gmail.com  # 用户账号，用于登录
+    password: XXXXXX  # 用户密码，用于登录
+    cookiesDir: ./cookies/a  # 存储 cookies 的目录（失效会重新登录）
+    enable: true  # 是否启用该用户
+    runCron: 0 50 4 * * *  # 定时任务的 cron 表达式，表示每天 8:50 运行
+    maxPage: 32  # 最大页面数，1 * 30 = 30 条记录 (所有帖子只会在最大页面里面搜寻)
+    timeout: 120  # 总超时时间（单位：分钟）
+    singleTimeout: 5  # 单个帖子的超时时间（单位：分钟）
+    filters:
+      onlyUnseenTopic: true  # 是否仅处理未查看的主题
+      # filterCT: # 可配置多个，任一匹配
+      #   - category: 开发调优, Lv  # 根据帖子类别筛选（留空表示匹配所有，带有 , Lv 表示匹配有等级限制的， 可以使用 , Lv1 只匹配等级1）
+      #     tag:   # 根据帖子标签筛选（留空表示匹配所有）
+      #   - category: 搞七捻三  # 根据帖子类别筛选（可选）
+      #     tag: 纯水  # 根据帖子标签筛选（可选）
+    like:
+      enable: true
+      totalLimit: 50 # 点赞最大限制 最大50
+      singleLimit: 20 # 单帖点赞最大限制 最大20
+      topic: true # 给主帖点赞（只有1楼还未读的时候失效）
+      # contentR: # 给符合条件的楼层点赞（自定义正则匹配：匹配任意一个）
+      #   - (?=.*感谢).{50,} # 点赞 回复50个字数以上的并且包含感谢的帖子
+chrome:
+  headLess: true  # 是否启用无头模式（不显示浏览器界面）

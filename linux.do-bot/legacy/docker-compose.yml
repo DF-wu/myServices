@@ -1,0 +1,55 @@
+# author: df
+# version: 3.0
+# date: 2024.8.19
+# description: linux-do-bot for keep alive in linux.do
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 2.0 is dead. Miagre to new sol.
+# doc: https://github.com/14790897/auto-read-liunxdo
+# https://linux.do/t/topic/29808
+
+# i have 2 account so use it in my way
+
+services:
+  autoread-1:
+    image: 14790897/auto-read:latest
+    container_name: auto-read-1
+    env_file:
+      - ./.1.env
+    restart: unless-stopped
+    #  replace the auther post. then run node
+    command: [
+      "/bin/bash", "-c", 
+      "sed -i 's|https://linux.do/t/topic/13716/400|https://linux.do/t/topic/115562/1144|g' /app/bypasscf.js && \
+      sed -i 's|${loginUrl}/t/topic/1|https://linux.do/t/topic/115562/1144|g' /app/bypasscf.js && \
+      node /app/bypasscf.js"
+    ]
+    
+  autoread-2:
+    image: 14790897/auto-read:latest
+    container_name: auto-read-2
+    env_file:
+      - ./.2.env
+    restart: unless-stopped
+    #  replace the auther post. then run node
+    command: [
+      "/bin/bash", "-c", 
+      "sed -i 's|https://linux.do/t/topic/13716/400|https://linux.do/t/topic/115562/1144|g' /app/bypasscf.js && \
+      sed -i 's|${loginUrl}/t/topic/1|https://linux.do/t/topic/115562/1144|g' /app/bypasscf.js && \
+      node /app/bypasscf.js"
+    ]
