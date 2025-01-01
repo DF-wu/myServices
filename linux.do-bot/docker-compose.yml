@@ -45,11 +45,11 @@ services:
     volumes:
         # /gluetun/wireguard/wg0.conf  is the wireguard configuration file
       - /mnt/appdata/gluetun:/gluetun
-      - /mnt/appdata/gluetun/wireguard/tw.conf:/gluetun/wg0.conf
+      # - /mnt/appdata/gluetun/wireguard/tw.conf:/gluetun/wg0.conf
       
     environment:
       # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
-      - VPN_SERVICE_PROVIDER=custom
+      - VPN_SERVICE_PROVIDER=surfshark
       - VPN_TYPE=wireguard 
       # OpenVPN:
       # - OPENVPN_USER=
@@ -57,8 +57,9 @@ services:
       # Wireguard:
       
       # - WIREGUARD_PUBLIC_KEY=bI5kgFePO/UfyU/Apd7AYtd168PZ8MiaV97csUYGvlk=
-      # - WIREGUARD_PRIVATE_KEY= ${SURFSHARK_WIREGUARD_PRIVATE_KEY}
-      # - WIREGUARD_ADDRESSES=10.14.0.2/16
+      - WIREGUARD_PRIVATE_KEY= ${SURFSHARK_WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=10.14.0.2/16
+      - SERVER_COUNTRIES=Taiwan
       # - WIREGUARD_ENDPOINT_PORT=
       # - WIREGUARD_ENDPOINT_IP=1.2.3.4 
       # Timezone for accurate log times
@@ -83,11 +84,11 @@ services:
     volumes:
         # /gluetun/wireguard/wg0.conf  is the wireguard configuration file
       - /mnt/appdata/gluetun:/gluetun
-      - /mnt/appdata/gluetun/wireguard/jp.conf:/gluetun/wg0.conf
+      # - /mnt/appdata/gluetun/wireguard/jp.conf:/gluetun/wg0.conf
       
     environment:
       # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
-      - VPN_SERVICE_PROVIDER=custom
+      - VPN_SERVICE_PROVIDER=surfshark
       - VPN_TYPE=wireguard 
       # OpenVPN:
       # - OPENVPN_USER=
@@ -95,15 +96,16 @@ services:
       # Wireguard:
       
       # - WIREGUARD_PUBLIC_KEY=bI5kgFePO/UfyU/Apd7AYtd168PZ8MiaV97csUYGvlk=
-      # - WIREGUARD_PRIVATE_KEY= ${SURFSHARK_WIREGUARD_PRIVATE_KEY}
-      # - WIREGUARD_ADDRESSES=10.14.0.2/16
+      - WIREGUARD_PRIVATE_KEY= ${SURFSHARK_WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=10.14.0.2/16
+      - SERVER_COUNTRIES=Japan
       # - WIREGUARD_ENDPOINT_PORT=
       # - WIREGUARD_ENDPOINT_IP=1.2.3.4 
       # Timezone for accurate log times
       - TZ=Asia/Taipei
       # Server list updater
       # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
-      - UPDATER_PERIOD=
+      - UPDATER_PERIOD= 24h
 
 
 
