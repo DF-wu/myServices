@@ -10,11 +10,11 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - 8888:8888/tcp # HTTP proxy
-      - 8388:8388/tcp # Shadowsocks
-      - 8388:8388/udp # Shadowsocks
+      - 28888:8888/tcp # HTTP proxy
+      - 28388:8388/tcp # Shadowsocks
+      - 28388:8388/udp # Shadowsocks
     volumes:
-      - /yourpath:/gluetun
+      - /mnt/appdata/gluetun:/gluetun
     environment:
       # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
       - VPN_SERVICE_PROVIDER=ivpn
