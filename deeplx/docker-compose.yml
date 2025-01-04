@@ -1,0 +1,15 @@
+# author: df
+# date: 2025.1.4
+# my deeplx service with my deepl pro token
+
+
+
+services:
+  deeplx:
+    image: ghcr.io/owo-network/deeplx:latest
+    restart: always
+    ports:
+      - "51118:1188"
+    environment:
+      - TOKEN=${DEEPLX_TOKEN}
+      - DL_SESSION=${DL_SESSION}
