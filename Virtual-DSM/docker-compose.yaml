@@ -9,7 +9,7 @@ services:
     environment:
       RAM_SIZE: "3G"
       CPU_CORES: "4"
-      DISK_SIZE: "32G"
+      DISK_SIZE: "1024G"
     devices:
       - /dev/kvm
       - /dev/net/tun
