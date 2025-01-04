@@ -18,5 +18,5 @@ services:
     ports:
       - 5000:5000
     volumes:
-      - /mnt/fastpool/vdsm_disk:/storage
+      - /home/df/vdsm_disk:/storage
     stop_grace_period: 2m
