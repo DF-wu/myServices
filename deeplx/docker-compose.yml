@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
     container_name: deeplx
     ports:
-      - "51118:1188"
+      - "51188:1188"
     environment:
       - TOKEN=${DEEPLX_TOKEN}
       - DL_SESSION=${DL_SESSION}
