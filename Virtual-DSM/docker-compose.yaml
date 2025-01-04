@@ -5,6 +5,7 @@ services:
   dsm:
     container_name: dsm
     image: vdsm/virtual-dsm
+    privileged: true
     environment:
       RAM_SIZE: "3G"
       CPU_CORES: "4"
