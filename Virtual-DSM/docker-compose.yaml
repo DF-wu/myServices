@@ -1,0 +1,21 @@
+# Description: This file is used to define the configuration of the Virtual DSM container.
+# for depoying to my server.  Now it's df-cat but we will migrate to a bare-metal server.
+
+services:
+  dsm:
+    container_name: dsm
+    image: vdsm/virtual-dsm
+    environment:
+      RAM_SIZE: "3G"
+      CPU_CORES: "4"
+      DISK_SIZE: "32G"
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 5000:5000
+    volumes:
+      - /mnt/fastpool/vdsm_disk:/storage
+    stop_grace_period: 2m
