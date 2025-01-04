@@ -21,5 +21,5 @@ services:
       # init in local disk
       #- /home/df/vdsm_disk:/storage
       # move to remove disk
-      - /mnt/fastpool/vdsm_disk:/storage
+      - /mnt/mydata/vdsm_disk:/storage
     stop_grace_period: 2m
