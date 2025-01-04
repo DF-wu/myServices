@@ -18,5 +18,8 @@ services:
     ports:
       - 5000:5000
     volumes:
-      - /home/df/vdsm_disk:/storage
+      # init in local disk
+      #- /home/df/vdsm_disk:/storage
+      # move to remove disk
+      - /mnt/fastpool/vdsm_disk:/storage
     stop_grace_period: 2m
