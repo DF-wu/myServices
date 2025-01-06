@@ -49,6 +49,10 @@ services:
   
 
   # api disctrubition
+  # !!!!!!!!!!!!!!!!!!!!!
+  # I use the forked version of the new-api
+  # https://github.com/linux-do/new-api
+  # !!!!!!!!!!!!!!!!!!!!!
   new-api:
     image: calciumion/new-api:latest
     # build: .
