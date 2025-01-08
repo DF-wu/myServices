@@ -102,9 +102,9 @@ services:
       - API=${API_KEY}
       - API_URL=http://new-api:3000/v1/chat/completions
     volumes:
-      - ./user_configs:/home/user_configs
+      - /mnt/appdata/ChatStack/chatgptbot:/home/user_configs
     ports:
-      - 80:8080
+      - 43080:8080
 
 
 
