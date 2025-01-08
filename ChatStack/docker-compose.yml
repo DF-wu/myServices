@@ -96,6 +96,7 @@ services:
   chatgptbot:
     container_name: chatgptbot
     image: yym68686/chatgpt:latest
+    restart: unless-stopped
     environment:
       # secret setting in portainer
       - BOT_TOKEN=${BOT_TOKEN}
