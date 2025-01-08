@@ -103,9 +103,9 @@ services:
       - API=${API_KEY}
       - API_URL=http://new-api:3000/v1/chat/completions
       #wu family
-      - GROUP_LIST="-418602979" 
+      - GROUP_LIST=-418602979
       # me
-      - ADMIN_LIST="547663716"
+      - ADMIN_LIST=547663716
       - TITLE=true
     volumes:
       - /mnt/appdata/ChatStack/chatgptbot:/home/user_configs
