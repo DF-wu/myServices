@@ -106,8 +106,9 @@ services:
       - GROUP_LIST=-418602979
       # me
       - ADMIN_LIST=547663716
-      - TITLE=true
-      - GET_MODELS=true
+      - TITLE=True
+      - GET_MODELS=True
+      - LANGUAGE=Traditional Chinese
     volumes:
       - /mnt/appdata/ChatStack/chatgptbot:/home/user_configs
     ports:
