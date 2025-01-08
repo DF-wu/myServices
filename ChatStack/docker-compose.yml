@@ -107,6 +107,7 @@ services:
       # me
       - ADMIN_LIST=547663716
       - TITLE=true
+      - GET_MODELS=true
     volumes:
       - /mnt/appdata/ChatStack/chatgptbot:/home/user_configs
     ports:
