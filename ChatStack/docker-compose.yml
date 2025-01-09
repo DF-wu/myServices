@@ -90,7 +90,17 @@ services:
 
 
 
+# 還在評估
 
+  # chatgpt-telegram-bot:
+  #   image: ghcr.io/n3d1117/chatgpt-telegram-bot:latest
+  #   restart: unless-stopped
+  #   container_name: chatgpt-telegram-bot
+  #   volumes:
+  #     - /mnt/appdata/ChatStack/chatgpt-telegram-bot:/app
+    
+
+# 好像有點不穩定 但是支援api站分發語法 
 # doc: https://github.com/yym68686/ChatGPT-Telegram-Bot
 # for telegram bot as chat service
   chatgptbot:
