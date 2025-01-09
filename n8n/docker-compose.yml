@@ -7,6 +7,7 @@ services:
     # guide https://docs.n8n.io/hosting/installation/docker/#setting-timezone
       - TZ=Asia/Taipei
       - GENERIC_TIMEZONE=Asia/Taipei
+      - N8N_SECURE_COOKIE=false
     volumes:
       - /mnt/appdata/n8n:/home/node/.n8n
     ports:
