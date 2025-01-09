@@ -122,6 +122,8 @@ services:
       - TITLE=True
       - GET_MODELS=True
       - LANGUAGE=Traditional Chinese
+      - CODE=True
+      - ARXIV=Ture
     volumes:
       - /mnt/appdata/ChatStack/chatgptbot:/home/user_configs
     ports:
