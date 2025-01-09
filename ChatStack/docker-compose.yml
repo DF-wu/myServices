@@ -123,13 +123,15 @@ services:
       - /mnt/appdata/ChatStack/chatgptbot:/home/user_configs
     ports:
       - 43080:8080
-  discord-chatbot:
-    container_name: discord-chatbot
-    image: ghcr.io/df-wu/llmcord:latest
-    restart: unless-stopped
-    network_mode: host
-    volumes:
-      - ./config.yaml:/usr/src/app:ro
+  
+  ## if my n8n work well, I will use n8n
+  # discord-chatbot:
+  #   container_name: discord-chatbot
+  #   image: ghcr.io/df-wu/llmcord:latest
+  #   restart: unless-stopped
+  #   network_mode: host
+  #   volumes:
+  #     - ./config.yaml:/usr/src/app:ro
 
 
   chatgpt-next-web:
