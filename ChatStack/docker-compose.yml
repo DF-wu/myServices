@@ -133,7 +133,7 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
-      - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/usr/src/app:ro
+      - /mnt/appdata/ChatStack/discord-chatbot:/usr/src/app:ro
 
 
   chatgpt-next-web:
