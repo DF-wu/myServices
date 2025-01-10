@@ -1,5 +1,7 @@
 # myServices
 df home lab services 👊😎💥
+master branch is developing branch = production enviroment. YOLO
+
 
 ## note
 1. remember to set up enviroment variable when system boot.
