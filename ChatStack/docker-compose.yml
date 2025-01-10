@@ -124,6 +124,7 @@ services:
       - CODE=True
       - ARXIV=True
       - DATE=True
+      - WEB_HOOK=${WEB_HOOK}
     volumes:
       - /mnt/appdata/ChatStack/chatgptbot:/home/user_configs
     ports:
