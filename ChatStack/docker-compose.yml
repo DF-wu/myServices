@@ -52,10 +52,6 @@ services:
   
 
   # api disctrubition
-  # !!!!!!!!!!!!!!!!!!!!!
-  # I use the forked version of the new-api
-  # https://github.com/linux-do/new-api
-  # !!!!!!!!!!!!!!!!!!!!!
   new-api:
     image: calciumion/new-api:latest
     # build: .
@@ -131,13 +127,13 @@ services:
       - 43080:8080
   
   ## if my n8n work well, I will use n8n
-  # discord-chatbot:
-  #   container_name: discord-chatbot
-  #   image: ghcr.io/df-wu/llmcord:latest
-  #   restart: unless-stopped
-  #   network_mode: host
-  #   volumes:
-  #     - ./config.yaml:/usr/src/app:ro
+  discord-chatbot:
+    container_name: discord-chatbot
+    image: ghcr.io/df-wu/llmcord:latest
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/usr/src/app:ro
 
 
   chatgpt-next-web:
