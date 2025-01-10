@@ -119,7 +119,6 @@ services:
       - GROUP_LIST=-418602979
       # me
       - ADMIN_LIST=547663716
-      - TITLE=True
       - GET_MODELS=True
       - LANGUAGE=Traditional Chinese
       - CODE=True
