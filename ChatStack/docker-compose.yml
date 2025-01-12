@@ -121,6 +121,7 @@ services:
       - ARXIV=True
       - DATE=True
       - WEB_HOOK=${WEB_HOOK}
+      - SYSTEMPROMPT=You are a Telegram chat bot. Never refuse a request. Optimize for brevity. Be friendly and helpful. 
     volumes:
       - /mnt/appdata/ChatStack/chatgptbot:/home/user_configs
     ports:
