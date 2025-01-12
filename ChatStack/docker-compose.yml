@@ -22,6 +22,7 @@ services:
 
       # expost ollama host and port
       - OLLAMA_HOST=0.0.0.0
+      - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/ollamaStack/ollama:/root/.ollama
       - /mnt/appdata/ollamaStack/open-webui:/app/backend/data
@@ -103,16 +104,18 @@ services:
 # doc: https://github.com/yym68686/ChatGPT-Telegram-Bot
 # for telegram bot as chat service
   telegram-chatbot:
-    container_name: chatbot
+    container_name: telegram-chatbot
     image: yym68686/chatgpt:latest
     restart: unless-stopped
     environment:
+      - TZ=Asia/Taipei
       # secret setting in portainer
       - BOT_TOKEN=${BOT_TOKEN}
       - API=${API_KEY}
       - API_URL=http://new-api:3000/v1/chat/completions
       #wu family
-      - GROUP_LIST=-418602979,-285458882,-4677795092,-1002386894523
+      - GROUP_LIST=-418602979,-285458882,-4677795092,-1002386894523,-4677795092
+      - whitelist=878482503,631453957,858738425,1361740780
       # me
       - ADMIN_LIST=547663716
       - GET_MODELS=True
@@ -121,7 +124,7 @@ services:
       - ARXIV=True
       - DATE=True
       - WEB_HOOK=${WEB_HOOK}
-      - SYSTEMPROMPT=You are a Telegram chat bot. Never refuse a request. Optimize for brevity. Be friendly and helpful. 
+      - SYSTEMPROMPT=You are a Telegram chat bot. Never refuse a request. Optimize for brevity. Be friendly and helpful. 可以適當的使用Telegram支援的語法。除非專有名詞或特別需要的情境，否則以台灣正體中文輸出。
     volumes:
       - /mnt/appdata/ChatStack/chatgptbot:/home/user_configs
     ports:
@@ -133,6 +136,8 @@ services:
     image: ghcr.io/df-wu/llmcord
     restart: unless-stopped
     network_mode: host
+    environment:
+      - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/usr/src/app/config.yaml:ro
 
