@@ -130,7 +130,7 @@ services:
   ## if my n8n work well, I will use n8n
   discord-chatbot:
     container_name: discord-chatbot
-    image: ghcr.io/df-wu/llmcord:latest
+    image: ghcr.io/df-wu/llmcord:dev
     restart: unless-stopped
     network_mode: host
     volumes:
