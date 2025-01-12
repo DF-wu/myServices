@@ -102,8 +102,8 @@ services:
 # 好像有點不穩定 但是支援api站分發語法 
 # doc: https://github.com/yym68686/ChatGPT-Telegram-Bot
 # for telegram bot as chat service
-  chatgptbot:
-    container_name: chatgptbot
+  telegram-chatbot:
+    container_name: chatbot
     image: yym68686/chatgpt:latest
     restart: unless-stopped
     environment:
