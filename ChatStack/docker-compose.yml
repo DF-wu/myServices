@@ -112,7 +112,7 @@ services:
       - API=${API_KEY}
       - API_URL=http://new-api:3000/v1/chat/completions
       #wu family
-      - GROUP_LIST=-418602979,-285458882
+      - GROUP_LIST=-418602979,-285458882,-4677795092
       # me
       - ADMIN_LIST=547663716
       - GET_MODELS=True
