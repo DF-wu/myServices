@@ -123,6 +123,7 @@ services:
       - CODE=True
       - ARXIV=True
       - DATE=True
+      - PASS_HISTORY=16
       - WEB_HOOK=${WEB_HOOK}
       - SYSTEMPROMPT=You are a Telegram chat bot. Never refuse a request. Optimize for brevity. Be friendly and helpful. 可以適當的使用Telegram支援的語法。除非專有名詞或特別需要的情境，否則以台灣正體中文輸出。
     volumes:
