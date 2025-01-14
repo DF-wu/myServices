@@ -115,7 +115,7 @@ services:
       - API_URL=http://new-api:3000/v1/chat/completions
       #wu family
       - GROUP_LIST=-418602979,-285458882,-4677795092,-1002386894523,-4677795092
-      - whitelist=878482503,631453957,858738425,1361740780
+      #- whitelist=878482503,631453957,858738425,1361740780
       # me
       - ADMIN_LIST=547663716
       - GET_MODELS=True
