@@ -10,6 +10,7 @@ services:
   open-webui:
     image: ghcr.io/open-webui/open-webui:ollama
     container_name: open-webui-ollama
+    restart: unless-stopped
     ports:
       - "43000:8080"
       # This is to expose the ollama port
@@ -23,9 +24,16 @@ services:
       # expost ollama host and port
       - OLLAMA_HOST=0.0.0.0
       - TZ=Asia/Taipei
+      
+      - ENABLE_WEBSOCKET_SUPPORT="true"
+      - WEBSOCKET_MANAGER="redis"
+      - WEBSOCKET_REDIS_URL="redis://redis"
+
     volumes:
       - /mnt/appdata/ollamaStack/ollama:/root/.ollama
       - /mnt/appdata/ollamaStack/open-webui:/app/backend/data
+    depends_on:
+      - redis
     deploy:
       resources:
         reservations:
@@ -33,7 +41,7 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    restart: unless-stopped
+    
   
   # ollama:
   #     image: ollama/ollama
