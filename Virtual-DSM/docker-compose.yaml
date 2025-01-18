@@ -4,7 +4,7 @@
 services:
   dsm:
     container_name: dsm
-    restart: unless-stop
+    restart: unless-stopped
     image: vdsm/virtual-dsm
     privileged: true
     environment:
