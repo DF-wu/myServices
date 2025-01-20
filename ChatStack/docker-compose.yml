@@ -41,6 +41,12 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+  tika:
+    image: apache/tika:latest-full
+    container_name: tika
+    restart: unless-stopped
+    ports:
+      - "59998:9998"
     
   
   # ollama:
