@@ -25,9 +25,9 @@ services:
       - OLLAMA_HOST=0.0.0.0
       - TZ=Asia/Taipei
       
-      - ENABLE_WEBSOCKET_SUPPORT="true"
-      - WEBSOCKET_MANAGER="redis"
-      - WEBSOCKET_REDIS_URL="redis://redis"
+      # - ENABLE_WEBSOCKET_SUPPORT="true"
+      # - WEBSOCKET_MANAGER="redis"
+      # - WEBSOCKET_REDIS_URL="redis://redis"
 
     volumes:
       - /mnt/appdata/ollamaStack/ollama:/root/.ollama
