@@ -24,6 +24,11 @@ services:
       # expost ollama host and port
       - OLLAMA_HOST=0.0.0.0
       - TZ=Asia/Taipei
+
+      # replace default sqlite
+      - DATABASE_URL=postgresql://postgres:postgres@chatstack-postgres17-pgvector:5432/openwebuidb
+      - VECTOR_DB=pgvector
+
       
       - ENABLE_WEBSOCKET_SUPPORT="true"
       - WEBSOCKET_MANAGER="redis"
@@ -100,6 +105,21 @@ services:
     image: redis:latest
     container_name: new-api-redis
     restart: always
+
+
+# remember the different postgres version is not compatible
+  chatstack-postgres17-pgvector:
+    restart: unless-stopped
+    image: pgvector/pgvector:pg17
+    ports:
+      - 43020:5432
+    container_name: ChatStack-postgres17-pgvector
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: openwebui_db
+    volumes:
+      - /mnt/appdata/ChatStack/postgres:/var/lib/postgresql/data
 
 
 
