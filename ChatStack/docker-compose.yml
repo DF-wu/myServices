@@ -30,8 +30,8 @@ services:
       - WEBSOCKET_REDIS_URL="redis://redis"
 
     volumes:
-      - /mnt/appdata/ollamaStack/ollama:/root/.ollama
-      - /mnt/appdata/ollamaStack/open-webui:/app/backend/data
+      - /mnt/appdata/ChatStack/ollama:/root/.ollama
+      - /mnt/appdata/ChatStack/open-webui:/app/backend/data
     depends_on:
       - redis
     deploy:
