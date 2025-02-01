@@ -26,7 +26,7 @@ services:
       - TZ=Asia/Taipei
 
       # replace default sqlite
-      - DATABASE_URL=postgresql://postgres:postgres@chatstack-postgres17-pgvector:5432/openwebuidb
+      - DATABASE_URL=postgresql://postgres:postgres@chatstack-postgres17-pgvector:5432/openwebui_db
       - VECTOR_DB=pgvector
 
       
