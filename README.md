@@ -1,63 +1,70 @@
 # myServices
-df home lab services 👊😎💥
-master branch is developing branch = production enviroment. YOLO
+Personal Home Lab Services Configuration 👊😎💥
 
+Master branch is development branch = production environment (YOLO)
 
-## note
-1. remember to set up enviroment variable when system boot.
-   1.  `DF_PASSWORD`
-   2.  `IDRAC_PASSWORD`
-2. source them in `.bashrc`
-3. remember your mariadb is in vm home disk!!!
+## Setup Notes
+### Environment Variables
+1. Required environment variables at system boot:
+   - `DF_PASSWORD`
+   - `IDRAC_PASSWORD`
+2. Source them in `.bashrc`
+3. Note: MariaDB is installed on VM home disk
 
-## cronjob
-```
+### Cron Jobs
+```bash
+# MariaDB backup every Sunday at 2 AM
 0 2 * * 0 /home/df/_serverDataAndScript/crontab/mariadb-backup.sh
+# Auto-sign script every 6 hours
 0 */6 * * * /home/df/workspace/myServices/_CRONJOBS/tsdm-autosign/tsdm-work.sh
 ```
 
-## Esxi config
-+ for ssd TRIM optimization. set below options to 1 (enable).
-  + `HBR.UnmapOptimization`
-  + `VMFS3.EnableBlockDelete`
+## System Configuration Guide
 
-## Configuration for Nvidia driver
+### TrueNAS Notes
+⚠️ Do not enable SMB audit log. Known bug causes oversized logs affecting service integrity.
 
-#### New discorvery !!
-+ The dkms `nvidia-open-driver` in AUR is working for my system. You can just install by AUR helper easily.
+### ESXi Optimization
+For SSD TRIM optimization, set these options to 1:
+- `HBR.UnmapOptimization`
+- `VMFS3.EnableBlockDelete`
 
-
-## TODO
-+ My CI/CD toolchain  
-  + Github/gitlab ci or my jenkins?
-+ Discord_CDN dockerize and deploy as a bot for discord.
-  1. a bot proxy url and publish proxyed url to target channel.
-  2. containerize.
-
+### NVIDIA Driver Configuration
 
 **!!Fuck you Nvidia!!**
-### Proprietary driver.
-+ ESXI options
-  + hypervisor.cpuid.v0 false
-  + isolation.tools.copy.disable false   (for clipboard)
-+ modprob.d 
-  + for `nouveau` driver
-    + make sure `nouveau` driver has set to block.
-```
-    blacklist nouveau
-    options nouveau modeset=0
-```
-  + for Nvidia driver 
-```
-options nvidia NVreg_EnablePCIeGen3=1
-options nvidia NVreg_EnableGpuFirmware=0
-options nvidia NVreg_OpenRmEnableUnsupportedGpus=1
-```
-+ ***IMPORTANT TO UPDATE INITRAMFS***
-  + This step is to update bootloder. It loads kernal module when booting kernal
-    + for debian or its series = `sudo update-initramfs -u`
-    + for endeavour or arch is = `sudo dracut-rebuild`
 
-+ driver install form Nvidia official binary installer
-  + install with `-m=kernel-open` arguments
-  + credit: https://forums.developer.nvidia.com/t/solved-rminitadapter-failed-to-load-530-41-03-or-any-nvidia-modules-other-than-450-236-01-linux-via-esxi-7-0u3-passthrough-pci-gtx-1650/253239
+#### Open Source Driver
+- The DKMS `nvidia-open-driver` in AUR is working properly. Install directly via AUR helper.
+
+#### Proprietary Driver Setup
+1. ESXi Options:
+   - `hypervisor.cpuid.v0 false`
+   - `isolation.tools.copy.disable false` (for clipboard functionality)
+
+2. Modprobe Configuration:
+   - Blocking nouveau driver:
+     ```bash
+     blacklist nouveau
+     options nouveau modeset=0
+     ```
+   - NVIDIA driver options:
+     ```bash
+     options nvidia NVreg_EnablePCIeGen3=1
+     options nvidia NVreg_EnableGpuFirmware=0
+     options nvidia NVreg_OpenRmEnableUnsupportedGpus=1
+     ```
+
+3. Update Initramfs (Important):
+   - Debian-based: `sudo update-initramfs -u`
+   - Arch/Endeavour: `sudo dracut-rebuild`
+
+4. NVIDIA Official Installer:
+   - Install with `-m=kernel-open` parameter
+   - Reference: [NVIDIA Forum Solution](https://forums.developer.nvidia.com/t/solved-rminitadapter-failed-to-load-530-41-03-or-any-nvidia-modules-other-than-450-236-01-linux-via-esxi-7-0u3-passthrough-pci-gtx-1650/253239)
+
+## TODO
+- [ ] CI/CD Toolchain
+  - Choose between GitHub/GitLab CI or self-hosted Jenkins
+- [ ] Discord_CDN Dockerization
+  1. Implement bot proxy URL functionality
+  2. Containerize service
