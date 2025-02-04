@@ -73,9 +73,9 @@ services:
 
   # api disctrubition
   new-api:
-    image: calciumion/new-api:latest
+    image: calciumion/new-api-horizon:latest
     # build: .
-    container_name: new-api
+    container_name: new-api-horizon
     restart: always
     command: --log-dir /app/logs
     ports:
