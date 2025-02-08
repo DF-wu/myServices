@@ -4,108 +4,52 @@
 # description: linux-do-bot for keep alive in linux.do
 
 
-# This is the 4th generation of linux-do-bot. damn it.
-# doc: https://linux.do/t/topic/281588
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 2.0 is dead. Miagre to new sol.
+# doc: https://github.com/14790897/auto-read-liunxdo
+# https://linux.do/t/topic/29808
+
+# i have 2 account so use it in my way
+
 services:
-  linuxdo-a:
-    image: ruk1ng/auto-linuxdo:latest
-    container_name: auto-linuxdo-a
-    environment:
-      - TZ=Asia/Taipei
-    volumes:
-      - /mnt/appdata/linux.do-Bot/logs/a:/app/logs
-      - /mnt/appdata/linux.do-Bot/config-a.yaml:/app/config.yaml
-      - /mnt/appdata/linux.do-Bot/cookies/a:/app/cookies
-    network_mode: "service:gluetun-tw"
-
-  linuxdo-b:
-    image: ruk1ng/auto-linuxdo:latest
-    container_name: auto-linuxdo-b
-    environment:
-      - TZ=Asia/Taipei
-    volumes:
-      - /mnt/appdata/linux.do-Bot/logs/b:/app/logs
-      - /mnt/appdata/linux.do-Bot/config-b.yaml:/app/config.yaml
-      - /mnt/appdata/linux.do-Bot/cookies/b:/app/cookies
-    network_mode: "service:gluetun-jp"
-
-  gluetun-tw:
-    image: qmcgaw/gluetun
-    # container_name: gluetun
-    # line above must be uncommented to allow external containers to connect.
-    # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    # ports:
-      # - 28888:8888/tcp # HTTP proxy
-      # - 28388:8388/tcp # Shadowsocks
-      # - 28388:8388/udp # Shadowsocks
-    volumes:
-        # /gluetun/wireguard/wg0.conf  is the wireguard configuration file
-      - /mnt/appdata/gluetun:/gluetun
-      # - /mnt/appdata/gluetun/wireguard/tw.conf:/gluetun/wg0.conf
-      
-    environment:
-      # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
-      - VPN_SERVICE_PROVIDER=surfshark
-      - VPN_TYPE=wireguard 
-      # OpenVPN:
-      # - OPENVPN_USER=
-      # - OPENVPN_PASSWORD=
-      # Wireguard:
-      
-      # - WIREGUARD_PUBLIC_KEY=bI5kgFePO/UfyU/Apd7AYtd168PZ8MiaV97csUYGvlk=
-      - WIREGUARD_PRIVATE_KEY= ${SURFSHARK_WIREGUARD_PRIVATE_KEY}
-      - WIREGUARD_ADDRESSES=10.14.0.2/16
-      - SERVER_COUNTRIES=Taiwan
-      # - WIREGUARD_ENDPOINT_PORT=
-      # - WIREGUARD_ENDPOINT_IP=1.2.3.4 
-      # Timezone for accurate log times
-      - TZ=Asia/Taipei
-      # Server list updater
-      # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
-      - UPDATER_PERIOD= 24h
-
-  gluetun-jp:
-    image: qmcgaw/gluetun
-    # container_name: gluetun
-    # line above must be uncommented to allow external containers to connect.
-    # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    # ports:
-      # - 28888:8888/tcp # HTTP proxy
-      # - 28388:8388/tcp # Shadowsocks
-      # - 28388:8388/udp # Shadowsocks
-    volumes:
-        # /gluetun/wireguard/wg0.conf  is the wireguard configuration file
-      - /mnt/appdata/gluetun:/gluetun
-      # - /mnt/appdata/gluetun/wireguard/jp.conf:/gluetun/wg0.conf
-      
-    environment:
-      # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
-      - VPN_SERVICE_PROVIDER=surfshark
-      - VPN_TYPE=wireguard 
-      # OpenVPN:
-      # - OPENVPN_USER=
-      # - OPENVPN_PASSWORD=
-      # Wireguard:
-      
-      # - WIREGUARD_PUBLIC_KEY=bI5kgFePO/UfyU/Apd7AYtd168PZ8MiaV97csUYGvlk=
-      - WIREGUARD_PRIVATE_KEY= ${SURFSHARK_WIREGUARD_PRIVATE_KEY}
-      - WIREGUARD_ADDRESSES=10.14.0.2/16
-      - SERVER_COUNTRIES=Japan
-      # - WIREGUARD_ENDPOINT_PORT=
-      # - WIREGUARD_ENDPOINT_IP=1.2.3.4 
-      # Timezone for accurate log times
-      - TZ=Asia/Taipei
-      # Server list updater
-      # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
-      - UPDATER_PERIOD= 24h
-
-
-
+  autoread-1:
+    image: 14790897/auto-read:latest
+    container_name: auto-read-1
+    env_file:
+      - ./.1.env
+    restart: unless-stopped
+    #  replace the auther post. then run node
+    command: [
+      "/bin/bash", "-c", 
+      "sed -i 's|https://linux.do/t/topic/13716/400|https://linux.do/t/topic/115562/1144|g' /app/bypasscf.js && \
+      sed -i 's|${loginUrl}/t/topic/1|https://linux.do/t/topic/115562/1144|g' /app/bypasscf.js && \
+      node /app/bypasscf.js"
+    ]
+    
+  autoread-2:
+    image: 14790897/auto-read:latest
+    container_name: auto-read-2
+    env_file:
+      - ./.2.env
+    restart: unless-stopped
+    #  replace the auther post. then run node
+    command: [
+      "/bin/bash", "-c", 
+      "sed -i 's|https://linux.do/t/topic/13716/400|https://linux.do/t/topic/115562/1144|g' /app/bypasscf.js && \
+      sed -i 's|${loginUrl}/t/topic/1|https://linux.do/t/topic/115562/1144|g' /app/bypasscf.js && \
+      node /app/bypasscf.js"
+    ]
