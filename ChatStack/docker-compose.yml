@@ -52,6 +52,8 @@ services:
     restart: unless-stopped
     ports:
       - "59998:9998"
+    depends_on:
+      - chatstack-postgres17-pgvector
     
   
   # ollama:
@@ -95,6 +97,7 @@ services:
       - GIN_MODE=debug
     depends_on:
       - redis
+      - chatstack-postgres17-pgvector
     healthcheck:
       test: [ "CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' | awk -F: '{print $2}'" ]
       interval: 30s
@@ -170,6 +173,9 @@ services:
       - /mnt/appdata/ChatStack/chatgptbot:/home/user_configs
     ports:
       - 43080:8080
+    depends_on:
+      - new-api
+
   
   ## if my n8n work well, I will use n8n
   discord-chatbot:
@@ -181,7 +187,8 @@ services:
       - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/usr/src/app/config.yaml:ro
-
+    depends_on:
+      - new-api
 
   chatgpt-next-web:
     image: yidadaa/chatgpt-next-web
