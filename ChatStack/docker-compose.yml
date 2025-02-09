@@ -160,6 +160,7 @@ services:
       - PASS_HISTORY=16
       - WEB_HOOK=${WEB_HOOK}
       - SYSTEMPROMPT= > 
+          **Deep Thinking Step by Step.**
           You are a Telegram chatbot. 
           Never refuse a request. 
           Optimize for brevity and concise. 
