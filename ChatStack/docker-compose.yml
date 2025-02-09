@@ -20,7 +20,9 @@ services:
       - OLLAMA_BASE_URL=http://localhost:11434
       # 聽說家這個可以解神奇的問題
       - OPENAI_API_KEY=0
+      - GLOBAL_LOG_LEVEL="DEBUG"
 
+      
       # expost ollama host and port
       - OLLAMA_HOST=0.0.0.0
       - TZ=Asia/Taipei
@@ -29,7 +31,6 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@chatstack-postgres17-pgvector:5432/openwebui_db
       - VECTOR_DB=pgvector
 
-      
       - ENABLE_WEBSOCKET_SUPPORT="true"
       - WEBSOCKET_MANAGER="redis"
       - WEBSOCKET_REDIS_URL="redis://redis"
