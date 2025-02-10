@@ -16,9 +16,6 @@
 
 
 
-
-
-
 # 2.0 is dead. Miagre to new sol.
 # doc: https://github.com/14790897/auto-read-liunxdo
 # https://linux.do/t/topic/29808
@@ -36,6 +33,7 @@ services:
     command: [
       "/bin/bash", "-c", 
       "sed -i 's|https://linux.do/t/topic/13716|https://linux.do/t/topic/348419|g' /app/bypasscf.js && \
+      sed -i 's|https://linux.do/t/topic/13716|https://linux.do/t/topic/348419|g' /app/index.js && \
       node /app/bypasscf.js"
     ]
   
@@ -51,6 +49,7 @@ services:
     command: [
       "/bin/bash", "-c", 
       "sed -i 's|https://linux.do/t/topic/13716|https://linux.do/t/topic/348419|g' /app/bypasscf.js && \
+      sed -i 's|https://linux.do/t/topic/13716|https://linux.do/t/topic/348419|g' /app/index.js && \
       node /app/bypasscf.js"
     ]
     network_mode: "service:gluetun-tw"
@@ -66,6 +65,7 @@ services:
     command: [
       "/bin/bash", "-c", 
       "sed -i 's|https://linux.do/t/topic/13716|https://linux.do/t/topic/348419|g' /app/bypasscf.js && \
+      sed -i 's|https://linux.do/t/topic/13716|https://linux.do/t/topic/348419|g' /app/index.js && \
       node /app/bypasscf.js"
     ]
     network_mode: "service:gluetun-jp"
