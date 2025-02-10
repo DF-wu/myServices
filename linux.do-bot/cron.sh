@@ -15,7 +15,7 @@ docker-compose down --remove-orphans --volumes
 docker-compose up -d >> ./cron.log 2>&1
 
 
-sleep 60m
+sleep 59m
 docker-compose logs >> ./cron.log 2>&1
 
 # 停止 Docker Compose
