@@ -8,6 +8,9 @@ WORKDIR=$(dirname $(readlink -f $0))
 # 进入工作目录
 cd $WORKDIR
 
+# make sure the git directory is up-to-date.
+git pull
+
 # 停止 Docker Compose
 docker-compose down --remove-orphans --volumes
 
