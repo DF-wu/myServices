@@ -22,7 +22,6 @@ services:
       - OPENAI_API_KEY=0
       - GLOBAL_LOG_LEVEL="DEBUG"
 
-      
       # expost ollama host and port
       - OLLAMA_HOST=0.0.0.0
       - TZ=Asia/Taipei
