@@ -73,7 +73,7 @@ services:
   #               capabilities: [gpu]
   
 
-  # api disctrubition
+  # api distributor
   new-api:
     image: calciumion/new-api-horizon:latest
     # build: .
