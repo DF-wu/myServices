@@ -41,7 +41,7 @@ services:
       - /mnt/appdata/ChatStack/open-webui:/app/backend/data
     depends_on:
       redis:
-        condition: service_healthy
+        condition: service_started
     deploy:
       resources:
         reservations:
@@ -100,9 +100,9 @@ services:
       - GIN_MODE=debug
     depends_on:
       redis:
-        condition: service_healthy
+        condition: service_started
       chatstack-postgres17-pgvector:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: [ "CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' | awk -F: '{print $2}'" ]
       interval: 30s
@@ -183,7 +183,7 @@ services:
       - 43080:8080
     depends_on:
       new-api:
-        condition: service_healthy
+        condition: service_started
 
   
   ## if my n8n work well, I will use n8n
@@ -198,7 +198,7 @@ services:
       - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/usr/src/app/config.yaml:ro
     depends_on:
       new-api:
-        condition: service_healthy
+        condition: service_started
 
   chatgpt-next-web:
     image: yidadaa/chatgpt-next-web
