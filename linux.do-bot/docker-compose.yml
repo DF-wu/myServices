@@ -27,6 +27,7 @@ services:
     image: 14790897/auto-read:latest
     container_name: auto-read-1
     env_file:
+      - ./.env
       - ./.1.env
     restart: unless-stopped
     #  replace the auther post. then run node
@@ -43,6 +44,7 @@ services:
     image: 14790897/auto-read:latest
     container_name: auto-read-2
     env_file:
+      - ./.env
       - ./.2.env
     restart: unless-stopped
     #  replace the auther post. then run node
@@ -59,6 +61,7 @@ services:
     image: 14790897/auto-read:latest
     container_name: auto-read-3
     env_file:
+      - ./.env
       - ./.3.env
     restart: unless-stopped
     #  replace the auther post. then run node
@@ -82,7 +85,7 @@ services:
     cap_add:
       - NET_ADMIN
     env_file:
-      - ./.env
+      - ./.secret.env
     devices:
       - /dev/net/tun:/dev/net/tun
     # ports:
@@ -123,7 +126,7 @@ services:
     cap_add:
       - NET_ADMIN
     env_file:
-      - ./.env
+      - ./.secret.env
     devices:
       - /dev/net/tun:/dev/net/tun
     # ports:
