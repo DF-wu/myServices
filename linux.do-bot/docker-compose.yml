@@ -86,6 +86,7 @@ services:
       - NET_ADMIN
     env_file:
       - ./.secret.env
+      - ./.secret.env.local
     devices:
       - /dev/net/tun:/dev/net/tun
     # ports:
@@ -127,6 +128,7 @@ services:
       - NET_ADMIN
     env_file:
       - ./.secret.env
+      - ./.secret.env.local
     devices:
       - /dev/net/tun:/dev/net/tun
     # ports:
