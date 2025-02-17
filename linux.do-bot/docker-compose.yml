@@ -28,7 +28,7 @@ services:
     container_name: auto-read-1
     env_file:
       - ./.env
-      - ./.1.env
+      - ./.1.env.local
     restart: unless-stopped
     #  replace the auther post. then run node
     command: [
@@ -45,7 +45,7 @@ services:
     container_name: auto-read-2
     env_file:
       - ./.env
-      - ./.2.env
+      - ./.2.env.local
     restart: unless-stopped
     #  replace the auther post. then run node
     command: [
@@ -62,7 +62,7 @@ services:
     container_name: auto-read-3
     env_file:
       - ./.env
-      - ./.3.env
+      - ./.3.env.local
     restart: unless-stopped
     #  replace the auther post. then run node
     command: [
