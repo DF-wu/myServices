@@ -40,7 +40,8 @@ services:
       - /mnt/appdata/ChatStack/ollama:/root/.ollama
       - /mnt/appdata/ChatStack/open-webui:/app/backend/data
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     deploy:
       resources:
         reservations:
@@ -98,8 +99,10 @@ services:
       - DEBUG=true
       - GIN_MODE=debug
     depends_on:
-      - redis
-      - chatstack-postgres17-pgvector
+      redis:
+        condition: service_healthy
+      chatstack-postgres17-pgvector:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' | awk -F: '{print $2}'" ]
       interval: 30s
@@ -179,7 +182,8 @@ services:
     ports:
       - 43080:8080
     depends_on:
-      - new-api
+      new-api:
+        condition: service_healthy
 
   
   ## if my n8n work well, I will use n8n
@@ -193,7 +197,8 @@ services:
     volumes:
       - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/usr/src/app/config.yaml:ro
     depends_on:
-      - new-api
+      new-api:
+        condition: service_healthy
 
   chatgpt-next-web:
     image: yidadaa/chatgpt-next-web
