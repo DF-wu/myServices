@@ -21,6 +21,9 @@ Master branch is development branch = production environment (YOLO)
 
 ## System Configuration Guide
 
+### fstab, autofs, mount option
++ SMB cause weird issue when docker bind. Use NFS instead to save my life.
+
 ### TrueNAS Notes
 ⚠️ Do not enable SMB audit log. Known bug causes oversized logs affecting service integrity.
 
