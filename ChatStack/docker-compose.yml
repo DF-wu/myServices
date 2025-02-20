@@ -34,7 +34,7 @@ services:
 
       - ENABLE_WEBSOCKET_SUPPORT="true"
       - WEBSOCKET_MANAGER="redis"
-      - WEBSOCKET_REDIS_URL="redis://redis"
+      - WEBSOCKET_REDIS_URL="redis://redis:6379/1"
 
     volumes:
       - /mnt/appdata/ChatStack/ollama:/root/.ollama
@@ -192,6 +192,8 @@ services:
     image: ghcr.io/df-wu/llmcord
     restart: unless-stopped
     network_mode: host
+    env_file:
+      - .env
     environment:
       - TZ=Asia/Taipei
     volumes:
