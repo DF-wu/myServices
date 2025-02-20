@@ -23,7 +23,7 @@ services:
       - GLOBAL_LOG_LEVEL="DEBUG"
 
 
-      - GEMINI_SAFETY_SETTING="OFF"
+
       # expost ollama host and port
       - OLLAMA_HOST=0.0.0.0
       - TZ=Asia/Taipei
@@ -98,6 +98,9 @@ services:
 #      - FRONTEND_BASE_URL=https://openai.justsong.cn  # 多机部署时从节点取消注释该行=
       - DEBUG=true
       - GIN_MODE=debug
+
+      
+      - GEMINI_SAFETY_SETTING="OFF"
     depends_on:
       redis:
         condition: service_started
