@@ -2,7 +2,7 @@ version: "3"
 services:
   portainer:
     container_name: portainer
-    image: portainer/portainer-ce:latest
+    image: portainer/portainer-ce:lts
     restart: always
     ports:
       - 9443:9443
