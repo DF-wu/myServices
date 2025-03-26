@@ -5,7 +5,10 @@ services:
     image: portainer/portainer-ce:lts
     restart: always
     ports:
+    # https
       - 9443:9443
+    # http
+      - 9000:9000
     volumes:
     # don't put in this git repo 
       # - ${PWD}/portainer-ce/data:/data
