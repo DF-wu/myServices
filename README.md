@@ -32,6 +32,60 @@ For SSD TRIM optimization, set these options to 1:
 - `HBR.UnmapOptimization`
 - `VMFS3.EnableBlockDelete`
 
+
+### docker registry-mirror
+docker daemon.json
+```json
+{
+ "registry-mirrors": [
+        "https://mirror.gcr.io",
+        "https://public.ecr.aws",
+        "https://quay.io",
+        "https://registry.redhat.io",
+        "https://registry.access.redhat.com",
+        "https://huecker.io",
+        "https://dockerhub.timeweb.cloud",
+        "https://hub.fast360.xyz",
+        "https://dockerproxy.net",
+        "https://dockerpull.cn",
+        "https://docker.1panel.dev",
+        "https://docker.foreverlink.love",
+        "https://docker.fxxk.dedyn.io",
+        "https://docker.xn--6oq72ry9d5zx.cn",
+        "https://docker.zhai.cm",
+        "https://docker.5z5f.com",
+        "https://a.ussh.net",
+        "https://docker.cloudlayer.icu",
+        "https://hub.littlediary.cn",
+        "https://hub.crdz.gq",
+        "https://docker.unsee.tech",
+        "https://docker.kejilion.pro",
+        "https://registry.dockermirror.com",
+        "https://hub.rat.dev",
+        "https://dhub.kubesre.xyz",
+        "https://docker.nastool.de",
+        "https://docker.udayun.com",
+        "https://docker.rainbond.cc",
+        "https://hub.geekery.cn",
+        "https://docker.1panelproxy.com",
+        "https://atomhub.openatom.cn",
+        "https://docker.m.daocloud.io",
+        "https://docker.1ms.run",
+        "https://docker.linkedbus.com",
+        "https://dytt.online",
+        "https://func.ink",
+        "https://lispy.org",
+        "https://docker.xiaogenban1993.com"
+    ]
+}
+
+```
+
+### docker network iptable issue
+FREEKING OFF waste my life
+https://www.docker.com/blog/docker-engine-28-hardening-container-networking-by-default/
+`  "ip-forward-no-drop": true,`
+
 ### NVIDIA Driver Configuration
 
 **!!Fuck you Nvidia!!**
