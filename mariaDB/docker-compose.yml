@@ -19,8 +19,7 @@ services:
       # for performance
       # - /mnt/appdata/mariadb:/config
       - /home/df/_serverDataAndScript/mariadb:/config
-    networks:
-      - appnetwork
+
 # ----------below for panel use-------------- 
   phpmyadmin: 
     image: lscr.io/linuxserver/phpmyadmin
@@ -41,10 +40,3 @@ services:
       - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/phpmyadmin:/config
-    networks:
-      - appnetwork
-networks:
-  appnetwork:
-    name: mynetwork
-    external: true
-      

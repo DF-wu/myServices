@@ -21,11 +21,3 @@ services:
       - /mnt/appdata/NginxProxyManager:/config
       # - /mnt/appdata/NginxProxyManager:/data
       # - /mnt/appdata/NginxProxyManager/letsencrypt:/etc/letsencrypt
-    networks:
-      - appnetwork
-networks:
-  appnetwork:
-    name: mynetwork
-    external: true
-      
-      

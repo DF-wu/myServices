@@ -25,11 +25,6 @@ services:
     restart: unless-stopped
     ports:
       - 59898:9898
-    networks:
-      - appnetwork
-networks:
-  appnetwork:
-    name: mynetwork
-    external: true
+
       
   

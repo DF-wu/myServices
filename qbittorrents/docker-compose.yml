@@ -20,10 +20,4 @@ services:
     cap_add:
       - NET_ADMIN
     # for NET_CAP
-    # networks:
-      # - appnetwork
-networks:
-  appnetwork:
-    name: mynetwork
-    external: true
-      
+

@@ -30,9 +30,3 @@ services:
             - driver: nvidia
               capabilities: [gpu]
               count: all
-    networks:
-      - appnetwork
-networks:
-  appnetwork:
-    name: mynetwork
-    external: true

@@ -13,10 +13,3 @@ services:
       - PHP_TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/rclone:/config/rclone
-    networks:
-      - appnetwork
-networks:
-  appnetwork:
-    name: mynetwork
-    external: true
-      

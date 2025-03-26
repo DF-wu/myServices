@@ -34,8 +34,6 @@ services:
     #   - /mnt/appdata/photoprism/df-built-ui-componets:/opt/photoprism/assets/static/build:ro
     env_file: 
       - .env
-    networks:
-      - appnetwork
     devices:
       - "/dev/nvidia0:/dev/nvidia0"                 # Nvidia CUDA
       - "/dev/nvidiactl:/dev/nvidiactl"
@@ -50,9 +48,4 @@ services:
             - driver: "nvidia"
               count: 1
               capabilities: [gpu]
-networks:
-  appnetwork:
-    name: mynetwork
-    external: true
-      
 

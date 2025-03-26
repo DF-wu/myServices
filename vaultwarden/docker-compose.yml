@@ -8,8 +8,4 @@ services:
         - /mnt/appdata/vaultwarden:/data/
     ports:
         - 40080:80
-networks:
-  appnetwork:
-    name: mynetwork
-    external: true
-      
+

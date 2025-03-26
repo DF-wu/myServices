@@ -93,8 +93,6 @@ services:
       - AUTO_UPDATE=true
       #Optionally specify additional arguments to be passed
       - RUN_OPTS=
-    networks:
-      - appnetwork
 
   jproxy:
     image: luckypuppy514/jproxy:latest
@@ -150,8 +148,3 @@ services:
       - UMASK=022
 
 
-
-networks:
-  appnetwork:
-    name: mynetwork
-    external: true
