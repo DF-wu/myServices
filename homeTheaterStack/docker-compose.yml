@@ -15,9 +15,7 @@ services:
       - LOG_LEVEL=info
       # Emby users need to fill 'emby' to enable emby support! Enabling emby support will cause problems with Plex and make Jellyfin unavailable.
       - JELLYFIN_TYPE=jellyfin
-    networks:
-      - appnetwork
- 
+
   jellyfin:
     image: lscr.io/linuxserver/jellyfin:latest
     restart: unless-stopped
@@ -51,8 +49,6 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=all
       # Set the autodiscovery response domain or IP address.
       - JELLYFIN_PublishedServerUrl=theater.dfder.tw
-    networks:
-      - appnetwork
     devices:
       - "/dev/nvidia0:/dev/nvidia0"                 # Nvidia CUDA
       - "/dev/nvidiactl:/dev/nvidiactl"
@@ -104,8 +100,6 @@ services:
     environment:
       - TZ=Asia/Taipei
       - JAVA_OPTS=-Xms512m -Xmx512m
-    networks:
-      - appnetwork
     volumes:
       # appdata
       - /mnt/appdata/jproxy:/app/database
@@ -134,8 +128,6 @@ services:
       - /mnt/appdata/AutoBangumi/data:/app/data
     ports:
       - "7892:7892"
-    networks:
-      - appnetwork
     dns:
     # the default use aliyun. I replace it with my own dns
     # my own dns seems not work. use cloudflare
