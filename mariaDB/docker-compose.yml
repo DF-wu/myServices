@@ -21,8 +21,7 @@ services:
       # for performance
       # - /mnt/appdata/mariadb:/config
       - /home/df/_serverDataAndScript/mariadb:/config
-      # for load my dump data
-      - /home/df/_serverDataAndScript/dump:/mnt/dump
+
 
 # ----------below for panel use-------------- 
   phpmyadmin: 
