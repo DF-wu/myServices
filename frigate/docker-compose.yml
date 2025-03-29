@@ -31,5 +31,5 @@ services:
           devices:
             - driver: nvidia
               # device_ids: ['0'] # this is only needed when using multiple GPUs
-              count: all # number of GPUs
-              capabilities: [gpu]
+              count: 1
+              capabilities: [gpu, compute, video]

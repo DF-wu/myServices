@@ -28,5 +28,5 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              capabilities: [gpu]
-              count: all
+              count: 1
+              capabilities: [gpu, compute, video]

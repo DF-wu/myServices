@@ -60,11 +60,9 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: all
-              capabilities:
-                - gpu
-                - compute
-                - video
+              count: 1
+              capabilities: [gpu, compute, video]
+
 
 # This container requires an external application to be run separately.
 # By default, ports for the databases are opened, be careful when deploying it

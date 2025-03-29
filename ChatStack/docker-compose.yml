@@ -47,8 +47,8 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: all
-              capabilities: [gpu]
+              count: 1
+              capabilities: [gpu, compute, video]
   tika:
     image: apache/tika:latest-full
     container_name: tika
