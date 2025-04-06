@@ -267,9 +267,11 @@ services:
       - 43004:8080 # for searxng
     cap_add:
       - NET_ADMIN
-    env_file:
-      - ./.secret.env
-      - ./.secret.env.local
+
+      #  because is Portainer deployment issue, manually add the env in bashrc
+    # env_file:
+    #   - ./.secret.env
+    #   - ./.secret.env.local
     devices:
       - /dev/net/tun:/dev/net/tun
     # ports:
