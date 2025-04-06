@@ -232,8 +232,9 @@ services:
     container_name: searxng
     image: docker.io/searxng/searxng:latest
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:43004:8080"
+    #  因為使用 network_mode: "service:gluetun-jp-2"，所以不能設定 ports
+    # ports:
+    #   - "127.0.0.1:43004:8080"
     volumes:
       - /mnt/appdata/ChatStack/searxng:/etc/searxng:rw
     environment:
@@ -262,6 +263,8 @@ services:
     # container_name: gluetun
     # line above must be uncommented to allow external containers to connect.
     # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
+    ports:
+      - 43004:8080 # for searxng
     cap_add:
       - NET_ADMIN
     env_file:
