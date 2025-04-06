@@ -233,7 +233,7 @@ services:
     image: docker.io/searxng/searxng:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:43004:8080"
+      - "43004:8080"
     volumes:
       - /mnt/appdata/ChatStack/searxng:/etc/searxng:rw
     environment:
