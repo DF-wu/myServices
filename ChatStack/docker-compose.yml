@@ -251,7 +251,7 @@ services:
       options:
         max-size: "1m"
         max-file: "1"
-    network_mode: "container:gluetun-jp-2"
+    network_mode: "service:gluetun-jp-2"
 
   gluetun-jp-2:
     image: qmcgaw/gluetun
