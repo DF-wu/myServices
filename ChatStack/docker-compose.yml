@@ -233,11 +233,12 @@ services:
     image: docker.io/searxng/searxng:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:48010:8080"
+      - "127.0.0.1:43004:8080"
     volumes:
       - /mnt/appdata/ChatStack/searxng:/etc/searxng:rw
     environment:
-      - SEARXNG_BASE_URL=http://192.168.10.13:48010     # https://${SEARXNG_HOSTNAME:-localhost}/
+    # default url : https://${SEARXNG_HOSTNAME:-localhost}
+      - SEARXNG_BASE_URL=http://192.168.10.13:43004    
       - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-32}
       - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-32}
     cap_drop:
