@@ -233,7 +233,7 @@ services:
     image: docker.io/searxng/searxng:latest
     restart: unless-stopped
     ports:
-      - "43004:8080"
+      - "127.0.0.1:43004:8080"
     volumes:
       - /mnt/appdata/ChatStack/searxng:/etc/searxng:rw
     environment:
@@ -253,6 +253,9 @@ services:
         max-size: "1m"
         max-file: "1"
     network_mode: "service:gluetun-jp-2"
+    depends_on:
+      - redis-valkey
+      - gluetun-jp-2
 
   gluetun-jp-2:
     image: qmcgaw/gluetun
