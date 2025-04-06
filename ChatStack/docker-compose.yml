@@ -251,9 +251,49 @@ services:
       options:
         max-size: "1m"
         max-file: "1"
-    network_mode: "container:gluetun-jp"
+    network_mode: "container:gluetun-jp-2"
 
-
+  gluetun-jp-2:
+    image: qmcgaw/gluetun
+    # container_name: gluetun
+    # line above must be uncommented to allow external containers to connect.
+    # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
+    cap_add:
+      - NET_ADMIN
+    env_file:
+      - ./.secret.env
+      - ./.secret.env.local
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    # ports:
+      # - 28888:8888/tcp # HTTP proxy
+      # - 28388:8388/tcp # Shadowsocks
+      # - 28388:8388/udp # Shadowsocks
+    volumes:
+        # /gluetun/wireguard/wg0.conf  is the wireguard configuration file
+      - /mnt/appdata/gluetun:/gluetun
+      # - /mnt/appdata/gluetun/wireguard/jp.conf:/gluetun/wg0.conf
+      
+    environment:
+      # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=wireguard 
+      # OpenVPN:
+      # - OPENVPN_USER=
+      # - OPENVPN_PASSWORD=
+      # Wireguard:
+      
+      # - WIREGUARD_PUBLIC_KEY=bI5kgFePO/UfyU/Apd7AYtd168PZ8MiaV97csUYGvlk=
+      - WIREGUARD_PRIVATE_KEY=${SURFSHARK_WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=10.14.0.6/16
+      - SERVER_COUNTRIES=Japan
+      # - WIREGUARD_ENDPOINT_PORT=
+      # - WIREGUARD_ENDPOINT_IP=1.2.3.4 
+      # Timezone for accurate log times
+      - TZ=Asia/Taipei
+      # Server list updater
+      # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
+      - UPDATER_PERIOD= 24h
 
 
   chatgpt-next-web:
