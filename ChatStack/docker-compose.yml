@@ -35,7 +35,7 @@ services:
       - ENABLE_WEBSOCKET_SUPPORT="true"
       - WEBSOCKET_MANAGER="redis"
       - WEBSOCKET_REDIS_URL="redis://redis:6379/1"
-      - SEARXNG_QUERY_URL=http://axolotl.newhome:43001/search?safesearch=0&language=auto&q=<query>
+      - SEARXNG_QUERY_URL=http://axolotl.newhome:43004/search?safesearch=0&language=auto&q=<query>
     volumes:
       - /mnt/appdata/ChatStack/ollama:/root/.ollama
       - /mnt/appdata/ChatStack/open-webui:/app/backend/data
@@ -235,12 +235,12 @@ services:
     restart: unless-stopped
     # x 因為使用 network_mode: "service:gluetun-jp-2"，所以不能設定 ports
     ports:
-      - "127.0.0.1:43004:8080"
+      - "43004:8080"
     volumes:
       - /mnt/appdata/ChatStack/searxng:/etc/searxng:rw
     environment:
     # default url : https://${SEARXNG_HOSTNAME:-localhost}
-      - SEARXNG_BASE_URL=http://axolotl.newhome:43001
+      - SEARXNG_BASE_URL=http://axolotl.newhome:43004
       - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-32}
       - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-32}
     cap_drop:
