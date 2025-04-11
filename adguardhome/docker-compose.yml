@@ -2,7 +2,7 @@ services:
   adg: 
     container_name: adguardhome
     image: adguard/adguardhome
-    restart: unless-stopped
+    restart: always
     ports:
     # dns tcp udp
       - 53:53
