@@ -35,7 +35,7 @@ services:
       - ENABLE_WEBSOCKET_SUPPORT="true"
       - WEBSOCKET_MANAGER="redis"
       - WEBSOCKET_REDIS_URL="redis://redis:6379/1"
-
+      - SEARXNG_QUERY_URL=http://searxng:8080/search?safesearch=0&language=auto&q=<query>
     volumes:
       - /mnt/appdata/ChatStack/ollama:/root/.ollama
       - /mnt/appdata/ChatStack/open-webui:/app/backend/data
@@ -228,6 +228,7 @@ services:
         max-size: "1m"
         max-file: "1"
 
+# Old backup : https://searxng.ddaodan.cc/search?safesearch=0&language=auto
   searxng:
     container_name: searxng
     image: docker.io/searxng/searxng:latest
@@ -239,7 +240,7 @@ services:
       - /mnt/appdata/ChatStack/searxng:/etc/searxng:rw
     environment:
     # default url : https://${SEARXNG_HOSTNAME:-localhost}
-      - SEARXNG_BASE_URL=http://192.168.10.13:43004    
+      - SEARXNG_BASE_URL=http://searxng:8080    
       - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-32}
       - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-32}
     cap_drop:
@@ -253,7 +254,7 @@ services:
       options:
         max-size: "1m"
         max-file: "1"
-    network_mode: "service:gluetun-jp-2"
+    # network_mode: "service:gluetun-jp-2"
     depends_on:
       - redis-valkey
       - gluetun-jp-2
