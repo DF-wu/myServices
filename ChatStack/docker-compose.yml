@@ -235,11 +235,12 @@ services:
     restart: unless-stopped
     # x 因為使用 network_mode: "service:gluetun-jp-2"，所以不能設定 ports
     ports:
-      - "43004:8080"
+      - "43004:43004"
     volumes:
       - /mnt/appdata/ChatStack/searxng:/etc/searxng:rw
     environment:
     # default url : https://${SEARXNG_HOSTNAME:-localhost}
+      - BIND_ADDRESS=0.0.0.0:43004
       - SEARXNG_BASE_URL=http://axolotl.newhome:43004
       - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-32}
       - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-32}
