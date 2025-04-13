@@ -35,7 +35,13 @@ services:
       - ENABLE_WEBSOCKET_SUPPORT="true"
       - WEBSOCKET_MANAGER="redis"
       - WEBSOCKET_REDIS_URL="redis://redis:6379/1"
-      - SEARXNG_QUERY_URL=http://axolotl.newhome:43004/search?safesearch=0&language=auto&q=<query>
+
+
+      - ENABLE_RAG_WEB_SEARCH=True
+      - RAG_WEB_SEARCH_ENGINE="searxng"
+      - RAG_WEB_SEARCH_RESULT_COUNT=5
+      - RAG_WEB_SEARCH_CONCURRENT_REQUESTS=10
+      - SEARXNG_QUERY_URL=http://axolotl.newhome:43004/search?safesearch=0&language=auto&format=json&q=<query>
     volumes:
       - /mnt/appdata/ChatStack/ollama:/root/.ollama
       - /mnt/appdata/ChatStack/open-webui:/app/backend/data
