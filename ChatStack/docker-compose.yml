@@ -235,6 +235,7 @@ services:
         max-file: "1"
 
 # Old backup : https://searxng.ddaodan.cc/search?safesearch=0&language=auto
+# another choice https://searx.perennialte.ch/
   searxng:
     container_name: searxng
     image: docker.io/searxng/searxng:latest
