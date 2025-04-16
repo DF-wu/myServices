@@ -234,7 +234,7 @@ services:
         max-size: "1m"
         max-file: "1"
 
-# Old backup : https://searxng.ddaodan.cc/search?safesearch=0&language=auto
+# Old backup : https://searxng.ddaodan.cc/search?safesearch=0&language=auto&q=<query>
 # another choice https://searx.perennialte.ch/
   searxng:
     container_name: searxng
@@ -248,7 +248,7 @@ services:
     environment:
     # default url : https://${SEARXNG_HOSTNAME:-localhost}
       - BIND_ADDRESS=0.0.0.0:43004
-      - SEARXNG_BASE_URL=http://axolotl.newhome:43004
+      - SEARXNG_BASE_URL=https://searx.perennialte.ch/search?safesearch=0&language=auto&q=<query>
       - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-32}
       - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-32}
     cap_drop:
