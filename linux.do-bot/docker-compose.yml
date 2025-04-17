@@ -99,7 +99,7 @@ services:
       # - 28388:8388/udp # Shadowsocks
     volumes:
         # /gluetun/wireguard/wg0.conf  is the wireguard configuration file
-      - /mnt/appdata/gluetun:/gluetun
+      - /mnt/appdata/gluetun-tw:/gluetun
       # - /mnt/appdata/gluetun/wireguard/tw.conf:/gluetun/wg0.conf
       
     environment:
@@ -141,7 +141,7 @@ services:
       # - 28388:8388/udp # Shadowsocks
     volumes:
         # /gluetun/wireguard/wg0.conf  is the wireguard configuration file
-      - /mnt/appdata/gluetun:/gluetun
+      - /mnt/appdata/gluetun-jp:/gluetun
       # - /mnt/appdata/gluetun/wireguard/jp.conf:/gluetun/wg0.conf
       
     environment:
