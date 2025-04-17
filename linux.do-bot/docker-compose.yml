@@ -54,6 +54,8 @@ services:
       sed -i 's|https://linux.do/t/topic/13716|https://linux.do/t/topic/348419|g' /app/index.js && \
       node /app/bypasscf.js"
     ]
+    depends_on:
+      - gluetun-tw
     network_mode: "service:gluetun-tw"
 
 
@@ -71,6 +73,8 @@ services:
       sed -i 's|https://linux.do/t/topic/13716|https://linux.do/t/topic/348419|g' /app/index.js && \
       node /app/bypasscf.js"
     ]
+    depends_on:
+      - gluetun-jp
     network_mode: "service:gluetun-jp"
 
 
