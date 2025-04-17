@@ -11,6 +11,8 @@ services:
     container_name: deeplx
     ports:
       - "51188:1188"
+    env_file:
+      - .env
     environment:
       - TOKEN=${DEEPLX_TOKEN}
       - DL_SESSION=${DL_SESSION}
