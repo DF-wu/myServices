@@ -84,9 +84,9 @@ services:
 
   # api distributor
   new-api:
-    image: calciumion/new-api-horizon:latest
+    image: calciumion/new-api:latest
     # build: .
-    container_name: new-api-horizon
+    container_name: new-api
     restart: always
     command: --log-dir /app/logs
     ports:
@@ -112,6 +112,10 @@ services:
       redis:
         condition: service_started
       chatstack-postgres17-pgvector:
+        condition: service_started
+      telegram-chatbot:
+        condition: service_started
+      discord-chatbot:
         condition: service_started
     healthcheck:
       test: [ "CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' | awk -F: '{print $2}'" ]
