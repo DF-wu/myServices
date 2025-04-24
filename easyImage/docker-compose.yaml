@@ -1,0 +1,16 @@
+version: '3.3'
+services:
+  easyimage:
+    image: ddsderek/easyimage:latest
+    container_name: easyimage
+    ports:
+      - '8080:80'
+    environment:
+      - TZ=Asia/Taipei
+      - PUID=1000
+      - PGID=1000
+      - DEBUG=false
+    volumes:
+      - '/mnt/appdata/ChatStack/easyimage/config:/app/web/config'
+      - '/mnt/appdata/ChatStack/easyimage/i:/app/web/i'
+    restart: unless-stopped
