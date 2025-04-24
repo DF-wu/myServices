@@ -1,16 +1,14 @@
-version: '3.3'
+version: '3.8'
 services:
   easyimage:
     image: ddsderek/easyimage:latest
     container_name: easyimage
     ports:
-      - '58088:80'
+      - 58088:80
     environment:
       - TZ=Asia/Taipei
-      - PUID=1000
-      - PGID=1000
       - DEBUG=false
     volumes:
-      - '/mnt/appdata/easyimage/config:/app/web/config'
-      - '/mnt/appdata/easyimage/i:/app/web/i'
+      - /mnt/appdata/easyimage/config:/app/web/config
+      - /mnt/appdata/easyimage/i:/app/web/i
     restart: unless-stopped
