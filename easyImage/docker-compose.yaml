@@ -11,6 +11,6 @@ services:
       - PGID=1000
       - DEBUG=false
     volumes:
-      - '/mnt/appdata/ChatStack/easyimage/config:/app/web/config'
-      - '/mnt/appdata/ChatStack/easyimage/i:/app/web/i'
+      - '/mnt/appdata/easyimage/config:/app/web/config'
+      - '/mnt/appdata/easyimage/i:/app/web/i'
     restart: unless-stopped
