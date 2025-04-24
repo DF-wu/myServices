@@ -4,7 +4,7 @@ services:
     image: ddsderek/easyimage:latest
     container_name: easyimage
     ports:
-      - '8080:80'
+      - '58088:80'
     environment:
       - TZ=Asia/Taipei
       - PUID=1000
