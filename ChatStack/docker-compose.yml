@@ -32,7 +32,7 @@ services:
 
       - ENABLE_WEBSOCKET_SUPPORT="true"
       - WEBSOCKET_MANAGER="redis"
-      - WEBSOCKET_REDIS_URL="redis://redis:6379/1"
+      - WEBSOCKET_REDIS_URL="redis://openwebui-redis-valkey:6379/1"
 
 
       - ENABLE_RAG_WEB_SEARCH=true
@@ -53,6 +53,34 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu, compute, video]
+
+  # https://docs.openwebui.com/tutorials/integrations/redis/
+  openwebui-redis-valkey:  
+    image: docker.io/valkey/valkey:8-alpine
+    container_name: openwebui-redis-valkey
+    volumes:
+      - /mnt/appdata/ChatStack/openwebui-redis-valkey:/data
+    command: "valkey-server --save 30 1"
+    healthcheck:
+      test: "[ $$(valkey-cli ping) = 'PONG' ]"
+      start_period: 5s
+      interval: 1s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
+
+
   tika:
     image: apache/tika:latest-full
     container_name: tika
@@ -218,13 +246,13 @@ services:
 
 
 # https://github.com/searxng/searxng-docker/blob/master/docker-compose.yaml
-  redis-valkey:
-    container_name: redis-valkey
+  searxng-redis-valkey:
+    container_name: searxng-redis-valkey
     image: docker.io/valkey/valkey:8-alpine
     command: valkey-server --save 30 1 --loglevel warning
     restart: unless-stopped
     volumes:
-      - /mnt/appdata/ChatStack/valkey-data:/data
+      - /mnt/appdata/ChatStack/searxng-redis-valkey:/data
     cap_drop:
       - ALL
     cap_add:
@@ -268,7 +296,7 @@ services:
         max-file: "1"
     # network_mode: "service:gluetun-jp-2"
     depends_on:
-      - redis-valkey
+      - searxng-redis-valkey
 
   # gluetun-jp-2:
   #   image: qmcgaw/gluetun
