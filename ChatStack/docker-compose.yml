@@ -22,8 +22,6 @@ services:
       - OPENAI_API_KEY=0
       - GLOBAL_LOG_LEVEL="DEBUG"
 
-
-
       # expost ollama host and port
       - OLLAMA_HOST=0.0.0.0
       - TZ=Asia/Taipei
@@ -253,8 +251,8 @@ services:
     environment:
     # default url : https://${SEARXNG_HOSTNAME:-localhost}
       - BIND_ADDRESS=0.0.0.0:43004
-      # - SEARXNG_BASE_URL=https://searx.perennialte.ch/search?safesearch=0&language=auto&q=<query>
-      - SEARXNG_BASE_URL=http://searxng:43004
+      # - SE  ARXNG_BASE_URL=https://searx.perennialte.ch/search?safesearch=0&language=auto&q=<query>
+      - SEARXNG_BASE_URL=http://localhost:43004
       - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-32}
       - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-32}
     cap_drop:
