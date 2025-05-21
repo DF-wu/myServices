@@ -30,7 +30,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@chatstack-postgres17-pgvector:5432/openwebui_db
       - VECTOR_DB=pgvector
 
-      - ENABLE_WEBSOCKET_SUPPORT="true"
+      - ENABLE_WEBSOCKET_SUPPORT="false"
       - WEBSOCKET_MANAGER="redis"
       - WEBSOCKET_REDIS_URL="redis://openwebui-redis-valkey:6379/1"
 
