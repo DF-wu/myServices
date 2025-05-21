@@ -348,7 +348,7 @@ services:
   chatgpt-next-web:
     image: yidadaa/chatgpt-next-web
     environment:
-      - OPENAI_API_KEY=
+      - OPENAI_API_KEY=${OPENAPI_KEY}
       - CODE=6319
     ports:
       - "33000:3000"
