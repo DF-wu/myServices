@@ -12,7 +12,7 @@ version: "3"
 
 services:
   teslamate:
-    image: teslamate/teslamate:latest
+    image: teslamate/teslamate:1.33
     restart: always
     environment:
       - ENCRYPTION_KEY=${DF_PASSWORD} #replace with a secure key to encrypt your Tesla API tokens
@@ -33,7 +33,7 @@ services:
 
   # https://github.com/teslamate-org/teslamate/releases/tag/v2.0.0
   database:
-    image: postgres:17
+    image: postgres:15
     restart: always
     environment:
       - POSTGRES_USER=df
