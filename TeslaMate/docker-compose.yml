@@ -33,7 +33,7 @@ services:
 
   # https://github.com/teslamate-org/teslamate/releases/tag/v2.0.0
   database:
-    image: postgres:15
+    image: postgres:17
     restart: always
     environment:
       - POSTGRES_USER=df
