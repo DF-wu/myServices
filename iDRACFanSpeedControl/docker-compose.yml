@@ -5,8 +5,6 @@ services:
   idrac-fan-control:
     container_name: idrac-fan-control
     image: ghcr.io/df-wu/idrac-fan-control:latest
-    networks:
-      - host  # 使用主機網路以便 IPMI 通訊
     env_file:
       - .env
     restart: always
