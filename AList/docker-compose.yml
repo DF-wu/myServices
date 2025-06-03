@@ -7,7 +7,7 @@ services:
     # container ports
       - 5244:5244
     # sftp access  
-      - 5220:2222
+      - 5222:5222
     volumes:
     # download
       - /mnt/mydata/Alist_dir:/mnt/data
