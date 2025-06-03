@@ -8,6 +8,8 @@ services:
       - 5244:5244
     # sftp access  
       - 5222:5222
+      - 5221:22
+      - 5220:2222
     volumes:
     # download
       - /mnt/mydata/Alist_dir:/mnt/data
