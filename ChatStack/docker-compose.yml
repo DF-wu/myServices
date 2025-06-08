@@ -238,7 +238,7 @@ services:
     environment:
       - TZ=Asia/Taipei
     volumes:
-      - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/usr/src/app/config.yaml:ro
+      - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/app/config.yaml:ro
     depends_on:
       new-api:
         condition: service_started
