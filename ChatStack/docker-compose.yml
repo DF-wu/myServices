@@ -131,8 +131,6 @@ services:
       - DEBUG=true
       - GIN_MODE=debug
 
-      # BLOCK_NONE is the loest level of safety setting. The "OFF" is special case. not recommend to use.
-      - GEMINI_SAFETY_SETTING=BLOCK_NONE
 
     depends_on:
       redis:
