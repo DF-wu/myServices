@@ -36,9 +36,9 @@ services:
 
 
       - ENABLE_RAG_WEB_SEARCH=true
-      - RAG_WEB_SEARCH_ENGINE="searxng"
-      - RAG_WEB_SEARCH_RESULT_COUNT=5
-      - RAG_WEB_SEARCH_CONCURRENT_REQUESTS=10
+      # - RAG_WEB_SEARCH_ENGINE="searxng"
+      # - RAG_WEB_SEARCH_RESULT_COUNT=5
+      # - RAG_WEB_SEARCH_CONCURRENT_REQUESTS=10
       # - SEARXNG_QUERY_URL=http://axolotl.newhome:43004/search?safesearch=0&language=auto&format=json&q=<query>
     volumes:
       - /mnt/appdata/ChatStack/ollama:/root/.ollama
@@ -263,7 +263,7 @@ services:
         max-size: "1m"
         max-file: "1"
 
-# Old backup : https://searxng.ddaodan.cc/search?safesearch=0&language=auto&q=<query>
+# currens
 # another choice https://searx.perennialte.ch/
   searxng:
     container_name: searxng
