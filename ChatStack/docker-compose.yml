@@ -354,14 +354,5 @@ services:
 
 
 
-# This service is for the upstash/context7-mcp image, which is designed to run a command-line interface (CLI) application.
-# context7 is a tool to retrieve dev documentation from various sources.
-# i use the image from dockerhub mcp/context7
-  context7:
-    image: mcp/context7
-    container_name: context7_mcp_service
-    restart: unless-stopped
-    ports:
-      - "43100:8080"
 
 
