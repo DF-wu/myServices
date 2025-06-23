@@ -199,7 +199,7 @@ services:
       - CODE=True
       - ARXIV=True
       - DATE=True
-      - PASS_HISTORY=32
+      - PASS_HISTORY=64
       - WEB_HOOK=${TGBOTWEB_HOOK}
       - CHAT_MODE=global
       - IMAGEQA=True
