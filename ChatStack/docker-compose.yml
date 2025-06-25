@@ -175,7 +175,7 @@ services:
     image: pgvector/pgvector:pg17
     ports:
       - 43020:5432
-    user: 1000:1000
+    user: 3000:100
     container_name: ChatStack-postgres17-pgvector
     environment:
       POSTGRES_USER: postgres
