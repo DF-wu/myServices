@@ -81,6 +81,26 @@ services:
         max-file: "1"
 
 
+# ibm docling project. replace tika
+# check release to determine which cuda version i can use 
+  docling:
+    image: quay.io/docling-project/docling-serve-cu128
+    container_name: docling-serve
+    restart: unless-stopped
+    ports:
+      - "43005:5001"
+    environment:
+      - DOCLING_SERVE_ENABLE_UI=true
+      - TZ=Asia/Taipei # 統一時區設定，保持好習慣喔！
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all # 這裡設定為 all，與你 docker run 指令的 --gpus all 相符
+              capabilities: [gpu, compute] # 確保 GPU 運算能力能被正確識別和使用
+
+# DEPRECATED. 
   tika:
     image: apache/tika:latest-full
     container_name: tika
