@@ -10,6 +10,7 @@ services:
     image: ghcr.io/imagegenius/immich:cuda
     container_name: immich-aio
     restart: unless-stopped
+    user: 3000:100
     environment:
       - PUID=1000
       - PGID=1000
@@ -82,6 +83,7 @@ services:
     ports:
       - 5432:5432
     container_name: immich-aio-postgres14
+    user: 3000:100
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
