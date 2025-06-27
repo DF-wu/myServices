@@ -12,8 +12,8 @@ services:
     restart: unless-stopped
     environment:
       # I use nfs mount directory. so no need to change user. use the default user is ok because i mapAll to 3000:100(df) in truenas.
-      # - PUID=3000
-      # - PGID=100
+      - PUID=3000
+      - PGID=100
       - TZ=Asia/Taipei
       - DB_HOSTNAME=immich-aio-postgres14
       - DB_USERNAME=postgres
@@ -83,7 +83,7 @@ services:
     ports:
       - 5432:5432
     container_name: immich-aio-postgres14
-    
+    user: 3000:100
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
