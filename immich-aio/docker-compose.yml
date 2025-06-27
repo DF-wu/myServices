@@ -10,10 +10,9 @@ services:
     image: ghcr.io/imagegenius/immich:cuda
     container_name: immich-aio
     restart: unless-stopped
-    user: 3000:100
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=3000
+      - PGID=100
       - TZ=Asia/Taipei
       - DB_HOSTNAME=immich-aio-postgres14
       - DB_USERNAME=postgres
