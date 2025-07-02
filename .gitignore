@@ -1,3 +1,5 @@
 portainer-ce/data
 .env.local
 
+_ARCHIVE/.DS_Store
+.DS_Store
