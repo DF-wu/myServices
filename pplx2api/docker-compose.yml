@@ -1,0 +1,27 @@
+# https://github.com/yushangxiao/pplx2api?tab=readme-ov-file
+version: '3'
+services:
+  pplx2api:
+    image: ghcr.io/yushangxiao/pplx2api:latest
+    container_name: pplx
+    ports:
+      - "10006:8080"
+    environment: 
+      #  df_pplx
+      - SESSIONS=${PPLX_SESSIONS}
+      - ADDRESS=0.0.0.0:8080
+      - APIKEY=df
+     # - PROXY=http://proxy:2080  # 可选
+      - MAX_CHAT_HISTORY_LENGTH=160000
+      - NO_ROLE_PREFIX=false
+      - IS_INCOGNITO=true
+      - SEARCH_RESULT_COMPATIBLE=false
+    restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: pplx-watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --cleanup --interval 86400 pplx
+    restart: unless-stopped
