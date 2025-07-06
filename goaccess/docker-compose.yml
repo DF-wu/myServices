@@ -1,0 +1,59 @@
+# GoAccess Docker Compose - v3.0 (極致簡潔與完全控制)
+# 此檔案為最終簡化版，專注於定義服務架構。
+# GoAccess 的所有行為都由 .env 檔案中的 GOACCESS_OPTS 變數完全控制。
+version: "3.8"
+
+services:
+  goaccess:
+    image: allinurl/goaccess:latest
+    container_name: goaccess
+    restart: unless-stopped
+    ports:
+      - "${GOACCESS_PORT:-7890}:7890"
+    volumes:
+      # 掛載整個資料目錄，統一管理報告、資料庫和 GeoIP 檔案
+      - "${DATA_PATH:-/mnt/appdata/goaccess}:/goaccess/data"
+      # 以唯讀模式掛載日誌來源目錄
+      - "${NGINX_LOG_PATH}:/opt/logs:ro"
+    env_file:
+      - ./.env
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        echo "🚀 正在初始化 GoAccess (v3.2 - DB-IP with curl)..."
+
+        # --- 1. 自動下載 GeoIP 資料庫 (DB-IP) ---
+        DB_DIR="/goaccess/data/geoip"
+        # DB-IP Lite databases are updated monthly. We check if they exist.
+        # To force an update, user can manually delete the .mmdb files.
+        if [ ! -f "$DB_DIR/dbip-city-lite.mmdb" ] || [ ! -f "$DB_DIR/dbip-asn-lite.mmdb" ]; then
+          echo "🌐 正在使用 curl 下載最新的 DB-IP GeoIP 資料庫 (免費版)..."
+          mkdir -p "$DB_DIR"
+          CURRENT_YM=$(date +%Y-%m)
+          # Download City Lite DB
+          curl -sL "https://download.db-ip.com/free/dbip-city-lite-${CURRENT_YM}.mmdb.gz" -o "$DB_DIR/dbip-city-lite.mmdb.gz" && gunzip -f "$DB_DIR/dbip-city-lite.mmdb.gz"
+          # Download ASN Lite DB
+          curl -sL "https://download.db-ip.com/free/dbip-asn-lite-${CURRENT_YM}.mmdb.gz" -o "$DB_DIR/dbip-asn-lite.mmdb.gz" && gunzip -f "$DB_DIR/dbip-asn-lite.mmdb.gz"
+          echo "✅ GeoIP 資料庫已就緒。"
+        else
+          echo "✅ GeoIP 資料庫已存在，略過下載。"
+        fi
+
+        # --- 2. 組合並執行最終命令 ---
+        # 組合固定的核心參數
+        FIXED_ARGS="--output=/goaccess/data/report.html --real-time-html --addr=0.0.0.0 --port=7890 --daemonize --pid-file=/goaccess/data/goaccess.pid --db-path=/goaccess/data/"
+        [ -f "$DB_DIR/dbip-city-lite.mmdb" ] && FIXED_ARGS="$FIXED_ARGS --geoip-database=$DB_DIR/dbip-city-lite.mmdb"
+        [ -f "$DB_DIR/dbip-asn-lite.mmdb" ] && FIXED_ARGS="$FIXED_ARGS --geoip-database=$DB_DIR/dbip-asn-lite.mmdb"
+
+        # 組合最終命令: goaccess <日誌檔> <.env中的所有自訂參數> <固定的核心參數>
+        CMD="goaccess /opt/logs/${LOG_FILE} ${GOACCESS_OPTS} ${FIXED_ARGS}"
+
+        echo "--------------------------------------------------"
+        echo "最終執行的命令為:"
+        echo "$CMD"
+        echo "--------------------------------------------------"
+        eval "exec $CMD"
+
+    command: [] # command 留空，因為所有命令已由 entrypoint 全權處理
