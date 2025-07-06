@@ -6,7 +6,7 @@ services:
     container_name: goaccess
     restart: unless-stopped
     ports:
-      - "${GOACCESS_PORT:-7890}:7890"
+      - "7890:7890"
     volumes:
       # 掛載整個資料目錄，統一管理報告、資料庫和 GeoIP 檔案
       - "/mnt/appdata/goaccess:/goaccess/data"
