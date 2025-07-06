@@ -25,13 +25,13 @@ services:
         # --- 1. 自動下載 GeoIP 資料庫 (DB-IP) ---
         GEOIP_DIR="/goaccess/data/geoip"
         # 檢查任一檔案不存在時，就觸發下載
-        if [ ! -f "$GEOIP_DIR/dbip-city-lite.mmdb" ] || [ ! -f "$GEOIP_DIR/dbip-asn-lite.mmdb" ]; then
+        if [ ! -f "$$GEOIP_DIR/dbip-city-lite.mmdb" ] || [ ! -f "$$GEOIP_DIR/dbip-asn-lite.mmdb" ]; then
           echo "🌐 正在下載最新的 DB-IP GeoIP 資料庫 (免費版)..."
-          mkdir -p "$GEOIP_DIR"
-          CURRENT_YM=$(date +%Y-%m)
+          mkdir -p "$$GEOIP_DIR"
+          CURRENT_YM=$$(date +%Y-%m)
           # 使用 curl 下載並解壓
-          curl -L "https://download.db-ip.com/free/dbip-city-lite-${CURRENT_YM}.mmdb.gz" | gunzip > "$GEOIP_DIR/dbip-city-lite.mmdb"
-          curl -L "https://download.db-ip.com/free/dbip-asn-lite-${CURRENT_YM}.mmdb.gz" | gunzip > "$GEOIP_DIR/dbip-asn-lite.mmdb"
+          curl -L "https://download.db-ip.com/free/dbip-city-lite-$${CURRENT_YM}.mmdb.gz" | gunzip > "$$GEOIP_DIR/dbip-city-lite.mmdb"
+          curl -L "https://download.db-ip.com/free/dbip-asn-lite-$${CURRENT_YM}.mmdb.gz" | gunzip > "$$GEOIP_DIR/dbip-asn-lite.mmdb"
           echo "✅ GeoIP 資料庫已就緒。"
         else
           echo "✅ GeoIP 資料庫已存在，略過下載。"
@@ -40,18 +40,18 @@ services:
         # --- 2. 組合並執行最終命令 (安全模式) ---
         # 組合固定的核心參數
         FIXED_ARGS="--output=/goaccess/data/report.html --real-time-html --addr=0.0.0.0 --port=7890 --daemonize --pid-file=/goaccess/data/goaccess.pid --db-path=/goaccess/data/"
-        [ -f "$GEOIP_DIR/dbip-city-lite.mmdb" ] && FIXED_ARGS="$FIXED_ARGS --geoip-database=$GEOIP_DIR/dbip-city-lite.mmdb"
-        [ -f "$GEOIP_DIR/dbip-asn-lite.mmdb" ] && FIXED_ARGS="$FIXED_ARGS --geoip-database=$GEOIP_DIR/dbip-asn-lite.mmdb"
+        [ -f "$$GEOIP_DIR/dbip-city-lite.mmdb" ] && FIXED_ARGS="$$FIXED_ARGS --geoip-database=$$GEOIP_DIR/dbip-city-lite.mmdb"
+        [ -f "$$GEOIP_DIR/dbip-asn-lite.mmdb" ] && FIXED_ARGS="$$FIXED_ARGS --geoip-database=$$GEOIP_DIR/dbip-asn-lite.mmdb"
 
         echo "--------------------------------------------------"
         echo "🚀 正在啟動 GoAccess..."
-        echo "日誌來源: /srv/logs/${LOG_FILE}"
-        echo "自訂參數: ${GOACCESS_OPTS}"
+        echo "日誌來源: /srv/logs/$${LOG_FILE}"
+        echo "自訂參數: $${GOACCESS_OPTS}"
         echo "--------------------------------------------------"
 
         # 使用 exec 直接執行，取代目前的 shell 程序。
         # 讓 shell 自動對 GOACCESS_OPTS 進行單詞分割來傳遞參數。
         # 這種寫法更為通用和直觀，同時保留了 exec 帶來的程序管理優勢。
-        exec goaccess "/srv/logs/${LOG_FILE}" ${GOACCESS_OPTS} ${FIXED_ARGS}
+        exec goaccess "/srv/logs/$${LOG_FILE}" $${GOACCESS_OPTS} $${FIXED_ARGS}
 
     command: [] # command 留空，因為所有命令已由 entrypoint 全權處理
