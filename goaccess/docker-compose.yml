@@ -16,7 +16,7 @@ services:
       # 以唯讀模式掛載日誌來源目錄
       - "${NGINX_LOG_PATH}:/opt/logs:ro"
     env_file:
-      - ./.env
+      - .env
     entrypoint:
       - /bin/sh
       - -c
