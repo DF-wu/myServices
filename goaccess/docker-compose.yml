@@ -8,6 +8,7 @@ services:
     image: allinurl/goaccess:latest
     container_name: goaccess
     restart: unless-stopped
+    user: root
     ports:
       - "7890:7890"
     volumes:
