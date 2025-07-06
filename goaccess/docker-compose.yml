@@ -56,8 +56,8 @@ services:
         echo "自訂參數: $${GOACCESS_OPTS}"
         echo "--------------------------------------------------"
 
-        # 使用 exec 直接執行 GoAccess，使其成為容器的主程序 (PID 1)
-        # GoAccess 將作為前景程序運行，保持容器存活
-        exec goaccess "/srv/logs/$${LOG_FILE}" $${GOACCESS_OPTS} $${FIXED_ARGS}
+        # 直接執行 GoAccess，不使用 exec，並移除路徑的引號
+        # 這讓 shell 有機會擴展日誌路徑中的萬用字元 (*)
+        goaccess /srv/logs/$${LOG_FILE} $${GOACCESS_OPTS} $${FIXED_ARGS}
 
     command: [] # command 留空，因為所有命令已由 entrypoint 全權處理
