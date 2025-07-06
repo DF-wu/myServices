@@ -17,6 +17,10 @@ services:
       - "${NGINX_LOG_PATH}:/opt/logs:ro"
     env_file:
       - .env
+    # Entrypoint 腳本負責在容器啟動時執行以下任務:
+    # 1. 檢查 GeoIP 資料庫是否存在，如果不存在則自動從 DB-IP 下載。
+    # 2. 組合 GoAccess 的核心參數、.env 中的自訂參數和日誌檔案路徑。
+    # 3. 最終使用 exec 啟動 GoAccess 主程序。
     entrypoint:
       - /bin/sh
       - -c
@@ -24,30 +28,22 @@ services:
         set -e
         echo "🚀 正在初始化 GoAccess (v3.2 - DB-IP with curl)..."
 
-        # --- 1. 自動下載 GeoIP 資料庫 (DB-IP) ---
         DB_DIR="/goaccess/data/geoip"
-        # DB-IP Lite databases are updated monthly. We check if they exist.
-        # To force an update, user can manually delete the .mmdb files.
         if [ ! -f "$DB_DIR/dbip-city-lite.mmdb" ] || [ ! -f "$DB_DIR/dbip-asn-lite.mmdb" ]; then
           echo "🌐 正在使用 curl 下載最新的 DB-IP GeoIP 資料庫 (免費版)..."
           mkdir -p "$DB_DIR"
           CURRENT_YM=$(date +%Y-%m)
-          # Download City Lite DB
           curl -sL "https://download.db-ip.com/free/dbip-city-lite-${CURRENT_YM}.mmdb.gz" -o "$DB_DIR/dbip-city-lite.mmdb.gz" && gunzip -f "$DB_DIR/dbip-city-lite.mmdb.gz"
-          # Download ASN Lite DB
           curl -sL "https://download.db-ip.com/free/dbip-asn-lite-${CURRENT_YM}.mmdb.gz" -o "$DB_DIR/dbip-asn-lite.mmdb.gz" && gunzip -f "$DB_DIR/dbip-asn-lite.mmdb.gz"
           echo "✅ GeoIP 資料庫已就緒。"
         else
           echo "✅ GeoIP 資料庫已存在，略過下載。"
         fi
 
-        # --- 2. 組合並執行最終命令 ---
-        # 組合固定的核心參數
         FIXED_ARGS="--output=/goaccess/data/report.html --real-time-html --addr=0.0.0.0 --port=7890 --daemonize --pid-file=/goaccess/data/goaccess.pid --db-path=/goaccess/data/"
         [ -f "$DB_DIR/dbip-city-lite.mmdb" ] && FIXED_ARGS="$FIXED_ARGS --geoip-database=$DB_DIR/dbip-city-lite.mmdb"
         [ -f "$DB_DIR/dbip-asn-lite.mmdb" ] && FIXED_ARGS="$FIXED_ARGS --geoip-database=$DB_DIR/dbip-asn-lite.mmdb"
 
-        # 組合最終命令: goaccess <日誌檔> <.env中的所有自訂參數> <固定的核心參數>
         CMD="goaccess /opt/logs/${LOG_FILE} ${GOACCESS_OPTS} ${FIXED_ARGS}"
 
         echo "--------------------------------------------------"
