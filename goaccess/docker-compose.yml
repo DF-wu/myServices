@@ -12,7 +12,7 @@ services:
       - "${GOACCESS_PORT:-7890}:7890"
     volumes:
       # 掛載整個資料目錄，統一管理報告、資料庫和 GeoIP 檔案
-      - "${DATA_PATH:-/mnt/appdata/goaccess}:/goaccess/data"
+      - "${DATA_PATH}:/goaccess/data"
       # 以唯讀模式掛載日誌來源目錄
       - "${NGINX_LOG_PATH}:/opt/logs:ro"
     env_file:
