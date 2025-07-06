@@ -45,20 +45,19 @@ services:
         fi
 
         # --- 2. 組合並執行最終命令 (安全模式) ---
-        # 組合固定的核心參數
-        FIXED_ARGS="--output=/goaccess/data/report.html --real-time-html --addr=0.0.0.0 --port=7890 --daemonize --pid-file=/goaccess/data/goaccess.pid --db-path=/goaccess/data/"
+        # 組合固定的核心參數 (已移除 --daemonize 和 --pid-file)
+        FIXED_ARGS="--output=/goaccess/data/report.html --real-time-html --addr=0.0.0.0 --port=7890 --db-path=/goaccess/data/"
         [ -f "$$GEOIP_DIR/dbip-city-lite.mmdb" ] && FIXED_ARGS="$$FIXED_ARGS --geoip-database=$$GEOIP_DIR/dbip-city-lite.mmdb"
         [ -f "$$GEOIP_DIR/dbip-asn-lite.mmdb" ] && FIXED_ARGS="$$FIXED_ARGS --geoip-database=$$GEOIP_DIR/dbip-asn-lite.mmdb"
 
         echo "--------------------------------------------------"
-        echo "🚀 正在啟動 GoAccess..."
+        echo "🚀 正在以前景模式啟動 GoAccess..."
         echo "日誌來源: /srv/logs/$${LOG_FILE}"
         echo "自訂參數: $${GOACCESS_OPTS}"
         echo "--------------------------------------------------"
 
-        # 使用 exec 直接執行，取代目前的 shell 程序。
-        # 讓 shell 自動對 GOACCESS_OPTS 進行單詞分割來傳遞參數。
-        # 這種寫法更為通用和直觀，同時保留了 exec 帶來的程序管理優勢。
+        # 使用 exec 直接執行 GoAccess，使其成為容器的主程序 (PID 1)
+        # GoAccess 將作為前景程序運行，保持容器存活
         exec goaccess "/srv/logs/$${LOG_FILE}" $${GOACCESS_OPTS} $${FIXED_ARGS}
 
     command: [] # command 留空，因為所有命令已由 entrypoint 全權處理
