@@ -8,6 +8,8 @@ services:
     volumes:
       #  for remote server deploye. remember to modify the value
       - ./config.toml:/config.toml
+    environment:
+      - TZ=Asia/Taipei
     restart: unless-stopped
 
 

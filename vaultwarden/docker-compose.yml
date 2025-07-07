@@ -4,6 +4,8 @@ services:
     image: vaultwarden/server:latest
     restart: unless-stopped
     container_name: vaultwarden
+    environment:
+      - TZ=Asia/Taipei
     volumes:
         - /mnt/appdata/vaultwarden:/data/
     ports:

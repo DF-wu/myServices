@@ -1,10 +1,11 @@
-
-version: '3'
+version: "3"
 
 services:
   idrac-fan-control:
     container_name: idrac-fan-control
     image: ghcr.io/df-wu/idrac-fan-control:latest
+    environment:
+      - TZ=Asia/Taipei
     env_file:
       - .env
     restart: always
@@ -15,7 +16,3 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    
-
-
-

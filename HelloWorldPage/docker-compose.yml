@@ -6,4 +6,6 @@ services:
     ports:
     # Web UI port
       - 58080:80
+    environment:
+      - TZ=Asia/Taipei
     # for remote vm. no need to use

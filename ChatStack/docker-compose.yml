@@ -103,6 +103,8 @@ services:
     image: apache/tika:latest-full
     container_name: tika
     restart: unless-stopped
+    environment:
+      - TZ=Asia/Taipei
     ports:
       - "59998:9998"
     depends_on:
@@ -313,6 +315,7 @@ services:
       - BIND_ADDRESS=0.0.0.0:43004
       # - SE  ARXNG_BASE_URL=https://searx.perennialte.ch/search?safesearch=0&language=auto&q=<query>
       - SEARXNG_BASE_URL=http://localhost:43004
+      - TZ=Asia/Taipei
       - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-32}
       - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-32}
     cap_drop:
@@ -379,6 +382,7 @@ services:
   chatgpt-next-web:
     image: yidadaa/chatgpt-next-web
     environment:
+      - TZ=Asia/Taipei
       - OPENAI_API_KEY=${OPENAPI_KEY}
       - CODE=6319
     ports:

@@ -5,6 +5,7 @@ services:
     image: peakxy/twitch-watcher:latest
     restart: unless-stopped
     environment:
+      - TZ=Asia/Taipei
       - auth_token=${DF_AUTHTOKEN}  # my own token
       - category=warthunder
       - watchAlwaysTopStreamer=true

@@ -6,7 +6,9 @@ services:
     image: louislam/uptime-kuma:1
     container_name: uptime-kuma
     restart: unless-stopped
+    environment:
+      - TZ=Asia/Taipei
     volumes:
-      - /home/df/uptime-kuma-data:/app/data 
+      - /home/df/uptime-kuma-data:/app/data
     ports:
       - 53001:3001

@@ -8,6 +8,7 @@ services:
     image: vdsm/virtual-dsm
     privileged: true
     environment:
+      TZ: Asia/Taipei
       RAM_SIZE: "3G"
       CPU_CORES: "4"
       DISK_SIZE: "720G"

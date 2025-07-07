@@ -7,7 +7,7 @@ services:
     ports:
       - "7880:7880"
     environment:
-      - TZ=America/New_York
+      - TZ=Asia/Taipei
       - SKIP_ARCHIVED_LOGS=False #optional
       - DEBUG=False #optional
       - BASIC_AUTH=False #optional

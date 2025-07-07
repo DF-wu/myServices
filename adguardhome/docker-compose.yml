@@ -18,3 +18,5 @@ services:
       - /mnt/appdata/adguard_home/workingdir:/opt/adguardhome/work
     # config dir
       - /mnt/appdata/adguard_home/config:/opt/adguardhome/conf
+    environment:
+      - TZ=Asia/Taipei

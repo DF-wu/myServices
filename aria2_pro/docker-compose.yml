@@ -1,22 +1,22 @@
 # TODO
 services:
   aria2_pro:
-    restart: always 
+    restart: always
     image: p3terx/aria2-pro
     container_name: aria2_pro
     ports:
-    # bind RPC listen port.
+      # bind RPC listen port.
       - 46800:6800
-    # Bind BT listen port (TCP).
+      # Bind BT listen port (TCP).
       - 46888:6888
-    # Bind BT listen port (UDP).
+      # Bind BT listen port (UDP).
       - 46888:6888/udp
-  
-    volumes:
-    # Location of downloads on disk.
-      - /mnt/mydata/aria2DownloadPool:/downloads
-    # Contains all relevant configuration files.
-      - /mnt/appdata/aria2-pro:/config
-    env_file: .env
 
-      
+    volumes:
+      # Location of downloads on disk.
+      - /mnt/mydata/aria2DownloadPool:/downloads
+      # Contains all relevant configuration files.
+      - /mnt/appdata/aria2-pro:/config
+    environment:
+      - TZ=Asia/Taipei
+    env_file: .env

@@ -21,6 +21,7 @@ services:
     volumes:
       - "/mnt/appdata/qdtoday/config:/usr/src/app/config"
     environment:
+      - TZ=Asia/Taipei
       # - QD_DEBUG=False
       # - BIND=0.0.0.0
       # - PORT=80
