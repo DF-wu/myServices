@@ -1,0 +1,42 @@
+# author: df
+# version: 1.0
+# date: 2025.7.10
+# description: moonTV
+# doc: https://github.com/senshinya/MoonTV
+
+services:
+  moontv-core:
+    image: ghcr.io/senshinya/moontv:latest
+    container_name: moontv
+    restart: unless-stopped
+    ports:
+      - "53100:3000"
+    environment:
+      - USERNAME=df
+      - PASSWORD=${DF_PASSWORD}
+      - NEXT_PUBLIC_STORAGE_TYPE=redis
+      - REDIS_URL=redis://moontv-redis:6379
+      - NEXT_PUBLIC_ENABLE_REGISTER=true
+      - NEXT_PUBLIC_SEARCH_MAX_PAGE
+      - SITE_NAME="df moonTV"
+      - NEXT_PUBLIC_SEARCH_MAX_PAGE=12
+      - TZ=Asia/Taipei
+
+    networks:
+      - moontv-network
+    depends_on:
+      - moontv-redis
+    volumes:
+      - /mnt/moonTV/config.json:/app/config.json:ro
+  moontv-redis:
+    image: valkey/valkey
+    container_name: moontv-redis
+    restart: unless-stopped
+    networks:
+      - moontv-network
+    # 如需持久化
+    # volumes:
+    #   - ./data:/data
+networks:
+  moontv-network:
+    driver: bridge
