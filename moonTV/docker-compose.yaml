@@ -26,8 +26,8 @@ services:
       - moontv-network
     depends_on:
       - moontv-redis
-    volumes:
-      - /mnt/appdata/moonTV/config.json:/app/config.json:ro
+    # volumes:
+    # - /mnt/appdata/moonTV/config.json:/app/config.json:ro
   moontv-redis:
     image: valkey/valkey
     container_name: moontv-redis
