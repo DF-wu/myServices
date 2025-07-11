@@ -2,23 +2,20 @@ version: "3"
 services:
   portainer:
     container_name: portainer
-    image: portainer/portainer-ce:lts
+    image: portainer/portainer-ce:sts
     restart: always
     ports:
-    # https
+      # https
       - 9443:9443
-    # http
+      # http
       - 9000:9000
     environment:
       - TZ=Asia/Taipei
     volumes:
-    # don't put in this git repo
+      # don't put in this git repo
       # - ${PWD}/portainer-ce/data:/data
       - /mnt/appdata/portainer-ce/data:/data
       - /var/run/docker.sock:/var/run/docker.sock
-    
-
-
 
   # problem maker, I rather update manually
   # watchtower:
@@ -27,6 +24,3 @@ services:
   #   volumes:
   #     - /var/run/docker.sock:/var/run/docker.sock
   #   command: --interval 86400
-
-
-
