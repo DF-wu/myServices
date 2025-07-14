@@ -1,0 +1,16 @@
+version: "3"
+
+# author: df
+# description: cloudflared for tunnel
+# doc: https://github.com/cloudflare/cloudflared
+# require env:
+# CLOUDFLARED_TOKEN: the token for your tunnel
+
+services:
+  cloudflared:
+    container_name: cloudflared
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TOKEN}
+    environment:
+      - TZ=Asia/Taipei
