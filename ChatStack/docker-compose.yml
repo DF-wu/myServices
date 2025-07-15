@@ -300,7 +300,8 @@ services:
         max-file: "1"
 
   # currens
-  # another choice https://searx.perennialte.ch/
+  # another choice : https://searx.perennialte.ch/
+  # another choice : https://searxng.ddaodan.cc/search?q=<query>&safesearch=0&language=auto&format=json
   searxng:
     container_name: searxng
     image: docker.io/searxng/searxng:latest
