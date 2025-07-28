@@ -18,7 +18,7 @@ services:
     # 將主機的 /mnt/appdata/gptload 目錄掛載到容器的 /app/data 目錄
     # 用於持久化儲存 SQLite 資料庫、日誌等應用程式資料
     volumes:
-      - /mnt/appdata/gptload:/app/data
+      - /root/service/gptload:/app/data
     # 設定服務優雅關閉的等待時間（秒）
     stop_grace_period: ${SERVER_GRACEFUL_SHUTDOWN_TIMEOUT:-10}s
     # 健康檢查，用於監控服務是否正常運行
