@@ -1,0 +1,89 @@
+services:
+  # gpt-load 主服務
+  gpt-load:
+    # 官方提供的 Docker 映像
+    image: ghcr.io/tbphp/gpt-load:latest
+    # 容器名稱，遵循 myServices 慣例
+    container_name: gptload
+    # 設定容器總是重新啟動，確保服務高可用
+    restart: unless-stopped
+    # 連接埠映射：將主機的 3001 連接埠映射到容器的 3001 連接埠
+    # ${PORT:-3001} 表示如果 .env 中未設定 PORT，則使用預設值 3001
+    ports:
+      - "${PORT:-3001}:${PORT:-3001}"
+    # 指定環境變數檔案，所有設定將從 .env 檔案讀取
+    env_file:
+      - .env
+    # 資料卷掛載，遵循 myServices 慣例
+    # 將主機的 /mnt/appdata/gptload 目錄掛載到容器的 /app/data 目錄
+    # 用於持久化儲存 SQLite 資料庫、日誌等應用程式資料
+    volumes:
+      - /mnt/appdata/gptload:/app/data
+    # 設定服務優雅關閉的等待時間（秒）
+    stop_grace_period: ${SERVER_GRACEFUL_SHUTDOWN_TIMEOUT:-10}s
+    # 健康檢查，用於監控服務是否正常運行
+    healthcheck:
+      # 測試指令：使用 wget 檢查健康狀態端點
+      test: wget -q --spider -T 10 -O /dev/null http://localhost:${PORT:-3001}/health
+      # 檢查間隔：每 30 秒檢查一次
+      interval: 30s
+      # 超時時間：每次檢查的超時時間為 10 秒
+      timeout: 10s
+      # 重試次數：如果檢查失敗，重試 3 次
+      retries: 3
+      # 啟動延遲：容器啟動後延遲 40 秒再開始第一次健康檢查
+      start_period: 40s
+    # 環境變數：直接在 docker-compose 中設定的變數
+    environment:
+      # 設定時區為亞洲/台北，遵循 myServices 慣例
+      - TZ=Asia/Taipei
+
+  # 注意：如果需要使用 MySQL、PostgreSQL 或 Redis，請取消以下服務的註解，
+  # 並在 gpt-load 服務的 depends_on 中也取消對應的註解。
+  # 同時，需要在 .env 檔案中設定對應的 DATABASE_DSN 或 REDIS_DSN。
+
+  # mysql:
+  #   image: mysql:8.2
+  #   container_name: gpt-load-mysql
+  #   restart: always
+  #   ports:
+  #     - "3306:3306"
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: 123456
+  #     MYSQL_DATABASE: gpt-load
+  #   volumes:
+  #     - /mnt/appdata/gptload/mysql:/var/lib/mysql
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+
+  # postgres:
+  #   image: "postgres:16"
+  #   container_name: gpt-load-postgres
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: 123456
+  #     POSTGRES_DB: gpt-load
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - /mnt/appdata/gptload/postgres:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres -d gpt-load"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+
+  # redis:
+  #   image: redis:latest
+  #   container_name: gpt-load-redis
+  #   restart: always
+  #   ports:
+  #     - "6379:6379"
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 5s
+  #     timeout: 3s
+  #     retries: 3
