@@ -1,22 +1,24 @@
 services:
-  adg: 
+  adg:
     container_name: adguardhome
     image: adguard/adguardhome
     restart: always
     ports:
-    # dns tcp udp
+      # dns tcp udp
       - 53:53
       - 53:53/udp
-    # dns over tls
+      # dns over tls
       - 853:853
-    # 853:853 udp
+      # 853:853 udp
       - 853:853/udp
-    # WebUI:
+      # WebUI:
       - 3000:3000
     volumes:
-    # working dir
-      - /mnt/appdata/adguard_home/workingdir:/opt/adguardhome/work
-    # config dir
+      # working dir
+      #  - /mnt/appdata/adguard_home/workingdir:/opt/adguardhome/work
+      # local working dir to resolve io error
+      - /home/df/_serverDataAndScript/adguardhome/workingdir:/opt/adguardhome/work
+      # config dir
       - /mnt/appdata/adguard_home/config:/opt/adguardhome/conf
     environment:
       - TZ=Asia/Taipei
