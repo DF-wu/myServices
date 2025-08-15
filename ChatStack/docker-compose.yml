@@ -8,6 +8,7 @@ services:
   open-webui:
     image: ghcr.io/open-webui/open-webui:ollama
     container_name: open-webui-ollama
+    user: 3000:3000
     restart: unless-stopped
     ports:
       - "43000:8080"
@@ -61,6 +62,7 @@ services:
   chatstack-unified-redis:
     image: docker.io/valkey/valkey:8-alpine
     container_name: chatstack-unified-redis
+    user: 3000:3000
     volumes:
       - /mnt/appdata/ChatStack/unified-redis:/data
     command: "valkey-server --save 30 1"
@@ -88,6 +90,7 @@ services:
   docling:
     image: quay.io/docling-project/docling-serve-cu128
     container_name: docling-serve
+    user: 3000:3000
     restart: unless-stopped
     ports:
       - "43005:5001"
@@ -106,6 +109,7 @@ services:
   tika:
     image: apache/tika:latest-full
     container_name: tika
+    user: 3000:3000
     restart: unless-stopped
     environment:
       - TZ=Asia/Taipei
@@ -158,6 +162,7 @@ services:
   new-api:
     image: ghcr.io/veloera/veloera:latest
     container_name: veloera
+    user: 3000:3000
     restart: always
     command: --log-dir /app/logs
     ports:
@@ -197,7 +202,7 @@ services:
     image: pgvector/pgvector:pg17
     ports:
       - 43020:5432
-    user: 3000:100
+    user: 3000:3000
     container_name: chatstack-postgres17-pgvector
     environment:
       POSTGRES_USER: postgres
@@ -221,6 +226,7 @@ services:
   telegram-chatbot:
     container_name: telegram-chatbot
     image: yym68686/chatgpt:latest
+    user: 3000:3000
     restart: unless-stopped
     environment:
       - TZ=Asia/Taipei
@@ -269,6 +275,7 @@ services:
   discord-chatbot:
     container_name: discord-chatbot
     image: ghcr.io/df-wu/llmcord
+    user: 3000:3000
     restart: unless-stopped
     network_mode: host
     env_file:
@@ -297,6 +304,7 @@ services:
   searxng:
     container_name: searxng
     image: docker.io/searxng/searxng:latest
+    user: 3000:3000
     restart: unless-stopped
     # x 因為使用 network_mode: "service:gluetun-jp-2"，所以不能設定 ports
     ports:
@@ -374,6 +382,7 @@ services:
 
   chatgpt-next-web:
     image: yidadaa/chatgpt-next-web
+    user: 3000:3000
     environment:
       - TZ=Asia/Taipei
       - OPENAI_API_KEY=${OPENAPI_KEY}
