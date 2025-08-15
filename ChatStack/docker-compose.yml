@@ -89,25 +89,25 @@ services:
 
   # ibm docling project. replace tika
   # check release to determine which cuda version i can use
-  docling:
-    image: quay.io/docling-project/docling-serve-cu128
-    container_name: docling-serve
-    user: 3000:3000
-    restart: unless-stopped
-    ports:
-      - "43005:5001"
-    environment:
-      # 解決 NVIDIA ldcache signal 9 錯誤
-      - NVIDIA_DISABLE_REQUIRE=true
-      - DOCLING_SERVE_ENABLE_UI=true
-      - TZ=Asia/Taipei # 統一時區設定，保持好習慣喔！
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all # 這裡設定為 all，與你 docker run 指令的 --gpus all 相符
-              capabilities: [gpu, compute] # 確保 GPU 運算能力能被正確識別和使用
+  # docling:
+  #   image: quay.io/docling-project/docling-serve-cu128
+  #   container_name: docling-serve
+  #   user: 3000:3000
+  #   restart: unless-stopped
+  #   ports:
+  #     - "43005:5001"
+  #   environment:
+  #     # 解決 NVIDIA ldcache signal 9 錯誤
+  #     - NVIDIA_DISABLE_REQUIRE=true
+  #     - DOCLING_SERVE_ENABLE_UI=true
+  #     - TZ=Asia/Taipei # 統一時區設定，保持好習慣喔！
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all # 這裡設定為 all，與你 docker run 指令的 --gpus all 相符
+  #             capabilities: [gpu, compute] # 確保 GPU 運算能力能被正確識別和使用
 
   # DEPRECATED.
   tika:
@@ -384,13 +384,13 @@ services:
   #     # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
   #     - UPDATER_PERIOD= 24h
 
-  chatgpt-next-web:
-    image: yidadaa/chatgpt-next-web
-    user: 3000:3000
-    environment:
-      - TZ=Asia/Taipei
-      - OPENAI_API_KEY=${OPENAPI_KEY}
-      - CODE=6319
-    ports:
-      - "33000:3000"
-    restart: unless-stopped
+  # chatgpt-next-web:
+  #   image: yidadaa/chatgpt-next-web
+  #   user: 3000:3000
+  #   environment:
+  #     - TZ=Asia/Taipei
+  #     - OPENAI_API_KEY=${OPENAPI_KEY}
+  #     - CODE=6319
+  #   ports:
+  #     - "33000:3000"
+  #   restart: unless-stopped
