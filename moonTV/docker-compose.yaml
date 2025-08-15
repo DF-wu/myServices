@@ -20,6 +20,8 @@ services:
       - SITE_NAME="df moonTV"
       - NEXT_PUBLIC_SEARCH_MAX_PAGE=24
       - TZ=Asia/Taipei
+      - PUID=3000
+      - PGID=3000
     networks:
       - moontv-network
     depends_on:
