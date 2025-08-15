@@ -1,13 +1,13 @@
 # author: df
-# version: 1.0
-# date: 2025.7.10
-# description: moonTV
-# doc: https://github.com/senshinya/MoonTV
+# version: 2.0
+# date: 2025.8.15
+# description: moonTV (updated to new version)
+# doc: https://github.com/moontechlab/lunatv
 
 services:
   moontv-core:
-    image: ghcr.io/senshinya/moontv:latest
-    container_name: moontv
+    image: ghcr.io/moontechlab/lunatv:latest
+    container_name: moontv-core
     restart: unless-stopped
     ports:
       - "53100:3000"
@@ -17,11 +17,9 @@ services:
       - NEXT_PUBLIC_STORAGE_TYPE=redis
       - REDIS_URL=redis://moontv-redis:6379
       - NEXT_PUBLIC_ENABLE_REGISTER=true
-      - NEXT_PUBLIC_SEARCH_MAX_PAGE
       - SITE_NAME="df moonTV"
-      - NEXT_PUBLIC_SEARCH_MAX_PAGE=12
+      - NEXT_PUBLIC_SEARCH_MAX_PAGE=24
       - TZ=Asia/Taipei
-
     networks:
       - moontv-network
     depends_on:
@@ -34,9 +32,9 @@ services:
     restart: unless-stopped
     networks:
       - moontv-network
-    # 如需持久化
-    # volumes:
-    #   - ./data:/data
+    # 開啟持久化，否則升級/重啟後數據丟失
+    volumes:
+      - /mnt/appdata/moontv/data:/data
 networks:
   moontv-network:
     driver: bridge
