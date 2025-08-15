@@ -32,6 +32,9 @@ services:
     image: redis:alpine
     container_name: moontv-redis
     restart: unless-stopped
+    environment:
+      - PUID=3000
+      - PGID=3000
     networks:
       - moontv-network
     # 開啟持久化，否則升級/重啟後數據丟失
