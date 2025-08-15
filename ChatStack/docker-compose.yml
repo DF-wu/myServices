@@ -8,7 +8,6 @@ services:
   open-webui:
     image: ghcr.io/open-webui/open-webui:ollama
     container_name: open-webui-ollama
-    user: 3000:3000
     restart: unless-stopped
     ports:
       - "43000:8080"
