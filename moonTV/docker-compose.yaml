@@ -16,7 +16,7 @@ services:
       - PASSWORD=${DF_PASSWORD}
       - NEXT_PUBLIC_STORAGE_TYPE=redis
       - REDIS_URL=redis://moontv-redis:6379
-      - NEXT_PUBLIC_ENABLE_REGISTER=true
+      - NEXT_PUBLIC_ENABLE_REGISTER=false
       - SITE_NAME="df moonTV"
       - NEXT_PUBLIC_SEARCH_MAX_PAGE=24
       - TZ=Asia/Taipei
@@ -29,7 +29,7 @@ services:
     # volumes:
     # - /mnt/appdata/moonTV/config.json:/app/config.json:ro
   moontv-redis:
-    image: valkey/valkey
+    image: redis/redis
     container_name: moontv-redis
     restart: unless-stopped
     networks:
