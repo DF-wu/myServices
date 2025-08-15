@@ -29,7 +29,7 @@ services:
     # volumes:
     # - /mnt/appdata/moonTV/config.json:/app/config.json:ro
   moontv-redis:
-    image: redis/redis
+    image: redis:alpine
     container_name: moontv-redis
     restart: unless-stopped
     networks:
