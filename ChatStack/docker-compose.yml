@@ -1,10 +1,8 @@
 # author : df
-# version: 1.0
-# date: 2024.10.24
+# version: 1.1
+# date: 2025.8.15
 # description: open-webui
 # doc: https://github.com/open-webui/open-webui
-
-version: "3.8"
 
 services:
   open-webui:
@@ -32,7 +30,8 @@ services:
 
       - ENABLE_WEBSOCKET_SUPPORT="true"
       - WEBSOCKET_MANAGER="redis"
-      - WEBSOCKET_REDIS_URL="redis://openwebui-redis-valkey:6379/1"
+      # 使用統一 Redis 的 Database 1
+      - WEBSOCKET_REDIS_URL="redis://chatstack-unified-redis:6379/1"
 
       - ENABLE_RAG_WEB_SEARCH=true
       # - RAG_WEB_SEARCH_ENGINE="searxng"
@@ -43,7 +42,7 @@ services:
       - /mnt/appdata/ChatStack/ollama:/root/.ollama
       - /mnt/appdata/ChatStack/open-webui:/app/backend/data
     depends_on:
-      redis:
+      chatstack-unified-redis:
         condition: service_started
     deploy:
       resources:
@@ -54,11 +53,16 @@ services:
               capabilities: [gpu, compute, video]
 
   # https://docs.openwebui.com/tutorials/integrations/redis/
-  openwebui-redis-valkey:
+  # 統一的 Redis 服務，使用不同數據庫編號分離數據
+  # Database 分配：
+  # - Database 1: open-webui (WebSocket 支援)
+  # - Database 2: new-api/veloera (API 分發器)
+  # - Database 3: searxng (搜尋引擎快取) - TODO: 需配置 searxng settings.yml
+  chatstack-unified-redis:
     image: docker.io/valkey/valkey:8-alpine
-    container_name: openwebui-redis-valkey
+    container_name: chatstack-unified-redis
     volumes:
-      - /mnt/appdata/ChatStack/openwebui-redis-valkey:/data
+      - /mnt/appdata/ChatStack/unified-redis:/data
     command: "valkey-server --save 30 1"
     healthcheck:
       test: "[ $$(valkey-cli ping) = 'PONG' ]"
@@ -108,6 +112,7 @@ services:
     ports:
       - "59998:9998"
     depends_on:
+      # 依賴 PostgreSQL 數據庫
       - chatstack-postgres17-pgvector
 
   # ollama:
@@ -161,8 +166,8 @@ services:
       - /mnt/appdata/ChatStack/new-api/data:/data
       - /mnt/appdata/ChatStack/new-api/logs:/app/logs
     environment:
-      # - SQL_DSN=root:123456@tcp(host.docker.internal:3306)/new-api  # 修改此行，或注释掉以使用 SQLite 作为数据库
-      - REDIS_CONN_STRING=redis://redis
+      # 使用統一 Redis 的 Database 2
+      - REDIS_CONN_STRING=redis://chatstack-unified-redis:6379/2
       - SESSION_SECRET=0 # 修改为随机字符串
       - TZ=Asia/Taipei
       #      - NODE_TYPE=slave  # 多机部署时从节点取消注释该行
@@ -172,7 +177,7 @@ services:
       - GIN_MODE=debug
 
     depends_on:
-      redis:
+      chatstack-unified-redis:
         condition: service_started
       chatstack-postgres17-pgvector:
         condition: service_started
@@ -186,11 +191,6 @@ services:
       timeout: 10s
       retries: 3
 
-  redis:
-    image: redis:latest
-    container_name: new-api-redis
-    restart: always
-
   # remember the different postgres version is not compatible
   chatstack-postgres17-pgvector:
     restart: unless-stopped
@@ -198,7 +198,7 @@ services:
     ports:
       - 43020:5432
     user: 3000:100
-    container_name: ChatStack-postgres17-pgvector
+    container_name: chatstack-postgres17-pgvector
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -227,7 +227,8 @@ services:
       # secret setting in portainer
       - BOT_TOKEN=${TGBOT_TOKEN}
       - API=${OPENAPI_KEY}
-      - API_URL=http://new-api:3000/v1/chat/completions
+      # 引用 new-api 服務（容器名稱為 veloera）
+      - API_URL=http://veloera:3000/v1/chat/completions
       #wu family
       - GROUP_LIST=-418602979,-285458882,-4677795092,-1002386894523,-4677795092
       #- whitelist=878482503,631453957,858738425,1361740780
@@ -260,7 +261,8 @@ services:
     ports:
       - 43080:8080
     depends_on:
-      new-api:
+      # 依賴 new-api 服務（容器名稱為 veloera）
+      veloera:
         condition: service_started
 
   ## if my n8n work well, I will use n8n
@@ -276,32 +278,22 @@ services:
     volumes:
       - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/app/config.yaml
     depends_on:
-      new-api:
+      # 依賴 new-api 服務（容器名稱為 veloera）
+      veloera:
         condition: service_started
-
-  # https://github.com/searxng/searxng-docker/blob/master/docker-compose.yaml
-  searxng-redis-valkey:
-    container_name: searxng-redis-valkey
-    image: docker.io/valkey/valkey:8-alpine
-    command: valkey-server --save 30 1 --loglevel warning
-    restart: unless-stopped
-    volumes:
-      - /mnt/appdata/ChatStack/searxng-redis-valkey:/data
-    cap_drop:
-      - ALL
-    cap_add:
-      - SETGID
-      - SETUID
-      - DAC_OVERRIDE
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "1"
 
   # currens
   # another choice : https://searx.perennialte.ch/
   # another choice : https://searxng.ddaodan.cc/search?q=<query>&safesearch=0&language=auto&format=json
+  #
+  # TODO: SearXNG Redis 配置
+  # 目前 searxng 依賴統一 Redis，但尚未完全整合
+  # 需要完成以下步驟：
+  # 1. 在 /mnt/appdata/ChatStack/searxng/settings.yml 中添加：
+  #    redis:
+  #      url: redis://chatstack-unified-redis:6379/3
+  # 2. 測試 searxng 是否能正常使用統一 Redis 進行快取
+  # 3. 確認搜尋功能運作正常後，可移除對獨立 Redis 的依賴
   searxng:
     container_name: searxng
     image: docker.io/searxng/searxng:latest
@@ -332,7 +324,7 @@ services:
         max-file: "1"
     # network_mode: "service:gluetun-jp-2"
     depends_on:
-      - searxng-redis-valkey
+      - chatstack-unified-redis
 
   # gluetun-jp-2:
   #   image: qmcgaw/gluetun
