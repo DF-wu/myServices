@@ -305,38 +305,38 @@ services:
   #      url: redis://chatstack-unified-redis:6379/3
   # 2. 測試 searxng 是否能正常使用統一 Redis 進行快取
   # 3. 確認搜尋功能運作正常後，可移除對獨立 Redis 的依賴
-  searxng:
-    container_name: searxng
-    image: docker.io/searxng/searxng:latest
-    user: 3000:3000
-    restart: unless-stopped
-    # x 因為使用 network_mode: "service:gluetun-jp-2"，所以不能設定 ports
-    ports:
-      - "43004:43004"
-    volumes:
-      - /mnt/appdata/ChatStack/searxng:/etc/searxng:rw
-    environment:
-      # default url : https://${SEARXNG_HOSTNAME:-localhost}
-      - BIND_ADDRESS=0.0.0.0:43004
-      # - SE  ARXNG_BASE_URL=https://searx.perennialte.ch/search?safesearch=0&language=auto&q=<query>
-      - SEARXNG_BASE_URL=http://localhost:43004
-      - TZ=Asia/Taipei
-      - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-32}
-      - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-32}
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETGID
-      - SETUID
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "1"
-    # network_mode: "service:gluetun-jp-2"
-    depends_on:
-      - chatstack-unified-redis
+  # searxng:
+  #   container_name: searxng
+  #   image: docker.io/searxng/searxng:latest
+  #   user: 3000:3000
+  #   restart: unless-stopped
+  #   # x 因為使用 network_mode: "service:gluetun-jp-2"，所以不能設定 ports
+  #   ports:
+  #     - "43004:43004"
+  #   volumes:
+  #     - /mnt/appdata/ChatStack/searxng:/etc/searxng:rw
+  #   environment:
+  #     # default url : https://${SEARXNG_HOSTNAME:-localhost}
+  #     - BIND_ADDRESS=0.0.0.0:43004
+  #     # - SE  ARXNG_BASE_URL=https://searx.perennialte.ch/search?safesearch=0&language=auto&q=<query>
+  #     - SEARXNG_BASE_URL=http://localhost:43004
+  #     - TZ=Asia/Taipei
+  #     - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-32}
+  #     - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-32}
+  #   cap_drop:
+  #     - ALL
+  #   cap_add:
+  #     - CHOWN
+  #     - SETGID
+  #     - SETUID
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "1m"
+  #       max-file: "1"
+  #   # network_mode: "service:gluetun-jp-2"
+  #   depends_on:
+  #     - chatstack-unified-redis
 
   # gluetun-jp-2:
   #   image: qmcgaw/gluetun
