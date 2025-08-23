@@ -20,6 +20,7 @@ services:
       - SITE_NAME="df moonTV"
       - NEXT_PUBLIC_SEARCH_MAX_PAGE=24
       - TZ=Asia/Taipei
+      - AUTH_TOKEN=ec68dfe8550e27fae9bbfd3483ce400c
       - PUID=3000
       - PGID=3000
     networks:
