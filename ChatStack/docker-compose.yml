@@ -229,7 +229,6 @@ services:
   telegram-chatbot:
     container_name: telegram-chatbot
     image: yym68686/chatgpt:latest
-    user: 3000:3000
     restart: unless-stopped
     environment:
       - TZ=Asia/Taipei
