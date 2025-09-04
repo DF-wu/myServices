@@ -1,25 +1,25 @@
 services:
-  qbt: 
+  qbt:
     image: binhex/arch-qbittorrentvpn
     restart: unless-stopped
     ports:
-    # container ports
+      # container ports
       - 6881:6881
       - 6881:6881/udp
-      - 58080:58080
+      - 58079:58080
       - 8118:8118
     volumes:
-    # download dir. 
+      # download dir.
       # - /mnt/disks/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
-      - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
-    # appdata config
+      # - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
+      - /mnt/mydata/BT/PT:/data
+      # appdata config
       - /mnt/appdata/binhex-qbittorrentvpn:/config
     environment:
       - TZ=Asia/Taipei
     env_file: .env
     devices:
-       - /dev/net/tun:/dev/net/tun
+      - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
     # for NET_CAP
-
