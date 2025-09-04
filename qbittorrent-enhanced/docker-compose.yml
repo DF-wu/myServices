@@ -33,7 +33,7 @@ services:
       - SERVER_COUNTRIES="Romania"
       #- SERVER_REGIONS=${SERVER_REGIONS}
       #- SERVER_CITIES=${SERVER_CITIES}
-      - SERVER_HOSTNAMES=ro2-udp.ptoserver.com
+      - SERVER_HOSTNAMES='ro2-auto-udp.ptoserver.com'
     env_file: .env
 
   qbittorrent-enhanced:
