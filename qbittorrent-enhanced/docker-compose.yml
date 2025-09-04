@@ -50,6 +50,6 @@ services:
       - UMASK=000
       # qBittorrent 設定
       - WEBUIPORT=58080
-      - ENABLE_DOWNLOADS_PERM_FIX=true
+      - ENABLE_DOWNLOADS_PERM_FIX=false
 
     env_file: .env
