@@ -42,7 +42,7 @@ services:
     depends_on:
       - bt-gluetun
     volumes:
-      - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data:/downloads
+      - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data:/data
       - /mnt/appdata/qbittorrent-enhanced/qbittorrent-enhanced-config:/config
     environment:
       # 系統設定
@@ -52,6 +52,6 @@ services:
       - PUID=3000
       # qBittorrent 設定
       - WEBUIPORT=58080
-      - ENABLE_DOWNLOADS_PERM_FIX=false
+      - ENABLE_ata_PERM_FIX=false
 
     env_file: .env
