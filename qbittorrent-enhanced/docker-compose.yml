@@ -31,9 +31,9 @@ services:
 
       # 伺服器選擇 (可選)
       - SERVER_COUNTRIES="Romania"
-      #- SERVER_REGIONS=${SERVER_REGIONS}
-      #- SERVER_CITIES=${SERVER_CITIES}
-      - SERVER_HOSTNAMES='ro2-auto-udp.ptoserver.com'
+      - SERVER_REGIONS="București"
+      - SERVER_CITIES="Bucharest"
+      - SERVER_HOSTNAMES="ro2-auto-udp.ptoserver.com"
     env_file: .env
 
   qbittorrent-enhanced:
