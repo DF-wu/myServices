@@ -48,6 +48,8 @@ services:
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
+      - PGID=3000
+      - PUID=3000
       # qBittorrent 設定
       - WEBUIPORT=58080
       - ENABLE_DOWNLOADS_PERM_FIX=false
