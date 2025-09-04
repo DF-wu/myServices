@@ -10,8 +10,7 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      # qBittorrent WebUI
-      - 58080:58080/tcp
+      # - 58080:58080/tcp
       # qBittorrent BT PORT
       - 51001:51001/tcp
       - 51001:51001/udp
@@ -39,6 +38,9 @@ services:
     container_name: qbittorrent-enhanced
     restart: unless-stopped
     network_mode: "container:bt-gluetun"
+    port:s:
+      # WebUI 端口映射
+      - 58080:58080
     depends_on:
       - bt-gluetun
     volumes:
@@ -51,7 +53,7 @@ services:
       #- PGID=${PGID:-1000}
 
       # qBittorrent 設定
-      - WEBUI_PORT=58080
+      - WEBUIPORT=58080
       - ENABLE_DOWNLOADS_PERM_FIX=${ENABLE_DOWNLOADS_PERM_FIX}
 
     env_file: .env
