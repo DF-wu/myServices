@@ -26,8 +26,8 @@ services:
 
       # 系統設定
       - TZ=${TZ}
-      #- PUID=${PUID:-1000}
-      #- PGID=${PGID:-1000}
+      - PUID=3000
+      - PGID=3000
 
       # 伺服器選擇 (可選)
       - SERVER_COUNTRIES="Romania"
