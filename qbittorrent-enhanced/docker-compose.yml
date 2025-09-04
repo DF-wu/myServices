@@ -19,21 +19,19 @@ services:
       - /mnt/appdata/qbittorrent-enhanced/gluetun:/gluetun
     environment:
       # 基本 VPN 設定 (必填)
-      - VPN_SERVICE_PROVIDER=purevpn
-      #- VPN_TYPE=${VPN_TYPE}
+      - VPN_SERVICE_PROVIDER=purecustocustommvpn
+      - VPN_TYPE=openvpn
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-
+      - OPENVPN_CUSTOM_CONFIG=/gluetun/custom.conf
       # 系統設定
       - TZ=${TZ}
-      - PUID=3000
-      - PGID=3000
 
       # 伺服器選擇 (可選)
-      - SERVER_COUNTRIES="Romania"
-      - SERVER_REGIONS="București"
-      - SERVER_CITIES="Bucharest"
-      - SERVER_HOSTNAMES="ro2-auto-udp.ptoserver.com"
+      # - SERVER_COUNTRIES="Romania"
+      # - SERVER_REGIONS="București"
+      # - SERVER_CITIES="Bucharest"
+      # - SERVER_HOSTNAMES="ro2-auto-udp.ptoserver.com"
     env_file: .env
 
   qbittorrent-enhanced:
