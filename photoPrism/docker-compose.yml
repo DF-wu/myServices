@@ -32,7 +32,9 @@ services:
     # no auto buidl script.  disable now
     # # inject with my built ui compoments. no auto buidl script now!
     #   - /mnt/appdata/photoprism/df-built-ui-componets:/opt/photoprism/assets/static/build:ro
-    env_file: 
+    environment:
+      - TZ=Asia/Taipei
+    env_file:
       - .env
     devices:
       - "/dev/nvidia0:/dev/nvidia0"                 # Nvidia CUDA

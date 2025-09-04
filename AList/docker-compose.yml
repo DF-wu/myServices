@@ -1,18 +1,17 @@
 services:
-  alist: 
+  alist:
     image: xhofe/alist:latest
     restart: unless-stopped
     container_name: alist
     ports:
-    # container ports
+      # container ports
       - 5244:5244
-    # sftp access  
+      # sftp access
       - 5222:5222
     volumes:
-    # download
+      # download
       - /mnt/mydata/Alist_dir:/mnt/data
-    # appdata config
+      # appdata config
       - /mnt/appdata/alist:/opt/alist/data
-
-      
-
+    environment:
+      - TZ=Asia/Taipei

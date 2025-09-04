@@ -26,7 +26,7 @@ services:
       # - WIREGUARD_PRIVATE_KEY=wOEI9rqqbDwnN8/Bpp22sVz48T71vJ4fYmFWujulwUU=
       # - WIREGUARD_ADDRESSES=10.64.222.21/32
       # Timezone for accurate log times
-      - TZ=
+      - TZ=Asia/Taipei
       # Server list updater
       # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
       - UPDATER_PERIOD=

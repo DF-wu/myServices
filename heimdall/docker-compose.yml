@@ -8,8 +8,10 @@ services:
       - 50080:80
       - 50443:443
     volumes:
-      # appdata 
+      # appdata
       - /mnt/appdata/heimdall:/config
+    environment:
+      - TZ=Asia/Taipei
 
       
   

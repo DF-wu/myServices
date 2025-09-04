@@ -1,0 +1,46 @@
+# author: df
+# version: 2.0
+# date: 2025.8.15
+# description: moonTV (updated to new version)
+# doc: https://github.com/moontechlab/lunatv
+
+services:
+  moontv-core:
+    image: ghcr.io/moontechlab/lunatv:latest
+    container_name: moontv-core
+    restart: unless-stopped
+    ports:
+      - "53100:3000"
+    environment:
+      - USERNAME=df
+      - PASSWORD=${DF_PASSWORD}
+      - NEXT_PUBLIC_STORAGE_TYPE=redis
+      - REDIS_URL=redis://moontv-redis:6379
+      - NEXT_PUBLIC_ENABLE_REGISTER=false
+      - SITE_NAME="df moonTV"
+      - NEXT_PUBLIC_SEARCH_MAX_PAGE=24
+      - TZ=Asia/Taipei
+      - AUTH_TOKEN=ec68dfe8550e27fae9bbfd3483ce400c
+      - PUID=3000
+      - PGID=3000
+    networks:
+      - moontv-network
+    depends_on:
+      - moontv-redis
+    # volumes:
+    # - /mnt/appdata/moonTV/config.json:/app/config.json:ro
+  moontv-redis:
+    image: redis:alpine
+    container_name: moontv-redis
+    restart: unless-stopped
+    environment:
+      - PUID=3000
+      - PGID=3000
+    networks:
+      - moontv-network
+    # 開啟持久化，否則升級/重啟後數據丟失
+    volumes:
+      - /mnt/appdata/moontv/data:/data
+networks:
+  moontv-network:
+    driver: bridge

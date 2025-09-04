@@ -8,6 +8,7 @@ services:
     volumes:
       - /mnt/sdaDATA/H@H/database:/hath
     environment:
+      - TZ=Asia/Taipei
       - CLIENT_ID=28238
       - CLIENT_KEY=xnHXaKHndnrtXX2Ee7MU
 

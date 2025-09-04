@@ -26,6 +26,8 @@ services:
   autoread-1:
     image: 14790897/auto-read:latest
     container_name: auto-read-1
+    environment:
+      - TZ=Asia/Taipei
     env_file:
       - ./.env
       - ./.1.env.local
@@ -43,6 +45,8 @@ services:
   autoread-2:
     image: 14790897/auto-read:latest
     container_name: auto-read-2
+    environment:
+      - TZ=Asia/Taipei
     env_file:
       - ./.env
       - ./.2.env.local
@@ -62,6 +66,8 @@ services:
   autoread-3:
     image: 14790897/auto-read:latest
     container_name: auto-read-3
+    environment:
+      - TZ=Asia/Taipei
     env_file:
       - ./.env
       - ./.3.env.local

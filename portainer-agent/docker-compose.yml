@@ -6,7 +6,8 @@ services:
     container_name: portainer_agent
     ports:
       - 29001:9001
-    
+    environment:
+      - TZ=Asia/Taipei
     volumes:
       # To enable host management. Ref: https://docs.portainer.io/user/docker/host/setup#enable-host-management-features
       - /:/host

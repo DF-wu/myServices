@@ -11,6 +11,7 @@ services:
       # appdata
       - /mnt/appdata/jellyseerr:/app/config/
     environment:
+      - TZ=Asia/Taipei
       # Log verbosity.
       - LOG_LEVEL=info
       # Emby users need to fill 'emby' to enable emby support! Enabling emby support will cause problems with Plex and make Jellyfin unavailable.
@@ -44,6 +45,7 @@ services:
       - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data/AutoBangumi:/data/AutoBangumi
       
     environment:
+      - TZ=Asia/Taipei
       # https://github.com/linuxserver/docker-jellyfin#nvidia or https://jellyfin.org/docs/general/administration/hardware-acceleration/nvidia/
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
@@ -85,6 +87,7 @@ services:
       # Where Jackett should store its config file.
       - /mnt/appdata/jackett:/config
     environment:
+      - TZ=Asia/Taipei
       #Allow Jackett to update inside of the container (currently recommended by Jackett and enabled by default)
       - AUTO_UPDATE=true
       #Optionally specify additional arguments to be passed
@@ -114,6 +117,8 @@ services:
       - 48080:8080
     volumes:
       - /mnt/appdata/metatube-server/config:/config
+    environment:
+      - TZ=Asia/Taipei
     command: -dsn /config/metatube.db
   
   # Autobangumi for 自動追番。 replace my own rough download chain. REF: https://www.autobangumi.org/home/

@@ -16,6 +16,7 @@ services:
     volumes:
       - /mnt/appdata/wyoming:/data
     environment:
+      - TZ=Asia/Taipei
       NVIDIA_VISIBLE_DEVICES: "all"
     command:
       - "--language=zh"

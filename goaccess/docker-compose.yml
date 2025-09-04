@@ -1,0 +1,64 @@
+# GoAccess on Docker: 全自動化部署方案
+#
+# --- 重要提示 ---
+# - 此 Compose 檔案中的所有 `${VAR}` 變數都應在 `.env` 檔案中定義。
+# - Entrypoint 腳本中的所有 `$$VAR` 或 `$${VAR}` 寫法是為了防止 Docker Compose 進行變數替換， 因爲compose 會在讀取compose file階段就把變數替換掉。
+# 因此造成 mkdir 等命令無法正確執行。 因爲GEOIP_DIR 等變數在實際上在讀取compose檔案時就已經被替換了。
+# 所以在 entrypoint 腳本中使用 `$$` 或 `$${}` 來確保變數能正確傳遞到容器內的 shell 環境。
+# 確保 `$` 符號能被正確傳遞到容器內的 shell 環境中。
+#
+services:
+  goaccess:
+    image: allinurl/goaccess:latest
+    container_name: goaccess
+    restart: unless-stopped
+    ports:
+      - "7890:7890"
+    volumes:
+      # 掛載整個資料目錄，統一管理報告、資料庫和 GeoIP 檔案
+      - "/mnt/appdata/goaccess:/goaccess/data"
+      # 以唯讀模式掛載日誌來源目錄
+      - "/mnt/appdata/NginxProxyManager/logs:/srv/logs:ro"
+    environment:
+      - TZ=Asia/Taipei
+    env_file:
+      - ./.env
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -ex
+        echo "🚀 正在初始化 GoAccess (v3.2 - DB-IP)..."
+
+        # --- 1. 自動下載 GeoIP 資料庫 (DB-IP) ---
+        GEOIP_DIR="/goaccess/data/geoip"
+        # 檢查任一檔案不存在時，就觸發下載
+        if [ ! -f "$$GEOIP_DIR/dbip-city-lite.mmdb" ] || [ ! -f "$$GEOIP_DIR/dbip-asn-lite.mmdb" ]; then
+          echo "🌐 正在下載最新的 DB-IP GeoIP 資料庫 (免費版)..."
+          mkdir -p "$$GEOIP_DIR"
+          CURRENT_YM=$$(date +%Y-%m)
+          # 使用 curl 下載並解壓
+          curl -L "https://download.db-ip.com/free/dbip-city-lite-$${CURRENT_YM}.mmdb.gz" | gunzip > "$$GEOIP_DIR/dbip-city-lite.mmdb"
+          curl -L "https://download.db-ip.com/free/dbip-asn-lite-$${CURRENT_YM}.mmdb.gz" | gunzip > "$$GEOIP_DIR/dbip-asn-lite.mmdb"
+          echo "✅ GeoIP 資料庫已就緒。"
+        else
+          echo "✅ GeoIP 資料庫已存在，略過下載。"
+        fi
+
+        # --- 2. 組合並執行最終命令 (安全模式) ---
+        # 組合固定的核心參數 (已移除 --daemonize 和 --pid-file)
+        FIXED_ARGS="--output=/goaccess/data/report.html --real-time-html --addr=0.0.0.0 --port=7890 --db-path=/goaccess/data/"
+        [ -f "$$GEOIP_DIR/dbip-city-lite.mmdb" ] && FIXED_ARGS="$$FIXED_ARGS --geoip-database=$$GEOIP_DIR/dbip-city-lite.mmdb"
+        [ -f "$$GEOIP_DIR/dbip-asn-lite.mmdb" ] && FIXED_ARGS="$$FIXED_ARGS --geoip-database=$$GEOIP_DIR/dbip-asn-lite.mmdb"
+
+        echo "--------------------------------------------------"
+        echo "🚀 正在以前景模式啟動 GoAccess..."
+        echo "日誌來源: /srv/logs/$${LOG_FILE}"
+        echo "自訂參數: $${GOACCESS_OPTS}"
+        echo "--------------------------------------------------"
+
+        # 直接執行 GoAccess，不使用 exec，並移除路徑的引號
+        # 這讓 shell 有機會擴展日誌路徑中的萬用字元 (*)
+        goaccess /srv/logs/$${LOG_FILE} $${GOACCESS_OPTS} $${FIXED_ARGS}
+
+    command: [] # command 留空，因為所有命令已由 entrypoint 全權處理

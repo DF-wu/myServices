@@ -12,6 +12,7 @@ services:
     image: ghcr.io/vogler/free-games-claimer
     pull_policy: always # Equivalent to --pull=always
     environment:
+      - TZ=Asia/Taipei
     # modified in portainer
       - EMAIL=EMAIL
       - PASSWORD=PASSWORD

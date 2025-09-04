@@ -49,8 +49,10 @@ services:
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-cuda
     volumes:
       - ${MODEL_CACHE}:/cache
-    env_file: 
+    env_file:
       - .env
+    environment:
+      - TZ=Asia/Taipei
     restart: unless-stopped
     healthcheck:
       disable: false

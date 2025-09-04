@@ -7,6 +7,7 @@ services:
     ports:
       - "48888:80"
     environment:
+      - TZ=Asia/Taipei
       PGADMIN_DEFAULT_EMAIL: df@dfder.tw
       PGADMIN_DEFAULT_PASSWORD: pgadmin
     volumes:

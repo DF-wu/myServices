@@ -2,8 +2,6 @@
 # date: 2025.1.4
 # my deeplx service with my deepl pro token
 
-
-
 services:
   deeplx:
     image: ghcr.io/owo-network/deeplx:latest
@@ -14,5 +12,6 @@ services:
     env_file:
       - .env
     environment:
+      - TZ=Asia/Taipei
       - TOKEN=${DEEPLX_TOKEN}
       - DL_SESSION=${DL_SESSION}

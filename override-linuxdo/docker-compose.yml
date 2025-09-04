@@ -8,5 +8,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./config.json:/app/config.json
+    environment:
+      - TZ=Asia/Taipei
     ports:
         - "38181:8181"
