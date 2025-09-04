@@ -1,0 +1,59 @@
+# doc: https://github.com/SuperNG6/Docker-qBittorrent-Enhanced-Edition
+
+services:
+  bt-gluetun:
+    image: qmcgaw/gluetun
+    container_name: bt-gluetun
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      # qBittorrent WebUI
+      - 58080:58080/tcp
+      # qBittorrent BT PORT
+      - 51001:51001/tcp
+      - 51001:51001/udp
+    volumes:
+      - /mnt/appdata/qbittorrent-enhanced/gluetun:/gluetun
+    environment:
+      # 基本 VPN 設定 (必填)
+      - VPN_SERVICE_PROVIDER=purevpn
+      #- VPN_TYPE=${VPN_TYPE}
+      - OPENVPN_USER=${OPENVPN_USER}
+      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+
+      # 系統設定
+      - TZ=${TZ}
+      #- PUID=${PUID:-1000}
+      #- PGID=${PGID:-1000}
+
+      # 伺服器選擇 (可選)
+      - SERVER_COUNTRIES="Romania"
+      #- SERVER_REGIONS=${SERVER_REGIONS}
+      #- SERVER_CITIES=${SERVER_CITIES}
+      #- SERVER_HOSTNAMES=${SERVER_HOSTNAMES}
+    env_file: .env
+
+  qbittorrent-enhanced:
+    image: superng6/qbittorrentee
+    container_name: qbittorrent-enhanced
+    restart: unless-stopped
+    network_mode: "container:bt-gluetun"
+    depends_on:
+      - bt-gluetun
+    volumes:
+      - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data:/downloads
+      - /mnt/appdata/qbittorrent-enhanced/qbittorrent-enhanced-config:/config
+    environment:
+      # 系統設定
+      - TZ=${TZ}
+      #- PUID=${PUID:-1000}
+      #- PGID=${PGID:-1000}
+
+      # qBittorrent 設定
+      - WEBUI_PORT=58080
+      - ENABLE_DOWNLOADS_PERM_FIX=${ENABLE_DOWNLOADS_PERM_FIX}
+
+    env_file: .env
