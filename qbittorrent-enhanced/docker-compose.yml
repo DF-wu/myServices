@@ -26,7 +26,7 @@ services:
       - OPENVPN_CUSTOM_CONFIG=/gluetun/custom.conf
       # 系統設定
       - TZ=${TZ}
-
+      - UMASK=000
       # 伺服器選擇 (可選)
       # - SERVER_COUNTRIES="Romania"
       # - SERVER_REGIONS="București"
@@ -47,9 +47,7 @@ services:
     environment:
       # 系統設定
       - TZ=${TZ}
-      - PUID=3000
-      - PGID=3000
-
+      - UMASK=000
       # qBittorrent 設定
       - WEBUIPORT=58080
       - ENABLE_DOWNLOADS_PERM_FIX=true
