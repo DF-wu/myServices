@@ -1,52 +1,104 @@
+
+# Veloera 多站點自動簽到腳本
+#
+# --- 使用說明 ---
+#
+# 本腳本支援兩種執行方式：
+#
+# 1. GitHub Actions (自動化 CI/CD)
+#    - 透過讀取 GitHub Secrets 中所有以 `VELOERA_AUTOSIGN_` 開頭的環境變數來執行。
+#    - 每個 Secret 的值都必須是一個包含 `base_url`, `user_id`, `access_token` 的 JSON 字串。
+#    - 範例 Secret:
+#      - 名稱: VELOERA_AUTOSIGN_SITE_A
+#      - 內容: {"base_url": "https://a.com", "user_id": 123, "access_token": "tokenA"}
+#      - 名稱: VELOERA_AUTOSIGN_02
+#      - 內容: {"base_url": "https://b.net", "user_id": 456, "access_token": "tokenB"}
+#
+# 2. 本地執行 (手動測試)
+#    - 在腳本相同目錄下建立一個名為 `configs.json` (注意有 's') 的檔案。
+#    - `configs.json` 的內容必須是一個 JSON 列表 (list)，其中包含多個簽到設定物件。
+#    - 範例 `configs.json`:
+#      [
+#          {
+#              "base_url": "https://zone.veloera.org",
+#              "user_id": 2628,
+#              "access_token": "some_token"
+#          },
+#          {
+#              "base_url": "https://another.site.com",
+#              "user_id": 5678,
+#              "access_token": "another_token"
+#          }
+#      ]
+#    - 接著直接執行 `python checkin.py` 即可。
+#
+# 腳本會優先讀取環境變數，如果找不到任何相關環境變數，才會
 import os
 import json
 import requests
 from datetime import datetime
 
-def load_config():
+def load_configs():
     """
-    優先從環境變數載入設定，若無則從 config.json 檔案載入。
+    從環境變數或本地 configs.json 檔案載入多個網站的設定。
     """
-    # 嘗試從環境變數讀取
-    base_url = os.environ.get("BASE_URL")
-    user_id = os.environ.get("USER_ID")
-    access_token = os.environ.get("ACCESS_TOKEN")
+    configs = []
+    
+    # 優先從環境變數讀取
+    # 尋找所有以 VELOERA_AUTOSIGN_ 開頭的環境變數
+    for key, value in os.environ.items():
+        if key.startswith("VELOERA_AUTOSIGN_"):
+            try:
+                # 解析 JSON 字串
+                config = json.loads(value)
+                if all(k in config for k in ["base_url", "user_id", "access_token"]):
+                    configs.append(config)
+                else:
+                    print(f"警告：環境變數 {key} 中的 JSON 缺少必要欄位。")
+            except json.JSONDecodeError:
+                print(f"警告：無法解析環境變數 {key} 的 JSON 內容。")
+    
+    if configs:
+        print(f"資訊：從環境變數中成功載入 {len(configs)} 個簽到設定。")
+        return configs
 
-    if all([base_url, user_id, access_token]):
-        print("資訊：偵測到環境變數，將使用環境變數進行設定。")
-        return {
-            "base_url": base_url,
-            "user_id": user_id,
-            "access_token": access_token
-        }
-
-    # 若環境變數不完整，則嘗試從 config.json 讀取
-    print("資訊：未偵測到完整的環境變數，嘗試從 config.json 讀取設定。")
+    # 若環境變數中沒有設定，則嘗試從本地 configs.json 讀取
+    print("資訊：未從環境變數載入設定，嘗試從本地 configs.json 檔案讀取。")
     try:
-        # 取得目前 .py 檔案所在的目錄
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(script_dir, "config.json")
+        config_path = os.path.join(script_dir, "configs.json")
         with open(config_path, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-            if not all(k in config for k in ["base_url", "user_id", "access_token"]):
-                print("錯誤：config.json 檔案缺少必要的欄位 (base_url, user_id, access_token)。")
-                return None
-            return config
+            local_configs = json.load(f)
+            # 確保檔案內容是一個列表
+            if not isinstance(local_configs, list):
+                print("錯誤：configs.json 的根元素必須是一個列表 (list)。")
+                return []
+            
+            # 驗證列表中的每個設定物件
+            for i, config in enumerate(local_configs):
+                if all(k in config for k in ["base_url", "user_id", "access_token"]):
+                    configs.append(config)
+                else:
+                    print(f"警告：configs.json 中的第 {i+1} 個設定缺少必要欄位。")
+            
+            print(f"資訊：從 configs.json 成功載入 {len(configs)} 個簽到設定。")
+            return configs
+            
     except FileNotFoundError:
-        print("錯誤：找不到 config.json 檔案。")
-        return None
+        print("錯誤：在本地找不到 configs.json 檔案。")
+        return []
     except json.JSONDecodeError:
-        print("錯誤：config.json 檔案格式不正確。")
-        return None
+        print("錯誤：configs.json 檔案格式不正確。")
+        return []
 
 def check_in(config):
-    """執行簽到"""
+    """為單一設定執行簽到"""
     base_url = config.get("base_url")
     user_id = config.get("user_id")
     access_token = config.get("access_token")
 
     if not all([base_url, user_id, access_token]):
-        print("錯誤：設定資訊不完整，無法執行簽到。")
+        print("錯誤：設定資訊不完整，跳過此項。")
         return
 
     checkin_url = f"{base_url}/api/user/check_in"
@@ -61,7 +113,8 @@ def check_in(config):
         'Referer': f'{base_url}/',
     }
 
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 正在為 User ID: {user_id} 執行簽到...")
+    print("-" * 50)
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 正在為 User ID: {user_id} ({base_url}) 執行簽到...")
 
     try:
         response = requests.post(checkin_url, headers=headers, json={}, timeout=30)
@@ -87,6 +140,9 @@ def check_in(config):
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 發生未知錯誤: {e}")
 
 if __name__ == "__main__":
-    config = load_config()
-    if config:
-        check_in(config)
+    all_configs = load_configs()
+    if all_configs:
+        for config in all_configs:
+            check_in(config)
+    else:
+        print("未找到任何有效的簽到設定，程式結束。")
