@@ -4,10 +4,34 @@ import requests
 from datetime import datetime
 
 def load_config():
-    """從 config.json 載入設定"""
+    """
+    優先從環境變數載入設定，若無則從 config.json 檔案載入。
+    """
+    # 嘗試從環境變數讀取
+    base_url = os.environ.get("BASE_URL")
+    user_id = os.environ.get("USER_ID")
+    access_token = os.environ.get("ACCESS_TOKEN")
+
+    if all([base_url, user_id, access_token]):
+        print("資訊：偵測到環境變數，將使用環境變數進行設定。")
+        return {
+            "base_url": base_url,
+            "user_id": user_id,
+            "access_token": access_token
+        }
+
+    # 若環境變數不完整，則嘗試從 config.json 讀取
+    print("資訊：未偵測到完整的環境變數，嘗試從 config.json 讀取設定。")
     try:
-        with open("veloera-checkin-script/config.json", 'r', encoding='utf-8') as f:
-            return json.load(f)
+        # 取得目前 .py 檔案所在的目錄
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_dir, "config.json")
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            if not all(k in config for k in ["base_url", "user_id", "access_token"]):
+                print("錯誤：config.json 檔案缺少必要的欄位 (base_url, user_id, access_token)。")
+                return None
+            return config
     except FileNotFoundError:
         print("錯誤：找不到 config.json 檔案。")
         return None
@@ -22,7 +46,7 @@ def check_in(config):
     access_token = config.get("access_token")
 
     if not all([base_url, user_id, access_token]):
-        print("錯誤：config.json 檔案缺少必要的欄位 (base_url, user_id, access_token)。")
+        print("錯誤：設定資訊不完整，無法執行簽到。")
         return
 
     checkin_url = f"{base_url}/api/user/check_in"
