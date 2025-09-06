@@ -31,10 +31,7 @@ jobs:
         # 註解：此腳本會自動讀取所有以 "VELOERA_AUTOSIGN_" 開頭的 Secrets
         # 您必須在儲存庫的 Settings -> Secrets and variables -> Actions 中設定好這些 Secrets
         env:
-          # 將所有 VELOERA_AUTOSIGN_ 開頭的 secrets 傳遞給腳本
-          ${{ toJSON(secrets) }}: ${{ toJSON(secrets) }}
-        run: |
-          for secret_name in $(env | grep VELOERA_AUTOSIGN_ | cut -d= -f1); do
-            export $secret_name
-          done
-          python _CRONJOBS/veloera_sign/checkin.py
+          # 將整個 secrets context 作為一個 JSON 字串傳遞給單一的環境變數
+          # Python 腳本將會解析這個變數來取得所有設定
+          SECRETS_CONTEXT: ${{ toJSON(secrets) }}
+        run: python _CRONJOBS/veloera_sign/checkin.py

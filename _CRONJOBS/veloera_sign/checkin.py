@@ -6,9 +6,9 @@
 # 本腳本支援兩種執行方式：
 #
 # 1. GitHub Actions (自動化 CI/CD)
-#    - 透過讀取 GitHub Secrets 中所有以 `VELOERA_AUTOSIGN_` 開頭的環境變數來執行。
-#    - 每個 Secret 的值都必須是一個包含 `base_url`, `user_id`, `access_token` 的 JSON 字串。
-#    - 範例 Secret:
+#    - Workflow 會將所有 Secrets 打包成一個 JSON 字串，並存入名為 `SECRETS_CONTEXT` 的環境變數中。
+#    - 本腳本會解析 `SECRETS_CONTEXT`，並找出所有以 `VELOERA_AUTOSIGN_` 開頭的密鑰來執行簽到。
+#    - 您需要設定的 Secret 格式如下：
 #      - 名稱: VELOERA_AUTOSIGN_SITE_A
 #      - 內容: {"base_url": "https://a.com", "user_id": 123, "access_token": "tokenA"}
 #      - 名稱: VELOERA_AUTOSIGN_02
@@ -20,8 +20,8 @@
 #    - 範例 `configs.json`:
 #      [
 #          {
-#              "base_url": "https://zone.veloera.org",
-#              "user_id": 2628,
+#              "base_url": "https://test.veloera.org",
+#              "user_id": 1111,
 #              "access_token": "some_token"
 #          },
 #          {
@@ -44,23 +44,28 @@ def load_configs():
     """
     configs = []
     
-    # 優先從環境變數讀取
-    # 尋找所有以 VELOERA_AUTOSIGN_ 開頭的環境變數
-    for key, value in os.environ.items():
-        if key.startswith("VELOERA_AUTOSIGN_"):
-            try:
-                # 解析 JSON 字串
-                config = json.loads(value)
-                if all(k in config for k in ["base_url", "user_id", "access_token"]):
-                    configs.append(config)
-                else:
-                    print(f"警告：環境變數 {key} 中的 JSON 缺少必要欄位。")
-            except json.JSONDecodeError:
-                print(f"警告：無法解析環境變數 {key} 的 JSON 內容。")
-    
-    if configs:
-        print(f"資訊：從環境變數中成功載入 {len(configs)} 個簽到設定。")
-        return configs
+    # 優先從環境變數 SECRETS_CONTEXT 讀取
+    secrets_context_json = os.environ.get("SECRETS_CONTEXT")
+    if secrets_context_json:
+        print("資訊：偵測到 SECRETS_CONTEXT，將從中解析設定。")
+        try:
+            secrets_context = json.loads(secrets_context_json)
+            for key, value in secrets_context.items():
+                if key.startswith("VELOERA_AUTOSIGN_"):
+                    try:
+                        config = json.loads(value)
+                        if all(k in config for k in ["base_url", "user_id", "access_token"]):
+                            configs.append(config)
+                        else:
+                            print(f"警告：Secret {key} 中的 JSON 缺少必要欄位。")
+                    except json.JSONDecodeError:
+                        print(f"警告：無法解析 Secret {key} 的 JSON 內容。")
+            
+            if configs:
+                print(f"資訊：從 SECRETS_CONTEXT 成功載入 {len(configs)} 個簽到設定。")
+                return configs
+        except json.JSONDecodeError:
+            print("警告：無法解析 SECRETS_CONTEXT 的 JSON 內容，將嘗試讀取本地檔案。")
 
     # 若環境變數中沒有設定，則嘗試從本地 configs.json 讀取
     print("資訊：未從環境變數載入設定，嘗試從本地 configs.json 檔案讀取。")
