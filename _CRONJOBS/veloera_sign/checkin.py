@@ -35,8 +35,12 @@
 # 腳本會優先讀取環境變數，如果找不到任何相關環境變數，才會
 import os
 import json
+from time import sleep
 import requests
 from datetime import datetime
+
+RETRY_LIMIT = 1  # 最大重試次數
+
 
 def load_configs():
     """
@@ -55,7 +59,9 @@ def load_configs():
                     try:
                         config = json.loads(value)
                         if all(k in config for k in ["base_url", "user_id", "access_token"]):
+                            config['base_url'] = config['base_url'].rstrip('/')  # 移除 URL 結尾的斜線
                             configs.append(config)
+                            
                         else:
                             print(f"警告：Secret {key} 中的 JSON 缺少必要欄位。")
                     except json.JSONDecodeError:
@@ -82,6 +88,7 @@ def load_configs():
             # 驗證列表中的每個設定物件
             for i, config in enumerate(local_configs):
                 if all(k in config for k in ["base_url", "user_id", "access_token"]):
+                    config['base_url'] = config['base_url'].rstrip('/')  # 移除 URL 結尾的斜線
                     configs.append(config)
                 else:
                     print(f"警告：configs.json 中的第 {i+1} 個設定缺少必要欄位。")
@@ -120,7 +127,18 @@ def check_in(config):
 
     print("-" * 50)
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 正在為 User ID: {user_id} ({base_url}) 執行簽到...")
-
+    
+    # if first sign error, retry RETRY_LIMIT times
+    if not send_signAction(checkin_url, headers):
+        for attempt in range(RETRY_LIMIT):
+            sleep(2)  # 等待 2 秒後重試
+            if send_signAction(checkin_url, headers):
+                break
+            else:
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🔄 重試中... (第 {attempt + 1} 次)")
+       
+def send_signAction(checkin_url, headers):
+    """send sign action"""
     try:
         response = requests.post(checkin_url, headers=headers, json={}, timeout=30)
         if response.status_code == 200:
@@ -135,14 +153,20 @@ def check_in(config):
                     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ℹ️  今天已經簽到過了: {error_msg}")
                 else:
                     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 簽到失敗: {error_msg}")
+                    return False
         else:
             print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 請求失敗，狀態碼: {response.status_code}")
             print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 錯誤訊息: {response.text}")
+            return False
 
     except requests.exceptions.RequestException as e:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 網路錯誤: {e}")
+        return False
     except Exception as e:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 發生未知錯誤: {e}")
+        return False
+    return True
+
 
 if __name__ == "__main__":
     all_configs = load_configs()
