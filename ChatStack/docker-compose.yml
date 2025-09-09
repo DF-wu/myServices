@@ -199,6 +199,23 @@ services:
       timeout: 10s
       retries: 3
 
+  # claude code router docker version
+  # doc: https://linux.do/t/topic/864277
+    claude-code-router:
+    image: yunxinc/ccr:latest
+    container_name: ClaudeCodeRouter
+    restart: unless-stopped
+    ports:
+      - "43056:3456" # ui in host /ui/
+    volumes:
+      - /mnt/appdata/ChatStack/ccr/config.json:/root/.claude-code-router/config.json
+    environment:
+      - TZ=Asia/Taipei
+
+
+
+
+
   # remember the different postgres version is not compatible
   chatstack-postgres17-pgvector:
     restart: unless-stopped
