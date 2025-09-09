@@ -209,7 +209,7 @@ services:
     ports:
       - "43056:3456" # ui in host /ui/
     volumes:
-      - /mnt/appdata/ChatStack/ccr/config.json:/root/.claude-code-router/config.json
+      - "/mnt/appdata/ChatStack/ccr/config.json:/root/.claude-code-router/config.json"
     environment:
       - TZ=Asia/Taipei
 
