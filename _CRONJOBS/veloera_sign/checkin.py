@@ -61,10 +61,7 @@ def load_configs():
 
 def flaresolverr_checkin(base_url, checkin_url, headers):
     """統一 FlareSolverr 簽到方法"""
-    flaresolverr_url = os.environ.get("FLARESOLVERR_URL")
-    if not flaresolverr_url:
-        log("❌ 未設定 FLARESOLVERR_URL")
-        return False
+    flaresolverr_url = os.environ.get("FLARESOLVERR_URL", "http://localhost:8191")
 
     session_id = None
     try:
