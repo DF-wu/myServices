@@ -9,17 +9,6 @@ jobs:
   check-in:
     runs-on: ubuntu-latest
 
-    services:
-      flaresolverr:
-        image: ghcr.io/flaresolverr/flaresolverr:v3.3.6
-        ports:
-          - 8191:8191
-        env:
-          LOG_LEVEL: info
-          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome-stable
-          PUPPETEER_HEADLESS: "true"
-          PUPPETEER_ARGS: --no-sandbox,--disable-setuid-sandbox
-
     steps:
       - name: 檢查程式碼
         uses: actions/checkout@v3
@@ -37,6 +26,6 @@ jobs:
       - name: 執行簽到
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
-          FLARESOLVERR_URL: http://localhost:8191 # 直接使用服務容器的位址
+          FLARESOLVERR_URL: ${{ secrets.FLARESOLVERR_URL }} # 從 GitHub Secrets 讀取服務位址
         run: |
           python _CRONJOBS/veloera_sign/checkin.py
