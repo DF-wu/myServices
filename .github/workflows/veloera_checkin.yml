@@ -3,7 +3,7 @@ name: Veloera 自動簽到
 on:
   workflow_dispatch: # 允許手動觸發
   schedule:
-    - cron: "0 2 * * *" # 每日 UTC 2 點執行 (台灣時間 10 點)
+    - cron: "0 20 * * *" # 每日 UTC 20:00 (台北時間隔日凌晨 4:00) 執行
 
 jobs:
   check-in:
@@ -11,9 +11,14 @@ jobs:
 
     services:
       flaresolverr:
-        image: ghcr.io/flaresolverr/flaresolverr:latest
+        image: ghcr.io/flaresolverr/flaresolverr:v3.3.6
         ports:
           - 8191:8191
+        env:
+          LOG_LEVEL: info
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome-stable
+          PUPPETEER_HEADLESS: "true"
+          PUPPETEER_ARGS: --no-sandbox,--disable-setuid-sandbox
 
     steps:
       - name: 檢查程式碼
