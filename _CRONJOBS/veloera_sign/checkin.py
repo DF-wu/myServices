@@ -85,50 +85,6 @@ def load_configs():
         print("錯誤：configs.json 檔案格式不正確。")
         return []
 
-def get_clearance_cookie(base_url):
-    """
-    透過 FlareSolverr 獲取 cf_clearance cookie。
-    """
-    flaresolverr_url = os.environ.get("FLARESOLVERR_URL")
-    if not flaresolverr_url:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 錯誤：未設定 FLARESOLVERR_URL 環境變數。")
-        return None, None
-
-    payload = {
-        'cmd': 'request.get',
-        'url': base_url,
-        'maxTimeout': 60000
-    }
-    
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ℹ️  正在透過 FlareSolverr 從 {base_url} 獲取 clearance cookie...")
-    
-    try:
-        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1", json=payload, timeout=70)
-        if response.status_code == 200:
-            flaresolverr_data = response.json()
-            if flaresolverr_data.get('status') == 'ok':
-                solution = flaresolverr_data.get('solution', {})
-                user_agent = solution.get('userAgent')
-                cookies = solution.get('cookies')
-                
-                cf_cookie = next((c for c in cookies if c['name'] == 'cf_clearance'), None)
-                
-                if cf_cookie:
-                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ 成功獲取 clearance cookie。")
-                    return {'cf_clearance': cf_cookie['value']}, user_agent
-                else:
-                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 未在 FlareSolverr 回應中找到 cf_clearance cookie。")
-                    return None, None
-            else:
-                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ FlareSolverr 錯誤: {flaresolverr_data.get('message')}")
-                return None, None
-        else:
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 連接 FlareSolverr 失敗，狀態碼: {response.status_code}")
-            return None, None
-    except Exception as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 獲取 cookie 時發生錯誤: {e}")
-        return None, None
-
 def check_in(config):
     """為單一設定執行簽到"""
     base_url = config.get("base_url")
@@ -138,56 +94,87 @@ def check_in(config):
     if not all([base_url, user_id, access_token]):
         print("錯誤：設定資訊不完整，跳過此項。")
         return
-        
-    print("-" * 50)
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 正在為 User ID: {user_id} ({base_url}) 執行簽到...")
 
-    cookies, user_agent = get_clearance_cookie(base_url)
-    
-    if not (cookies and user_agent):
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 無法繼續簽到，因為獲取 cookie 失敗。")
-        return
-        
     checkin_url = f"{base_url}/api/user/check_in"
     
     headers = {
         'Authorization': f'Bearer {access_token}',
         'Veloera-User': str(user_id),
-        'User-Agent': user_agent, # 使用 FlareSolverr 提供的 User-Agent
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json;charset=UTF-8',
         'Origin': base_url,
         'Referer': f'{base_url}/',
     }
 
+    print("-" * 50)
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 正在為 User ID: {user_id} ({base_url}) 執行簽到...")
+    
     # if first sign error, retry RETRY_LIMIT times
-    if not send_signAction(checkin_url, headers, cookies):
+    if not send_signAction(checkin_url, headers):
         for attempt in range(RETRY_LIMIT):
-            sleep(2)
-            if send_signAction(checkin_url, headers, cookies):
+            sleep(2)  # 等待 2 秒後重試
+            if send_signAction(checkin_url, headers):
                 break
             else:
                 print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🔄 重試中... (第 {attempt + 1} 次)")
        
-def send_signAction(checkin_url, headers, cookies):
-    """使用標準 requests 帶上 cookie 執行簽到"""
+def send_signAction(checkin_url, headers):
+    """send sign action via FlareSolverr"""
+    flaresolverr_url = os.environ.get("FLARESOLVERR_URL")
+    if not flaresolverr_url:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 錯誤：未設定 FLARESOLVERR_URL 環境變數。")
+        return False
+        
+    # FlareSolverr v2 以上版本不再需要 'headers' 參數，但 User-Agent 可以在 cmd 中單獨指定
+    # 為了保持一致性，我們傳遞 User-Agent
+    payload = {
+        'cmd': 'request.post',
+        'url': checkin_url,
+        'userAgent': headers.get('User-Agent'),
+        'postData': json.dumps({}),
+        'maxTimeout': 60000,
+        'headers': [
+            {'name': 'Authorization', 'value': headers.get('Authorization')},
+            {'name': 'Veloera-User', 'value': headers.get('Veloera-User')},
+            {'name': 'Accept', 'value': headers.get('Accept')},
+            {'name': 'Content-Type', 'value': headers.get('Content-Type')},
+            {'name': 'Origin', 'value': headers.get('Origin')},
+            {'name': 'Referer', 'value': headers.get('Referer')}
+        ]
+    }
+    
     try:
-        response = requests.post(checkin_url, headers=headers, cookies=cookies, json={}, timeout=30)
+        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1", json=payload, timeout=70)
         if response.status_code == 200:
-            data = response.json()
-            if data.get('success'):
-                quota = data.get('data', {}).get('quota', 0)
-                message = data.get('message', '簽到成功')
-                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ {message} - 獲得額度: {quota}")
-            else:
-                error_msg = data.get('message', '簽到失敗')
-                if "已经签到" in error_msg or "checked in" in error_msg:
-                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ℹ️  今天已經簽到過了: {error_msg}")
+            flaresolverr_data = response.json()
+            if flaresolverr_data.get('status') == 'ok':
+                solution = flaresolverr_data.get('solution', {})
+                # Cloudflare 正常通過，現在解析目標網站的回應
+                if solution.get('status') == 200:
+                    data = json.loads(solution.get('response', '{}'))
+                    if data.get('success'):
+                        quota = data.get('data', {}).get('quota', 0)
+                        message = data.get('message', '簽到成功')
+                        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ {message} - 獲得額度: {quota}")
+                    else:
+                        error_msg = data.get('message', '簽到失敗')
+                        if "已经签到" in error_msg or "checked in" in error_msg:
+                            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ℹ️  今天已經簽到過了: {error_msg}")
+                        else:
+                            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 簽到失敗: {error_msg}")
+                            return False
                 else:
-                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 簽到失敗: {error_msg}")
+                    # 目標網站返回了非 200 狀態碼
+                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 請求失敗，目標網站狀態碼: {solution.get('status')}")
+                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 錯誤訊息: {solution.get('response')}")
                     return False
+            else:
+                # FlareSolverr 自身返回錯誤
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ FlareSolverr 錯誤: {flaresolverr_data.get('message')}")
+                return False
         else:
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 請求失敗，狀態碼: {response.status_code}")
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 連接 FlareSolverr 失敗，狀態碼: {response.status_code}")
             print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 錯誤訊息: {response.text}")
             return False
 
