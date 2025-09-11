@@ -1,4 +1,3 @@
-
 # Veloera 多站點自動簽到腳本
 #
 # --- 使用說明 ---
@@ -13,31 +12,18 @@
 #      - 內容: {"base_url": "https://a.com", "user_id": 123, "access_token": "tokenA"}
 #      - 名稱: VELOERA_AUTOSIGN_02
 #      - 內容: {"base_url": "https://b.net", "user_id": 456, "access_token": "tokenB"}
+#    - Workflow 會自動設定 `FLARESOLVERR_URL` 環境變數。
 #
 # 2. 本地執行 (手動測試)
 #    - 在腳本相同目錄下建立一個名為 `configs.json` (注意有 's') 的檔案。
 #    - `configs.json` 的內容必須是一個 JSON 列表 (list)，其中包含多個簽到設定物件。
-#    - 範例 `configs.json`:
-#      [
-#          {
-#              "base_url": "https://test.veloera.org",
-#              "user_id": 1111,
-#              "access_token": "some_token"
-#          },
-#          {
-#              "base_url": "https://another.site.com",
-#              "user_id": 5678,
-#              "access_token": "another_token"
-#          }
-#      ]
-#    - 接著直接執行 `python checkin.py` 即可。
+#    - **新增**：您需要設定一個名為 `FLARESOLVERR_URL` 的環境變數，指向本地運行的 FlareSolverr 服務。
 #
 # 腳本會優先讀取環境變數，如果找不到任何相關環境變數，才會
 import os
 import json
 from time import sleep
 import requests
-import cloudscraper
 from datetime import datetime
 
 RETRY_LIMIT = 1  # 最大重試次數
@@ -129,36 +115,61 @@ def check_in(config):
     print("-" * 50)
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 正在為 User ID: {user_id} ({base_url}) 執行簽到...")
     
-    scraper = cloudscraper.create_scraper()  # 建立 cloudscraper 實例
-
     # if first sign error, retry RETRY_LIMIT times
-    if not send_signAction(scraper, checkin_url, headers):
+    if not send_signAction(checkin_url, headers):
         for attempt in range(RETRY_LIMIT):
             sleep(2)  # 等待 2 秒後重試
-            if send_signAction(scraper, checkin_url, headers):
+            if send_signAction(checkin_url, headers):
                 break
             else:
                 print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🔄 重試中... (第 {attempt + 1} 次)")
        
-def send_signAction(scraper, checkin_url, headers):
-    """send sign action"""
+def send_signAction(checkin_url, headers):
+    """send sign action via FlareSolverr"""
+    flaresolverr_url = os.environ.get("FLARESOLVERR_URL")
+    if not flaresolverr_url:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 錯誤：未設定 FLARESOLVERR_URL 環境變數。")
+        return False
+        
+    payload = {
+        'cmd': 'request.post',
+        'url': checkin_url,
+        'headers': headers,
+        'postData': json.dumps({}),
+        'maxTimeout': 60000
+    }
+    
     try:
-        response = scraper.post(checkin_url, headers=headers, json={}, timeout=30)
+        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1", json=payload, timeout=70)
         if response.status_code == 200:
-            data = response.json()
-            if data.get('success'):
-                quota = data.get('data', {}).get('quota', 0)
-                message = data.get('message', '簽到成功')
-                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ {message} - 獲得額度: {quota}")
-            else:
-                error_msg = data.get('message', '簽到失敗')
-                if "已经签到" in error_msg or "checked in" in error_msg:
-                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ℹ️  今天已經簽到過了: {error_msg}")
+            flaresolverr_data = response.json()
+            if flaresolverr_data.get('status') == 'ok':
+                solution = flaresolverr_data.get('solution', {})
+                # Cloudflare 正常通過，現在解析目標網站的回應
+                if solution.get('status') == 200:
+                    data = json.loads(solution.get('response', '{}'))
+                    if data.get('success'):
+                        quota = data.get('data', {}).get('quota', 0)
+                        message = data.get('message', '簽到成功')
+                        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ {message} - 獲得額度: {quota}")
+                    else:
+                        error_msg = data.get('message', '簽到失敗')
+                        if "已经签到" in error_msg or "checked in" in error_msg:
+                            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ℹ️  今天已經簽到過了: {error_msg}")
+                        else:
+                            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 簽到失敗: {error_msg}")
+                            return False
                 else:
-                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 簽到失敗: {error_msg}")
+                    # 目標網站返回了非 200 狀態碼
+                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 請求失敗，目標網站狀態碼: {solution.get('status')}")
+                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 錯誤訊息: {solution.get('response')}")
                     return False
+            else:
+                # FlareSolverr 自身返回錯誤
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ FlareSolverr 錯誤: {flaresolverr_data.get('message')}")
+                return False
         else:
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 請求失敗，狀態碼: {response.status_code}")
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 連接 FlareSolverr 失敗，狀態碼: {response.status_code}")
             print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 錯誤訊息: {response.text}")
             return False
 
@@ -175,7 +186,6 @@ if __name__ == "__main__":
     all_configs = load_configs()
     if all_configs:
         for config in all_configs:
-            sleep(1)  # 每次簽到前等待 1 秒，避免請求過於頻繁
             check_in(config)
     else:
         print("未找到任何有效的簽到設定，程式結束。")

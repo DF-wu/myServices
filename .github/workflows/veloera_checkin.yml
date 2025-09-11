@@ -1,37 +1,37 @@
-# GitHub Action: Veloera 自動簽到
-
-name: Veloera Check-in
+name: Veloera 自動簽到
 
 on:
   workflow_dispatch: # 允許手動觸發
   schedule:
-    # 每日台北時間早上 10 點 (UTC+8) 執行，即 UTC 時間凌晨 2 點
-    - cron: "0 2 * * *"
+    - cron: "0 2 * * *" # 每日 UTC 2 點執行 (台灣時間 10 點)
 
 jobs:
   check-in:
     runs-on: ubuntu-latest
-    name: Veloera 簽到任務
+
+    services:
+      flaresolverr:
+        image: ghcr.io/flaresolverr/flaresolverr:latest
+        ports:
+          - 8191:8191
 
     steps:
-      - name: 簽出程式碼
-        uses: actions/checkout@v4
+      - name: 檢查程式碼
+        uses: actions/checkout@v3
 
-      - name: 設定 Python 環境
-        uses: actions/setup-python@v5
+      - name: 設定 Python
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
-          cache: "pip"
-          cache-dependency-path: "_CRONJOBS/veloera_sign/requirements.txt"
 
-      - name: 安裝依賴套件
-        run: pip install -r _CRONJOBS/veloera_sign/requirements.txt
+      - name: 安裝依賴
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r _CRONJOBS/veloera_sign/requirements.txt
 
-      - name: 執行簽到腳本
-        # 註解：此腳本會自動讀取所有以 "VELOERA_AUTOSIGN_" 開頭的 Secrets
-        # 您必須在儲存庫的 Settings -> Secrets and variables -> Actions 中設定好這些 Secrets
+      - name: 執行簽到
         env:
-          # 將整個 secrets context 作為一個 JSON 字串傳遞給單一的環境變數
-          # Python 腳本將會解析這個變數來取得所有設定
-          SECRETS_CONTEXT: ${{ toJSON(secrets) }}
-        run: python _CRONJOBS/veloera_sign/checkin.py
+          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+          FLARESOLVERR_URL: http://localhost:8191 # 直接使用服務容器的位址
+        run: |
+          python _CRONJOBS/veloera_sign/checkin.py
