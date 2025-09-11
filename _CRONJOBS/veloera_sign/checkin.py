@@ -4,8 +4,8 @@
 通用自動簽到腳本 - 統一使用 FlareSolverr
 
 配置優先級：
-1. 本地 config.json
-2. 環境變數 SECRETS_CONTEXT
+1. 環境變數 VELOERA_AUTOSIGN_*
+2. 本地 config.json（僅當無環境變數時）
 
 統一使用 FlareSolverr 處理所有站點
 """
@@ -22,41 +22,90 @@ def log(message):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}")
 
 def load_configs():
-    """載入配置：優先 config.json，備用環境變數"""
+    """載入配置：優先環境變數，備用 config.json"""
     configs = []
-    script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # 優先級 1: 本地 config.json
-    config_path = os.path.join(script_dir, "config.json")
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-        
-        if all(k in config for k in ["base_url", "user_id", "access_token"]):
-            config['base_url'] = config['base_url'].rstrip('/')
-            configs.append(config)
-            log(f"✅ 從 config.json 載入配置")
-            return configs
-    except (FileNotFoundError, json.JSONDecodeError):
-        pass
+    log("🔍 檢查 VELOERA_AUTOSIGN_ 環境變數...")
     
-    # 優先級 2: 環境變數
+    # 優先級 1: 檢查 VELOERA_AUTOSIGN_ 開頭的環境變數
+    # 先檢查 SECRETS_CONTEXT 中的環境變數
     secrets_context_json = os.environ.get("SECRETS_CONTEXT")
     if secrets_context_json:
+        log("📋 找到 SECRETS_CONTEXT 環境變數")
         try:
             secrets_context = json.loads(secrets_context_json)
+            log(f"📋 SECRETS_CONTEXT 包含 {len(secrets_context)} 個 secrets")
+            
             for key, value in secrets_context.items():
-                if key.startswith("VELOERA_AUTOSIGN_") or key.startswith("AUTOSIGN_"):
+                if key.startswith("VELOERA_AUTOSIGN_"):
+                    log(f"🔑 找到 VELOERA_AUTOSIGN_ 環境變數: {key}")
                     try:
                         config = json.loads(value)
                         if all(k in config for k in ["base_url", "user_id", "access_token"]):
                             config['base_url'] = config['base_url'].rstrip('/')
                             configs.append(config)
-                    except json.JSONDecodeError:
+                            log(f"✅ 從環境變數 {key} 載入配置: {config['base_url']}")
+                        else:
+                            log(f"⚠️ 環境變數 {key} 缺少必要欄位")
+                    except json.JSONDecodeError as e:
+                        log(f"❌ 環境變數 {key} JSON 解析失敗: {e}")
                         continue
-        except json.JSONDecodeError:
-            pass
+        except json.JSONDecodeError as e:
+            log(f"❌ SECRETS_CONTEXT JSON 解析失敗: {e}")
     
+    # 檢查直接環境變數
+    for key, value in os.environ.items():
+        if key.startswith("VELOERA_AUTOSIGN_"):
+            log(f"🔑 找到直接環境變數: {key}")
+            try:
+                config = json.loads(value)
+                if all(k in config for k in ["base_url", "user_id", "access_token"]):
+                    config['base_url'] = config['base_url'].rstrip('/')
+                    configs.append(config)
+                    log(f"✅ 從直接環境變數 {key} 載入配置: {config['base_url']}")
+            except json.JSONDecodeError as e:
+                log(f"❌ 直接環境變數 {key} JSON 解析失敗: {e}")
+                continue
+    
+    # 如果找到環境變數配置，直接返回
+    if configs:
+        log(f"✅ 從環境變數載入了 {len(configs)} 個配置")
+        return configs
+    
+    log("⚠️ 未找到 VELOERA_AUTOSIGN_ 環境變數，嘗試讀取 config.json")
+    
+    # 優先級 2: config.json（只有在沒有環境變數時才使用）
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(script_dir, "config.json")
+    
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            # 檢查是否為範本檔案（包含中文佔位符）
+            template_indicators = ["目標站點", "veloera 的使用者 ID", "veloera system api token"]
+            is_template = any(
+                str(config.get(key, "")).strip() in template_indicators
+                for key in ["base_url", "user_id", "access_token"]
+            )
+            
+            if not is_template and all(k in config for k in ["base_url", "user_id", "access_token"]):
+                config['base_url'] = config['base_url'].rstrip('/')
+                configs.append(config)
+                log(f"✅ 從 config.json 載入配置: {config['base_url']}")
+            else:
+                log("⚠️ config.json 是範本檔案，無法使用")
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            log(f"❌ 讀取 config.json 失敗: {e}")
+    else:
+        log("⚠️ config.json 檔案不存在")
+    
+    if not configs:
+        log("❌ 未找到任何有效配置")
+        return []
+    
+    log(f"✅ 總共載入了 {len(configs)} 個配置")
     return configs
 
 def flaresolverr_checkin(base_url, checkin_url, headers):
