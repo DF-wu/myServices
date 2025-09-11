@@ -19,6 +19,7 @@
 #
 # 腳本會優先讀取環境變數，如果找不到任何相關環境變數，才會
 import os
+import sys
 import json
 from time import sleep
 import requests
@@ -26,17 +27,167 @@ from datetime import datetime
 
 RETRY_LIMIT = 1  # 最大重試次數
 
+def log(message):
+    """帶時間戳的日誌記錄器"""
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}")
+
+def get_flaresolverr_session(base_url):
+    """
+    第一階段：透過 FlareSolverr 訪問網站首頁以解決 Cloudflare 挑戰。
+    成功時返回 (cf_clearance_cookie, user_agent)，失敗時返回 (None, None)。
+    """
+    flaresolverr_url = os.environ.get("FLARESOLVERR_URL")
+    if not flaresolverr_url:
+        log("❌ 錯誤：未設定 FLARESOLVERR_URL 環境變數。")
+        return None, None
+
+    log(f"ℹ️  正在透過 FlareSolverr 為 {base_url} 獲取 Cloudflare cookies...")
+    payload = {
+        'cmd': 'request.get',
+        'url': base_url,
+        'maxTimeout': 60000
+    }
+    
+    try:
+        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1", json=payload, timeout=70)
+        if response.status_code != 200:
+            log(f"❌ 連接 FlareSolverr 失敗，狀態碼: {response.status_code}")
+            log(f"   錯誤訊息: {response.text}")
+            return None, None
+
+        data = response.json()
+        if data.get('status') == 'ok' and data.get('solution'):
+            solution = data['solution']
+            # 從 solution 中尋找 cf_clearance cookie
+            cf_clearance_cookie = next((c['value'] for c in solution.get('cookies', []) if c['name'] == 'cf_clearance'), None)
+            user_agent = solution.get('userAgent')
+            
+            if cf_clearance_cookie and user_agent:
+                log("✅ 成功從 FlareSolverr 獲取 cf_clearance cookie 和 User-Agent。")
+                return cf_clearance_cookie, user_agent
+            else:
+                log("❌ FlareSolverr 的回應中未找到 cf_clearance cookie 或 User-Agent。")
+                return None, None
+        else:
+            log(f"❌ FlareSolverr 解決挑戰失敗: {data.get('message', '未知錯誤')}")
+            return None, None
+
+    except requests.exceptions.RequestException as e:
+        log(f"❌ 訪問 FlareSolverr 時發生網路錯誤: {e}")
+        return None, None
+    except Exception as e:
+        log(f"❌ 處理 FlareSolverr 回應時發生未知錯誤: {e}")
+        return None, None
+
+def send_checkin_request(checkin_url, headers, cookies):
+    """
+    第二階段：使用從 FlareSolverr 獲取的 session資訊，發送最終的簽到請求。
+    """
+    log("ℹ️  正在發送最終的簽到 API 請求...")
+    try:
+        response = requests.post(checkin_url, headers=headers, cookies=cookies, json={}, timeout=30)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('success'):
+                quota = data.get('data', {}).get('quota', 0)
+                message = data.get('message', '簽到成功')
+                log(f"✅ {message} - 獲得額度: {quota}")
+                return True
+            else:
+                error_msg = data.get('message', '簽到失敗')
+                if "已经签到" in error_msg or "checked in" in error_msg:
+                    log(f"ℹ️  今天已經簽到過了: {error_msg}")
+                    return True # 已經簽到過也算成功
+                else:
+                    log(f"❌ 簽到失敗: {error_msg}")
+                    return False
+        else:
+            log(f"❌ 簽到 API 請求失敗，狀態碼: {response.status_code}")
+            log(f"   錯誤訊息: {response.text}")
+            return False
+            
+    except requests.exceptions.RequestException as e:
+        log(f"❌ 簽到 API 請求時發生網路錯誤: {e}")
+        return False
+    except Exception as e:
+        log(f"❌ 處理簽到 API 回應時發生未知錯誤: {e}")
+        return False
+
+def main():
+    """主函數"""
+    configs = load_configs()
+    if not configs:
+        sys.exit(1)
+
+    any_task_failed = False
+    print("-" * 50)
+
+    for config in configs:
+        base_url = config.get("base_url")
+        user_id = config.get("user_id")
+        access_token = config.get("access_token")
+
+        if not all([base_url, user_id, access_token]):
+            log(f"❌ 錯誤：設定資訊不完整，跳過此項。")
+            any_task_failed = True
+            continue
+
+        log(f"🚀 開始為 User ID: {user_id} ({base_url}) 執行簽到任務...")
+        
+        success = False
+        for attempt in range(RETRY_LIMIT + 1):
+            # 第一階段: 獲取 session
+            cf_cookie, user_agent = get_flaresolverr_session(base_url)
+            
+            if cf_cookie and user_agent:
+                # 第二階段: 發送簽到請求
+                checkin_url = f"{base_url}/api/user/check_in"
+                headers = {
+                    'Authorization': f'Bearer {access_token}',
+                    'Veloera-User': str(user_id),
+                    'User-Agent': user_agent,  # 使用從 FlareSolverr 獲取的 User-Agent
+                    'Accept': 'application/json, text/plain, */*',
+                    'Content-Type': 'application/json;charset=UTF-8',
+                    'Origin': base_url,
+                    'Referer': f'{base_url}/',
+                }
+                cookies = {
+                    'cf_clearance': cf_cookie
+                }
+                
+                success = send_checkin_request(checkin_url, headers, cookies)
+                if success:
+                    break # 成功，跳出重試迴圈
+            
+            if attempt < RETRY_LIMIT:
+                log(f"🔄 任務失敗，將在 3 秒後重試... (第 {attempt + 1} 次)")
+                sleep(3)
+        
+        if not success:
+            log(f"❌ 為 User ID: {user_id} 的簽到任務在多次嘗試後最終失敗。")
+            any_task_failed = True
+
+        print("-" * 50)
+        sleep(2)
+        
+    if any_task_failed:
+        log("SUMMARY: 至少有一個簽到任務失敗，腳本以錯誤狀態退出。")
+        sys.exit(1)
+    else:
+        log("SUMMARY: 所有簽到任務均已成功或已簽到。")
+
 
 def load_configs():
     """
     從環境變數或本地 configs.json 檔案載入多個網站的設定。
+    (此函數保持不變)
     """
     configs = []
     
-    # 優先從環境變數 SECRETS_CONTEXT 讀取
     secrets_context_json = os.environ.get("SECRETS_CONTEXT")
     if secrets_context_json:
-        print("資訊：偵測到 SECRETS_CONTEXT，將從中解析設定。")
+        log("資訊：偵測到 SECRETS_CONTEXT，將從中解析設定。")
         try:
             secrets_context = json.loads(secrets_context_json)
             for key, value in secrets_context.items():
@@ -47,25 +198,24 @@ def load_configs():
                             config['base_url'] = config['base_url'].rstrip('/')
                             configs.append(config)
                         else:
-                            print(f"警告：Secret {key} 中的 JSON 缺少必要欄位。")
+                            log(f"警告：Secret {key} 中的 JSON 缺少必要欄位。")
                     except json.JSONDecodeError:
-                        print(f"警告：無法解析 Secret {key} 的 JSON 內容。")
+                        log(f"警告：無法解析 Secret {key} 的 JSON 內容。")
             
             if configs:
-                print(f"資訊：從 SECRETS_CONTEXT 成功載入 {len(configs)} 個簽到設定。")
+                log(f"資訊：從 SECRETS_CONTEXT 成功載入 {len(configs)} 個簽到設定。")
                 return configs
         except json.JSONDecodeError:
-            print("警告：無法解析 SECRETS_CONTEXT 的 JSON 內容，將嘗試讀取本地檔案。")
+            log("警告：無法解析 SECRETS_CONTEXT 的 JSON 內容，將嘗試讀取本地檔案。")
 
-    # 若環境變數中沒有設定，則嘗試從本地 configs.json 讀取
-    print("資訊：未從環境變數載入設定，嘗試從本地 configs.json 檔案讀取。")
+    log("資訊：未從環境變數載入設定，嘗試從本地 configs.json 檔案讀取。")
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(script_dir, "configs.json")
         with open(config_path, 'r', encoding='utf-8') as f:
             local_configs = json.load(f)
             if not isinstance(local_configs, list):
-                print("錯誤：configs.json 的根元素必須是一個列表 (list)。")
+                log("錯誤：configs.json 的根元素必須是一個列表 (list)。")
                 return []
             
             for i, config in enumerate(local_configs):
@@ -73,124 +223,18 @@ def load_configs():
                     config['base_url'] = config['base_url'].rstrip('/')
                     configs.append(config)
                 else:
-                    print(f"警告：configs.json 中的第 {i+1} 個設定缺少必要欄位。")
+                    log(f"警告：configs.json 中的第 {i+1} 個設定缺少必要欄位。")
             
-            print(f"資訊：從 configs.json 成功載入 {len(configs)} 個簽到設定。")
+            log(f"資訊：從 configs.json 成功載入 {len(configs)} 個簽到設定。")
             return configs
             
     except FileNotFoundError:
-        print("錯誤：在本地找不到 configs.json 檔案。")
+        log("錯誤：在本地找不到 configs.json 檔案。")
         return []
     except json.JSONDecodeError:
-        print("錯誤：configs.json 檔案格式不正確。")
+        log("錯誤：configs.json 檔案格式不正確。")
         return []
-
-def check_in(config):
-    """為單一設定執行簽到"""
-    base_url = config.get("base_url")
-    user_id = config.get("user_id")
-    access_token = config.get("access_token")
-
-    if not all([base_url, user_id, access_token]):
-        print("錯誤：設定資訊不完整，跳過此項。")
-        return
-
-    checkin_url = f"{base_url}/api/user/check_in"
-    
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Veloera-User': str(user_id),
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Content-Type': 'application/json;charset=UTF-8',
-        'Origin': base_url,
-        'Referer': f'{base_url}/',
-    }
-
-    print("-" * 50)
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 正在為 User ID: {user_id} ({base_url}) 執行簽到...")
-    
-    # if first sign error, retry RETRY_LIMIT times
-    if not send_signAction(checkin_url, headers):
-        for attempt in range(RETRY_LIMIT):
-            sleep(2)  # 等待 2 秒後重試
-            if send_signAction(checkin_url, headers):
-                break
-            else:
-                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🔄 重試中... (第 {attempt + 1} 次)")
-       
-def send_signAction(checkin_url, headers):
-    """send sign action via FlareSolverr"""
-    flaresolverr_url = os.environ.get("FLARESOLVERR_URL")
-    if not flaresolverr_url:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 錯誤：未設定 FLARESOLVERR_URL 環境變數。")
-        return False
-        
-    # FlareSolverr v2 以上版本不再需要 'headers' 參數，但 User-Agent 可以在 cmd 中單獨指定
-    # 為了保持一致性，我們傳遞 User-Agent
-    payload = {
-        'cmd': 'request.post',
-        'url': checkin_url,
-        'userAgent': headers.get('User-Agent'),
-        'postData': json.dumps({}),
-        'maxTimeout': 60000,
-        'headers': [
-            {'name': 'Authorization', 'value': headers.get('Authorization')},
-            {'name': 'Veloera-User', 'value': headers.get('Veloera-User')},
-            {'name': 'Accept', 'value': headers.get('Accept')},
-            {'name': 'Content-Type', 'value': headers.get('Content-Type')},
-            {'name': 'Origin', 'value': headers.get('Origin')},
-            {'name': 'Referer', 'value': headers.get('Referer')}
-        ]
-    }
-    
-    try:
-        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1", json=payload, timeout=70)
-        if response.status_code == 200:
-            flaresolverr_data = response.json()
-            if flaresolverr_data.get('status') == 'ok':
-                solution = flaresolverr_data.get('solution', {})
-                # Cloudflare 正常通過，現在解析目標網站的回應
-                if solution.get('status') == 200:
-                    data = json.loads(solution.get('response', '{}'))
-                    if data.get('success'):
-                        quota = data.get('data', {}).get('quota', 0)
-                        message = data.get('message', '簽到成功')
-                        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ {message} - 獲得額度: {quota}")
-                    else:
-                        error_msg = data.get('message', '簽到失敗')
-                        if "已经签到" in error_msg or "checked in" in error_msg:
-                            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ℹ️  今天已經簽到過了: {error_msg}")
-                        else:
-                            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 簽到失敗: {error_msg}")
-                            return False
-                else:
-                    # 目標網站返回了非 200 狀態碼
-                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 請求失敗，目標網站狀態碼: {solution.get('status')}")
-                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 錯誤訊息: {solution.get('response')}")
-                    return False
-            else:
-                # FlareSolverr 自身返回錯誤
-                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ FlareSolverr 錯誤: {flaresolverr_data.get('message')}")
-                return False
-        else:
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 連接 FlareSolverr 失敗，狀態碼: {response.status_code}")
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 錯誤訊息: {response.text}")
-            return False
-
-    except requests.exceptions.RequestException as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 網路錯誤: {e}")
-        return False
-    except Exception as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 發生未知錯誤: {e}")
-        return False
-    return True
 
 
 if __name__ == "__main__":
-    all_configs = load_configs()
-    if all_configs:
-        for config in all_configs:
-            check_in(config)
-    else:
-        print("未找到任何有效的簽到設定，程式結束。")
+    main()
