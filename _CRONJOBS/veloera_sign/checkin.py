@@ -37,6 +37,7 @@ import os
 import json
 from time import sleep
 import requests
+import cloudscraper
 from datetime import datetime
 
 RETRY_LIMIT = 1  # 最大重試次數
@@ -128,19 +129,21 @@ def check_in(config):
     print("-" * 50)
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 正在為 User ID: {user_id} ({base_url}) 執行簽到...")
     
+    scraper = cloudscraper.create_scraper()  # 建立 cloudscraper 實例
+
     # if first sign error, retry RETRY_LIMIT times
-    if not send_signAction(checkin_url, headers):
+    if not send_signAction(scraper, checkin_url, headers):
         for attempt in range(RETRY_LIMIT):
             sleep(2)  # 等待 2 秒後重試
-            if send_signAction(checkin_url, headers):
+            if send_signAction(scraper, checkin_url, headers):
                 break
             else:
                 print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🔄 重試中... (第 {attempt + 1} 次)")
        
-def send_signAction(checkin_url, headers):
+def send_signAction(scraper, checkin_url, headers):
     """send sign action"""
     try:
-        response = requests.post(checkin_url, headers=headers, json={}, timeout=30)
+        response = scraper.post(checkin_url, headers=headers, json={}, timeout=30)
         if response.status_code == 200:
             data = response.json()
             if data.get('success'):
@@ -172,6 +175,7 @@ if __name__ == "__main__":
     all_configs = load_configs()
     if all_configs:
         for config in all_configs:
+            sleep(1)  # 每次簽到前等待 1 秒，避免請求過於頻繁
             check_in(config)
     else:
         print("未找到任何有效的簽到設定，程式結束。")
