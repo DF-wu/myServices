@@ -1,0 +1,19 @@
+# author : df
+# AstrBot - AI-powered chatbot
+# doc: https://docs.astrbot.app/deploy/astrbot/docker.html
+---
+services:
+  astrbot:
+    image: soulter/astrbot:latest
+    container_name: astrbot
+    restart: unless-stopped
+    ports:
+      #  webui port
+      - "6185:6185"
+      - "6199:6199"
+    volumes:
+      - ./data:/AstrBot/data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      - TZ=Asia/Taipei
