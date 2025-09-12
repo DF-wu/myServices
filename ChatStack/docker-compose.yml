@@ -222,6 +222,9 @@ services:
     ports:
       - "43057:3000"
     environment:
+      - PGID=3000
+      - PUID=3000
+
       # if this service expose to internet, change the secret
       - TZ=Asia/Taipei
       - JWT_SECRET=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
