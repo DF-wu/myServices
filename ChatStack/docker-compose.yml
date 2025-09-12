@@ -230,8 +230,8 @@ services:
       - ADMIN_USERNAME=df
       - ADMIN_PASSWORD=df
     volumes:
-      - ./logs:/app/logs
-      - ./data:/app/data
+      - /mnt/appdata/ChatStack/claudeRelayService/logs:/app/logs
+      - /mnt/appdata/ChatStack/claudeRelayService/data:/app/data
     depends_on:
       - chatstack-unified-redis
 
