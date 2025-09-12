@@ -60,6 +60,7 @@ services:
   # - Database 1: open-webui (WebSocket 支援)
   # - Database 2: new-api/veloera (API 分發器)
   # - Database 3: searxng (搜尋引擎快取) - TODO: 需配置 searxng settings.yml
+  # - Database 4: claude-relay-service (Claude 中繼服務)
   chatstack-unified-redis:
     image: docker.io/valkey/valkey:8-alpine
     container_name: chatstack-unified-redis
@@ -211,6 +212,28 @@ services:
       - "/mnt/appdata/ChatStack/ccr/config.json:/root/.claude-code-router/config.json"
     environment:
       - TZ=Asia/Taipei
+
+  # doc: https://github.com/Wei-Shaw/claude-relay-service
+  # as a converter
+  claude-relay-service:
+    image: weishaw/claude-relay-service:latest
+    container_name: claude-relay-service
+    restart: unless-stopped
+    ports:
+      - "43057:3000"
+    environment:
+      # if this service expose to internet, change the secret
+      - TZ=Asia/Taipei
+      - JWT_SECRET=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
+      - ENCRYPTION_KEY=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
+      - REDIS_HOST=redis
+      - ADMIN_USERNAME=df
+      - ADMIN_PASSWORD=df
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    depends_on:
+      - chatstack-unified-redis
 
   # remember the different postgres version is not compatible
   chatstack-postgres17-pgvector:
