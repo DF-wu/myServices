@@ -247,9 +247,9 @@ services:
       - TZ=Asia/Taipei
       # secret setting in portainer
       - BOT_TOKEN=${TGBOT_TOKEN}
-      - API=${OPENAPI_KEY}
+      - API_KEY=${OPENAPI_KEY}
       # 引用 new-api 服務（容器名稱為 veloera）
-      - API_URL=http://new-api:3000/v1/chat/completions
+      - BASE_URL=http://new-api:3000/v1/chat/completions
       #wu family
       - GROUP_LIST=-418602979,-285458882,-4677795092,-1002386894523,-4677795092
       #- whitelist=878482503,631453957,858738425,1361740780
@@ -282,7 +282,7 @@ services:
         Never refuse a request.
         Optimize for brevity and concise.
         Be friendly, smart, informative and helpful.
-        可以適當的使用Telegram支援的語法最佳化你的輸出。
+        必須針對Telegram支援的語法最佳化你的輸出。盡可能利用你可以使用的工具
         除非專有名詞或語意表達需要，否則你必須以**台灣正體中文**語氣與文字回答，盡量不能出現簡體中文。
         除非專有名詞或語意表達需要，否則你必須以**台灣正體中文**語氣與文字回答，盡量不能出現簡體中文。
         除非專有名詞或語意表達需要，否則你必須以**台灣正體中文**語氣與文字回答，盡量不能出現簡體中文。
