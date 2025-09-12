@@ -3,7 +3,7 @@ name: Veloera 自動簽到
 on:
   workflow_dispatch: # 允許手動觸發
   schedule:
-    - cron: "0 20 * * *" # 每日 UTC 20:00 (台北時間隔日凌晨 4:00) 執行
+    - cron: "0  2 * * *" # active every day at 8:00 AM UTC+8
 
 jobs:
   check-in:
