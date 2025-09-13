@@ -330,9 +330,8 @@ services:
     user: 3000:3000
     restart: unless-stopped
     network_mode: host
-    env_file:
-      - .env
     environment:
+      - MY_ADDED_MODEL=glm-4.5v
       - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/app/config.yaml
