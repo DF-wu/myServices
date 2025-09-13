@@ -268,8 +268,8 @@ services:
   # doc: https://github.com/yym68686/ChatGPT-Telegram-Bot
   # for telegram bot as chat service
   telegram-chatbot:
-    container_name: telegram-chatbot:1.0.13
-    image: yym68686/chatgpt:latest
+    container_name: telegram-chatbot
+    image: yym68686/chatgpt:1.0.13
     restart: unless-stopped
     environment:
       - TZ=Asia/Taipei
