@@ -243,6 +243,7 @@ services:
       - TZ=Asia/Taipei
     ports:
       - "43057:3000" # Web UI / API 入口
+      - "43058:8000" # Web UI / API 入口 （不吃env default）
     volumes:
       - /mnt/appdata/ChatStack/api-conversion/data:/app/data
       - /mnt/appdata/ChatStack/api-conversion/logs:/app/logs
