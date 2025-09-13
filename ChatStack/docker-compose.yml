@@ -218,10 +218,10 @@ services:
     image: weishaw/claude-relay-service:latest
     container_name: claude-relay-service
     restart: unless-stopped
+    user: 3000:3000
     ports:
       - "43057:3000"
     environment:
-      - PGID=3000
       - JWT_SECRET=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
       - ENCRYPTION_KEY=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
       - REDIS_HOST=crs-redis
