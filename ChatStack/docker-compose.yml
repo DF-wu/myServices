@@ -218,6 +218,7 @@ services:
     image: yunxinc/ccr:latest
     container_name: ClaudeCodeRouter_nonocode
     restart: unless-stopped
+    user: 3000:3000
     ports:
       - "43057:3456" # ui in host /ui/
     volumes:
