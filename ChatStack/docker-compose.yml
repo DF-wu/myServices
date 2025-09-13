@@ -224,8 +224,8 @@ services:
       - JWT_SECRET=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
       - ENCRYPTION_KEY=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
       - REDIS_HOST=crs-redis
-      - ADMIN_USERNAME=${ADMIN_USERNAME:-}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - ADMIN_USERNAME=df
+      - ADMIN_PASSWORD=df
     volumes:
       - /mnt/appdata/ChatStack/claudeRelayService/logs:/app/logs
       - /mnt/appdata/ChatStack/claudeRelayService/data:/app/data
