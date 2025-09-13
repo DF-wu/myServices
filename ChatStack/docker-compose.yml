@@ -200,7 +200,6 @@ services:
       timeout: 10s
       retries: 3
 
-
   # claude code router docker version
   # doc: https://linux.do/t/topic/864277
   claude-code-router:
@@ -222,7 +221,7 @@ services:
     ports:
       - "43057:3456" # ui in host /ui/
     volumes:
-      - "/mnt/appdata/ChatStack/ccr-nonocode:/root/.claude-code-router
+      - "/mnt/appdata/ChatStack/ccr-nonocode:/root/.claude-code-router"
     environment:
       - TZ=Asia/Taipei
 
