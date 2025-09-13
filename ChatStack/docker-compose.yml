@@ -200,6 +200,60 @@ services:
       timeout: 10s
       retries: 3
 
+  # ========= 多渠道 AI API 統一轉換 / 路由代理 =========
+  # upstream: https://github.com/chinrain/Api-Conversion
+  # 說明:
+  #  - 提供 OpenAI / Anthropic / Gemini 介面統一入口與格式互轉
+  #  - 可用於前端 / bot / 其他服務統一對接，減少多服務商差異
+  # 端點摘要:
+  #  - 健康檢查:            /health
+  #  - OpenAI 兼容:         /v1/chat/completions, /v1/models
+  #  - Anthropic 兼容:      /v1/messages (header: x-api-key 或 Authorization)
+  #  - Gemini 兼容:         /v1beta/models
+  api-conversion:
+    image: ghcr.io/chinrain/api-conversion:latest
+    # build: ./api-conversion   # 若需要本地修改，建立對應目錄與 Dockerfile 後改用 build
+    container_name: api-conversion
+    restart: unless-stopped
+    user: 3000:3000
+    environment:
+      # 管理員登入密碼 (請修改)
+      - ADMIN_PASSWORD=df
+      # Web 服務埠 (容器內固定 3000)
+      - WEB_PORT=3000
+      # 日誌等級
+      - LOG_LEVEL=INFO
+      # 資料庫 (預設 SQLite)
+      # - DATABASE_TYPE=sqlite
+      # - DATABASE_PATH=data/channels.db
+      # 可選: 切換 MySQL 時取消下列註解並調整 chatstack-mysql 服務
+      # - DATABASE_TYPE=mysql
+      # - MYSQL_HOST=chatstack-mysql
+      # - MYSQL_PORT=3306
+      # - MYSQL_USER=root
+      # - MYSQL_PASSWORD=yourpassword
+      # - MYSQL_DATABASE=api_conversion
+      # - MYSQL_SOCKET=
+      # Token / 模型限制建議
+      - ANTHROPIC_MAX_TOKENS=32000
+      - OPENAI_REASONING_MAX_TOKENS=32000
+      # 可選: 加密與 session (留空會自動產生加密key並寫 DB)
+      # - ENCRYPTION_KEY=
+      # - SESSION_SECRET_KEY=
+      - TZ=Asia/Taipei
+    ports:
+      - "43057:3000" # Web UI / API 入口
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O - http://localhost:3000/health | grep -q 'healthy'",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
   # claude code router docker version
   # doc: https://linux.do/t/topic/864277
   claude-code-router:
@@ -215,28 +269,28 @@ services:
 
   # doc: https://github.com/Wei-Shaw/claude-relay-service
   # as a converter
-  claude-relay-service:
-    image: weishaw/claude-relay-service:latest
-    container_name: claude-relay-service
-    restart: unless-stopped
-    ports:
-      - "43057:3000"
-    environment:
-      - PGID=3000
-      - PUID=3000
+  # claude-relay-service:
+  #   image: weishaw/claude-relay-service:latest
+  #   container_name: claude-relay-service
+  #   restart: unless-stopped
+  #   ports:
+  #     - "43057:3000"
+  #   environment:
+  #     - PGID=3000
+  #     - PUID=3000
 
-      # if this service expose to internet, change the secret
-      - TZ=Asia/Taipei
-      - JWT_SECRET=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
-      - ENCRYPTION_KEY=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
-      - REDIS_HOST=redis
-      - ADMIN_USERNAME=df
-      - ADMIN_PASSWORD=df
-    volumes:
-      - /mnt/appdata/ChatStack/claudeRelayService/logs:/app/logs
-      - /mnt/appdata/ChatStack/claudeRelayService/data:/app/data
-    depends_on:
-      - chatstack-unified-redis
+  #     # if this service expose to internet, change the secret
+  #     - TZ=Asia/Taipei
+  #     - JWT_SECRET=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
+  #     - ENCRYPTION_KEY=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
+  #     - REDIS_HOST=
+  #     - ADMIN_USERNAME=df
+  #     - ADMIN_PASSWORD=df
+  #   volumes:
+  #     - /mnt/appdata/ChatStack/claudeRelayService/logs:/app/logs
+  #     - /mnt/appdata/ChatStack/claudeRelayService/data:/app/data
+  #   depends_on:
+  #     - chatstack-unified-redis
 
   # remember the different postgres version is not compatible
   chatstack-postgres17-pgvector:
