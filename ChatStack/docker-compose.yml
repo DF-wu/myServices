@@ -269,7 +269,7 @@ services:
   # for telegram bot as chat service
   telegram-chatbot:
     container_name: telegram-chatbot
-    image: yym68686/chatgpt:1.0.13
+    image: yym68686/chatgpt:latest
     restart: unless-stopped
     environment:
       - TZ=Asia/Taipei
