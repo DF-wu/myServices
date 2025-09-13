@@ -221,6 +221,7 @@ services:
     ports:
       - "43057:3000"
     environment:
+      - PGID=3000
       - JWT_SECRET=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
       - ENCRYPTION_KEY=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
       - REDIS_HOST=crs-redis
