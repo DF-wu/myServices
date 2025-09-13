@@ -211,7 +211,7 @@ services:
   #  - Anthropic 兼容:      /v1/messages (header: x-api-key 或 Authorization)
   #  - Gemini 兼容:         /v1beta/models
   api-conversion:
-    image: ghcr.io/chinrain/api-conversion:latest
+    image: ghcr.io/chinrain/api-conversion:0.2.4
     # build: ./api-conversion   # 若需要本地修改，建立對應目錄與 Dockerfile 後改用 build
     container_name: api-conversion
     restart: unless-stopped
@@ -245,6 +245,7 @@ services:
       - "43057:3000" # Web UI / API 入口
     volumes:
       - /mnt/appdata/ChatStack/api-conversion/data:/app/data
+      - /mnt/appdata/ChatStack/api-conversion/logs:/app/logs
     healthcheck:
       test:
         [
