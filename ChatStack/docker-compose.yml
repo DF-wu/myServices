@@ -215,7 +215,7 @@ services:
       - TZ=Asia/Taipei
 
   # as a api converter and pretender
-  claude-code-router:
+  claude-code-router-nonocode:
     image: yunxinc/ccr:latest
     container_name: ClaudeCodeRouter
     restart: unless-stopped
