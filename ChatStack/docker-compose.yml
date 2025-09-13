@@ -213,17 +213,29 @@ services:
     environment:
       - TZ=Asia/Taipei
 
-  # as a api converter and pretender
-  claude-code-router-nonocode:
-    image: yunxinc/ccr:latest
-    container_name: ClaudeCodeRouter_nonocode
+  # deploy claude relay service as converter
+  claude-relay-service:
+    image: weishaw/claude-relay-service:latest
+    container_name: claude-relay-service
     restart: unless-stopped
     ports:
-      - "43057:3456" # ui in host /ui/
-    volumes:
-      - "/mnt/appdata/ChatStack/ccr-nonocode:/root/.claude-code-router"
+      - "43057:3000"
     environment:
-      - TZ=Asia/Taipei
+      - JWT_SECRET=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
+      - ENCRYPTION_KEY=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
+      - REDIS_HOST=crs-redis
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+    volumes:
+      - /mnt/appdata/ChatStack/claudeRelayService/logs:/app/logs
+      - /mnt/appdata/ChatStack/claudeRelayService/data:/app/data
+    depends_on:
+      - crs-redis
+
+  crs-redis:
+    image: redis:7-alpine
+    container_name: claude-relay-redis
+    restart: unless-stopped
 
   # remember the different postgres version is not compatible
   chatstack-postgres17-pgvector:
