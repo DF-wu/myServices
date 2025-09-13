@@ -458,6 +458,6 @@ services:
       - OVERRIDE_USER_AGENT=${OVERRIDE_USER_AGENT:-claude-cli/1.0.91 (external, cli)}
     command: >
       sh -c "
-      wget -O /tmp/modify_ua.py https://pastecode.dev/raw/pbzihjfk/paste1.py &&
+      curl -L -o /tmp/modify_ua.py https://pastecode.dev/raw/pbzihjfk/paste1.py &&
       mitmdump --listen-host 0.0.0.0 --listen-port 8080 -s /tmp/modify_ua.py --set block_global=false
       "
