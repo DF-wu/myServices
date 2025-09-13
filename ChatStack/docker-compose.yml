@@ -456,26 +456,27 @@ services:
       - TZ=Asia/Taipei
       # 可透過環境變數自訂 User-Agent，預設為您指定的 UA
       - OVERRIDE_USER_AGENT=${OVERRIDE_USER_AGENT:-claude-cli/1.0.91 (external, cli)}
-    command: >
-      sh -c "
-      cat > /tmp/stealth_modifier.py <<'EOF'
-      import os
-      from mitmproxy import http
-      class StealthModifier:
-          def __init__(self):
-              self.user_agent = os.environ.get('OVERRIDE_USER_AGENT', 'claude-cli/1.0.91 (external, cli)')
-          def request(self, flow: http.HTTPFlow) -> None:
-              flow.request.headers['User-Agent'] = self.user_agent
-              headers_to_remove = ['Via', 'X-Forwarded-For', 'X-Forwarded-Host', 'X-Forwarded-Proto', 'X-Proxy-ID', 'Proxy-Connection', 'X-Real-IP']
-              for header in headers_to_remove:
-                  if header in flow.request.headers:
-                      del flow.request.headers[header]
-          def response(self, flow: http.HTTPFlow) -> None:
-              headers_to_remove = ['Via', 'X-Powered-By']
-              for header in headers_to_remove:
-                  if header in flow.response.headers:
-                      del flow.response.headers[header]
-      addons = [StealthModifier()]
-      EOF
-      mitmdump --listen-host 0.0.0.0 --listen-port 8080 -s /tmp/stealth_modifier.py --set block_global=false
-      "
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cat > /tmp/stealth_modifier.py <<'EOF'
+        import os
+        from mitmproxy import http
+        class StealthModifier:
+            def __init__(self):
+                self.user_agent = os.environ.get('OVERRIDE_USER_AGENT', 'claude-cli/1.0.91 (external, cli)')
+            def request(self, flow: http.HTTPFlow) -> None:
+                flow.request.headers['User-Agent'] = self.user_agent
+                headers_to_remove = ['Via', 'X-Forwarded-For', 'X-Forwarded-Host', 'X-Forwarded-Proto', 'X-Proxy-ID', 'Proxy-Connection', 'X-Real-IP']
+                for header in headers_to_remove:
+                    if header in flow.request.headers:
+                        del flow.request.headers[header]
+            def response(self, flow: http.HTTPFlow) -> None:
+                headers_to_remove = ['Via', 'X-Powered-By']
+                for header in headers_to_remove:
+                    if header in flow.response.headers:
+                        del flow.response.headers[header]
+        addons = [StealthModifier()]
+        EOF
+        mitmdump --listen-host 0.0.0.0 --listen-port 8080 -s /tmp/stealth_modifier.py --set block_global=false
