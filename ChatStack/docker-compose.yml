@@ -224,8 +224,8 @@ services:
       # 日誌等級
       - LOG_LEVEL=INFO
       # 資料庫 (預設 SQLite)
-      # - DATABASE_TYPE=sqlite
-      # - DATABASE_PATH=data/channels.db
+      - DATABASE_TYPE=sqlite
+      - DATABASE_PATH=data/channels.db
       # 可選: 切換 MySQL 時取消下列註解並調整 chatstack-mysql 服務
       # - DATABASE_TYPE=mysql
       # - MYSQL_HOST=chatstack-mysql
