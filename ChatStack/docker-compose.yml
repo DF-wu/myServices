@@ -460,20 +460,10 @@ services:
       sh -c "
       cat > /tmp/stealth_modifier.py <<'EOF'
       import os
-      import logging
       from mitmproxy import http
-      logger = logging.getLogger('StealthProxyAddon')
-      logger.setLevel(logging.INFO)
-      if not logger.handlers:
-          handler = logging.StreamHandler()
-          formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-          handler.setFormatter(formatter)
-          logger.addHandler(handler)
       class StealthModifier:
           def __init__(self):
               self.user_agent = os.environ.get('OVERRIDE_USER_AGENT', 'claude-cli/1.0.91 (external, cli)')
-              logger.info('Stealth Addon loaded.')
-              logger.info('Proxy is in stealth mode.')
           def request(self, flow: http.HTTPFlow) -> None:
               flow.request.headers['User-Agent'] = self.user_agent
               headers_to_remove = ['Via', 'X-Forwarded-For', 'X-Forwarded-Host', 'X-Forwarded-Proto', 'X-Proxy-ID', 'Proxy-Connection', 'X-Real-IP']
