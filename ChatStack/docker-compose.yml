@@ -243,6 +243,8 @@ services:
       - TZ=Asia/Taipei
     ports:
       - "43057:3000" # Web UI / API 入口
+    volumes:
+      - /mnt/appdata/ChatStack/api-conversion/data:/app/data
     healthcheck:
       test:
         [
