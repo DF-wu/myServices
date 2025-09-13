@@ -462,7 +462,7 @@ services:
       - |
         cat > /tmp/stealth_modifier.py <<'EOF'
         import os
-        from mitmproxy import http
+        from mitmproxy import http, tls
         class StealthModifier:
             def __init__(self):
                 self.user_agent = os.environ.get('OVERRIDE_USER_AGENT', 'claude-cli/1.0.91 (external, cli)')
@@ -473,10 +473,17 @@ services:
                     if header in flow.request.headers:
                         del flow.request.headers[header]
             def response(self, flow: http.HTTPFlow) -> None:
+                content_type = flow.response.headers.get('content-type', '').lower()
+                if 'application/json' in content_type or 'text/json' in content_type:
+                    return
                 headers_to_remove = ['Via', 'X-Powered-By']
                 for header in headers_to_remove:
                     if header in flow.response.headers:
                         del flow.response.headers[header]
+            def tls_clienthello(self, data: tls.ClientHelloData) -> None:
+                pass
+            def tls_established(self, data: tls.TlsData) -> None:
+                pass
         addons = [StealthModifier()]
         EOF
-        mitmdump --listen-host 0.0.0.0 --listen-port 8080 -s /tmp/stealth_modifier.py --set block_global=false --ssl-insecure
+        mitmdump --listen-host 0.0.0.0 --listen-port 8080 -s /tmp/stealth_modifier.py --set block_global=false --ssl-insecure --set confdir=/tmp
