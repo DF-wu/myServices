@@ -217,7 +217,7 @@ services:
   # as a api converter and pretender
   claude-code-router-nonocode:
     image: yunxinc/ccr:latest
-    container_name: ClaudeCodeRouter
+    container_name: ClaudeCodeRouter-nonocode
     restart: unless-stopped
     ports:
       - "43057:3456" # ui in host /ui/
