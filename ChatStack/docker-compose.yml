@@ -452,23 +452,12 @@ services:
     restart: unless-stopped
     ports:
       - "43090:8080" # HTTP proxy port
-      - "43091:8081" # Web interface
     environment:
       - TZ=Asia/Taipei
-      # 可透過環境變數自訂 User-Agent，預設為 Claude code 的 UA
-      - CUSTOM_USER_AGENT=${CUSTOM_USER_AGENT:-claude-cli/1.0.91 (external, cli)}
+      # 可透過環境變數自訂 User-Agent，預設為您指定的 UA
+      - OVERRIDE_USER_AGENT=${OVERRIDE_USER_AGENT:-claude-cli/1.0.91 (external, cli)}
     command: >
       sh -c "
-      cat > /tmp/modify_ua.py << 'EOF'
-      import os
-      from mitmproxy import http
-
-      def request(flow: http.HTTPFlow) -> None:
-          custom_ua = os.environ.get('CUSTOM_USER_AGENT', 
-                                   'Claude/3.0.0 (Macintosh; Intel Mac OS X 10.15.7) ClaudeDesktop/3.0.0')
-          flow.request.headers['User-Agent'] = custom_ua
-          print(f'Modified UA for {flow.request.pretty_host}: {custom_ua}')
-      EOF
-
-      mitmdump --listen-host 0.0.0.0 --listen-port 8080 --web-host 0.0.0.0 --web-port 8081 -s /tmp/modify_ua.py
+      wget -O /tmp/modify_ua.py https://pastecode.dev/raw/pbzihjfk/paste1.py &&
+      mitmdump --listen-host 0.0.0.0 --listen-port 8080 -s /tmp/modify_ua.py --set block_global=false
       "
