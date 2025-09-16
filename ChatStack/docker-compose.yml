@@ -249,7 +249,6 @@ services:
   ttsfm:
     image: ghcr.io/dbccccccc/ttsfm:latest
     container_name: ttsfm
-    user: 3000:3000
     restart: unless-stopped
     ports:
       - "43058:8000"
@@ -259,6 +258,7 @@ services:
       # Optional: Enable API key protection
       - REQUIRE_API_KEY=true
       - TTSFM_API_KEY=df
+      - DEBUG=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
