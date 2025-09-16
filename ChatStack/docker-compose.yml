@@ -240,6 +240,31 @@ services:
     container_name: claude-relay-redis
     restart: unless-stopped
 
+  # TTSFM - Free Text-to-Speech service (OpenAI-compatible)
+  # doc: https://github.com/dbccccccc/ttsfm
+  # endpoints:
+  # - Web UI:       http://localhost:43058/
+  # - OpenAI TTS:   http://localhost:43058/v1/audio/speech
+  # - Healthcheck:  http://localhost:43058/api/health
+  ttsfm:
+    image: ghcr.io/dbccccccc/ttsfm:latest
+    container_name: ttsfm
+    user: 3000:3000
+    restart: unless-stopped
+    ports:
+      - "43058:8000"
+    environment:
+      - TZ=Asia/Taipei
+      - PORT=8000
+      # Optional: Enable API key protection
+      - REQUIRE_API_KEY=true
+      - TTSFM_API_KEY=df
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # remember the different postgres version is not compatible
   chatstack-postgres17-pgvector:
     restart: unless-stopped
