@@ -243,7 +243,6 @@ services:
     volumes:
       # persistant.  IDK WTF why CRS need persist on redis.
       - /mnt/appdata/ChatStack/claudeRelayService/redis:/data
-      - /mnt/appdata/ChatStack/claudeRelayService/redis:/data
     command: redis-server --save 60 1 --appendonly yes --appendfsync everysec
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
