@@ -235,8 +235,9 @@ services:
       - crs-redis
 
   crs-redis:
-    image: redis:7-alpine
+    image: docker.io/valkey/valkey:8-alpine
     container_name: claude-relay-redis
+    user: 3000:3000
     environment:
       - PUID=3000
       - PGID=3000
