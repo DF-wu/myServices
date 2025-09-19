@@ -200,7 +200,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # claude code router docker version
+  # claude code router docker version.
   # doc: https://linux.do/t/topic/864277
   claude-code-router:
     image: yunxinc/ccr:latest
@@ -218,7 +218,6 @@ services:
     image: weishaw/claude-relay-service:latest
     container_name: claude-relay-service
     restart: unless-stopped
-
     ports:
       - "43057:3000"
     environment:
@@ -239,6 +238,9 @@ services:
     image: redis:7-alpine
     container_name: claude-relay-redis
     restart: unless-stopped
+    # persistant.  IDK WTF why CRS need persist on redis.
+    volume:
+      - /mnt/appdata/ChatStack/claudeRelayService/redis:/data
 
   # TTSFM - Free Text-to-Speech service (OpenAI-compatible)
   # doc: https://github.com/dbccccccc/ttsfm
@@ -261,6 +263,53 @@ services:
       - DEBUG=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Whisper-FastAPI - Speech-to-Text service (OpenAI Whisper-compatible)
+  # repo: https://github.com/heimoshuiyu/whisper-fastapi
+  # endpoints:
+  # - OpenAI Whisper: http://localhost:43059/v1/audio/transcriptions
+  # - Wyoming (Home Assistant): tcp://localhost:43060
+  # notes:
+  # - 初次啟動會自動從 HuggingFace 下載模型到 hf-cache 目錄。
+  # - 預設使用 faster-whisper，CPU 也可跑（建議模型改為 small / medium）。
+  # - 需要 GPU 時，取消註解 deploy.resources 區塊，或用 Portainer 勾選 GPU。
+  whisper-fastapi:
+    image: docker.io/heimoshuiyu/whisper-fastapi:latest
+    container_name: whisper-fastapi
+    restart: unless-stopped
+    # 若使用 GPU，建議保留 root 權限以避免快取目錄權限問題
+    # user: 3000:3000
+    ports:
+      - "43059:5000" # HTTP API: /v1/audio/transcriptions
+      - "43060:3001" # Wyoming protocol (optional)
+    environment:
+      - TZ=Asia/Taipei
+      # 修正常見 NVIDIA 驅動檢查問題（若使用 GPU）
+      - NVIDIA_DISABLE_REQUIRE=true
+      # 啟用 GPT 精修需設定以下兩行（可省略）
+      # - OPENAI_BASE_URL=https://api.openai.com/v1
+      # - OPENAI_API_KEY=sk-xxxx
+    volumes:
+      # 模型/快取目錄：首次啟動會自動下載模型到此處
+      - /mnt/appdata/ChatStack/whisper-fastapi/hf-cache:/root/.cache/huggingface
+    tmpfs:
+      - /tmp
+    # 依需求調整模型：large-v2 需 GPU；僅 CPU 建議改 small / medium / distil 等
+    command: ["--model", "large-v2"]
+    # GPU 啟用（可選）：取消註解以下區塊
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu, compute, video]
+    healthcheck:
+      # FastAPI 內建 /docs，可用作簡易健康檢查
+      test: ["CMD", "curl", "-f", "http://localhost:5000/docs"]
       interval: 30s
       timeout: 10s
       retries: 3
