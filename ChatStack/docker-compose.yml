@@ -237,6 +237,9 @@ services:
   crs-redis:
     image: redis:7-alpine
     container_name: claude-relay-redis
+    environment:
+      - PUID=3000
+      - PGID=3000
     restart: unless-stopped
     expose:
       - 6879
