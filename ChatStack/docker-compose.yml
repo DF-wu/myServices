@@ -239,7 +239,7 @@ services:
     container_name: claude-relay-redis
     restart: unless-stopped
     # persistant.  IDK WTF why CRS need persist on redis.
-    volume:
+    volumes:
       - /mnt/appdata/ChatStack/claudeRelayService/redis:/data
 
   # TTSFM - Free Text-to-Speech service (OpenAI-compatible)
