@@ -240,11 +240,9 @@ services:
     restart: unless-stopped
     expose:
       - 6879
-    environment:
-      - PUID=3000
-      - PGID=3000
     volumes:
       # persistant.  IDK WTF why CRS need persist on redis.
+      - /mnt/appdata/ChatStack/claudeRelayService/redis:/data
       - /mnt/appdata/ChatStack/claudeRelayService/redis:/data
     command: redis-server --save 60 1 --appendonly yes --appendfsync everysec
     healthcheck:
