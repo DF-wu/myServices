@@ -234,31 +234,12 @@ services:
     depends_on:
       - crs-redis
 
-  # 📊 Redis Database
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    # 仅在容器网络内部暴露端口，不映射到主机
-    expose:
-      - "6379"
-    # 注意：如需本地调试访问，可取消下行注释（生产环境禁用）
-    # ports:
-    #   - "127.0.0.1:${REDIS_PORT:-6379}:6379"
-    volumes:
-      - ./redis_data:/data
-    command: redis-server --save 60 1 --appendonly yes --appendfsync everysec
-    networks:
-      - claude-relay-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   crs-redis:
     image: redis:7-alpine
     container_name: claude-relay-redis
     restart: unless-stopped
+    expose:
+      - 6879
     environment:
       - PUID=3000
       - PGID=3000
