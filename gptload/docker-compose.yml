@@ -38,6 +38,26 @@ services:
       # 設定時區為亞洲/台北，遵循 myServices 慣例
       - TZ=Asia/Taipei
 
+  # watchtower 自動更新服務（僅監控本 compose 的 gptload 容器）
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower-gptload
+    restart: unless-stopped
+    # 只需要掛載 Docker Daemon 的 socket，供 watchtower 管理容器
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # 與服務一致的時區
+      - TZ=Asia/Taipei
+      # 更新後自動清理舊映像，節省磁碟空間
+      - WATCHTOWER_CLEANUP=true
+      # 使用 cron 時程，每天 04:00 執行檢查更新（本地時區）
+      - WATCHTOWER_SCHEDULE=0 0 4 * * *
+      # 滾動重啟以較平滑地套用更新
+      - WATCHTOWER_ROLLING_RESTART=true
+    # 僅監控並更新名為 gptload 的容器，避免影響其他服務
+    command: gptload
+
   # 注意：如果需要使用 MySQL、PostgreSQL 或 Redis，請取消以下服務的註解，
   # 並在 gpt-load 服務的 depends_on 中也取消對應的註解。
   # 同時，需要在 .env 檔案中設定對應的 DATABASE_DSN 或 REDIS_DSN。
