@@ -371,7 +371,7 @@ services:
       - ADMIN_LIST=547663716
       - GET_MODELS=True
       - LANGUAGE=Traditional Chinese
-      - CUSTOM_MODELS=;GPT:gpt-5,gpt-5-mini,gpt-4.1;Claude:claude-sonnet-4,claude-4-sonnet;Gemini:gemini-2.5-pro,gemini-2.5-flash;all;OTHERS
+      # - CUSTOM_MODELS=;GPT:gpt-5,gpt-5-mini,gpt-4.1;Claude:claude-sonnet-4,claude-4-sonnet;Gemini:gemini-2.5-pro,gemini-2.5-flash;OTHERS
       # 插件功能開關（最新版本變數名）
       - get_search_results=True # 搜尋插件（原 CODE）
       - get_url_content=True # URL 摘要插件
