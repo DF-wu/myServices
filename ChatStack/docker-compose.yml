@@ -527,3 +527,20 @@ services:
   #   ports:
   #     - "33000:3000"
   #   restart: unless-stopped
+
+  services:
+  sillytavern:
+    container_name: sillytavern
+    hostname: sillytavern
+    image: ghcr.io/sillytavern/sillytavern:latest
+    environment:
+      - NODE_ENV=production
+      - FORCE_COLOR=1
+    ports:
+      - "43003:8000"
+    volumes:
+      - "/mnt/appdata/SillyTavern/config:/home/node/app/config"
+      - "/mnt/appdata/SillyTavern/data:/home/node/app/data"
+      - "/mnt/appdata/SillyTavern/plugins:/home/node/app/plugins"
+      - "/mnt/appdata/SillyTavern/extensions:/home/node/app/public/scripts/extensions/third-party"
+    restart: unless-stopped
