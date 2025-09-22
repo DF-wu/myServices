@@ -540,8 +540,8 @@ services:
     ports:
       - "43003:8000"
     volumes:
-      - "/mnt/appdata/sillytarven/config:/home/node/app/config"
-      - "/mnt/appdata/sillytarven/data:/home/node/app/data"
-      - "/mnt/appdata/sillytarven/plugins:/home/node/app/plugins"
-      - "/mnt/appdata/sillytarven/extensions:/home/node/app/public/scripts/extensions/third-party"
+      - "/mnt/appdata/ChatStack/sillytarven/config:/home/node/app/config"
+      - "/mnt/appdata/ChatStack/sillytarven/data:/home/node/app/data"
+      - "/mnt/appdata/ChatStack/sillytarven/plugins:/home/node/app/plugins"
+      - "/mnt/appdata/ChatStack/sillytarven/extensions:/home/node/app/public/scripts/extensions/third-party"
     restart: unless-stopped
