@@ -528,7 +528,6 @@ services:
   #     - "33000:3000"
   #   restart: unless-stopped
 
-  services:
   sillytavern:
     container_name: sillytavern
     hostname: sillytavern
