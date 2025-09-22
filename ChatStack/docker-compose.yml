@@ -535,6 +535,8 @@ services:
     environment:
       - NODE_ENV=production
       - FORCE_COLOR=1
+      - PUID=3000
+      - PGID=3000
     ports:
       - "43003:8000"
     volumes:
