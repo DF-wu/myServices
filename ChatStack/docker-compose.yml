@@ -422,6 +422,7 @@ services:
       - TZ=Asia/Taipei
     volumes:
       - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/app/config.yaml
+      - /mnt/appdata/ChatStack/discord-chatbot/data:/app/data
     depends_on:
       # 依賴 new-api 服務（容器名稱為 veloera）
       new-api:
