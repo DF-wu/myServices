@@ -420,6 +420,8 @@ services:
       # df image only
       - MY_ADDED_MODEL=glm-4.5v
       - TZ=Asia/Taipei
+      - PGID=3000
+      - PUID=3000
     volumes:
       - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/app/config.yaml
       - /mnt/appdata/ChatStack/discord-chatbot/data:/app/data
