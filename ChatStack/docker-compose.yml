@@ -412,7 +412,7 @@ services:
   ## if my n8n work well, I will use n8n
   discord-chatbot:
     container_name: discord-chatbot
-    image: ghcr.io/stanley2058/js-llmcord
+    image: ghcr.io/df/llmcord
     user: 3000:3000
     restart: unless-stopped
     network_mode: host
