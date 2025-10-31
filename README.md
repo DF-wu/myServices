@@ -38,24 +38,15 @@ docker daemon.json
 ```json
 {
  "registry-mirrors": [
-      "https://mirror.gcr.io/",
-      "https://public.ecr.aws/",
-      "https://quay.io/",
-      "https://registry.redhat.io/",
-      "https://registry.access.redhat.com/",
-      "https://huecker.io/",
-      "https://dockerhub.timeweb.cloud/",
-      "https://hub.fast360.xyz/",
-      "https://dockerproxy.net/",
-      "https://dockerpull.cn/",
       "https://docker.1panel.dev/",
-      "https://docker.foreverlink.love/",
-      "https://docker.fxxk.dedyn.io/",
-      "https://docker.xn--6oq72ry9d5zx.cn/",
-      "https://docker.zhai.cm/",
-      "https://docker.5z5f.com/",
-      "https://a.ussh.net/",
-      "https://docker.cloudlayer.icu/"
+      "https://dockerhub.timeweb.cloud/",
+      "https://quay.io/",
+      "https://public.ecr.aws/",
+      "https://dockerpull.cn/",
+      "https://dockerproxy.net/",
+      "https://huecker.io/",
+      "https://mirror.gcr.io/",
+      "https://a.ussh.net/"
     ]
 }
 
