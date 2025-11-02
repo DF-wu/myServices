@@ -3,6 +3,9 @@ services:
     image: photoprism/photoprism
     restart: unless-stopped
     container_name: photoprism
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
     ports:
     # web ui
       - 52342:2342
@@ -37,6 +40,7 @@ services:
     env_file:
       - .env
     devices:
+    
       - "/dev/nvidia0:/dev/nvidia0"                 # Nvidia CUDA
       - "/dev/nvidiactl:/dev/nvidiactl"
       # - "/dev/nvidia-modeset:/dev/nvidia-modeset"     ???????Quantem state?   
@@ -50,4 +54,5 @@ services:
             - driver: "nvidia"
               count: 1
               capabilities: [gpu, compute, video]
+
 
