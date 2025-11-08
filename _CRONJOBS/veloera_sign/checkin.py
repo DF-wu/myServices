@@ -115,8 +115,8 @@ def flaresolverr_checkin(base_url, checkin_url, headers):
     session_id = None
     try:
         # 建立 session
-        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1", 
-                               json={'cmd': 'sessions.create'}, timeout=20)
+        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1",
+                               json={'cmd': 'sessions.create'}, timeout=20, verify=False)
         if response.status_code != 200 or response.json().get('status') != 'ok':
             return False
         session_id = response.json()['session']
@@ -127,7 +127,7 @@ def flaresolverr_checkin(base_url, checkin_url, headers):
             'url': base_url,
             'session': session_id,
             'maxTimeout': 60000
-        }, timeout=70)
+        }, timeout=70, verify=False)
         
         if response.status_code != 200 or response.json().get('status') != 'ok':
             return False
@@ -146,9 +146,9 @@ def flaresolverr_checkin(base_url, checkin_url, headers):
             'Origin': base_url,
             'Referer': f'{base_url}/',
         }
-        
-        api_response = requests.post(checkin_url, headers=api_headers, 
-                                   cookies=cookies, json={}, timeout=30)
+
+        api_response = requests.post(checkin_url, headers=api_headers,
+                                   cookies=cookies, json={}, timeout=30, verify=False)
         
         if api_response.status_code == 200:
             data = api_response.json()
@@ -175,8 +175,8 @@ def flaresolverr_checkin(base_url, checkin_url, headers):
     finally:
         if session_id:
             try:
-                requests.post(f"{flaresolverr_url.rstrip('/')}/v1", 
-                            json={'cmd': 'sessions.destroy', 'session': session_id}, timeout=20)
+                requests.post(f"{flaresolverr_url.rstrip('/')}/v1",
+                            json={'cmd': 'sessions.destroy', 'session': session_id}, timeout=20, verify=False)
             except:
                 pass
 
