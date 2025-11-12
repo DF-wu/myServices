@@ -414,7 +414,6 @@ services:
   discord-chatbot:
     container_name: discord-chatbot
     image: ghcr.io/stanley2058/js-llmcord:latest
-    user: 3000:3000
     restart: unless-stopped
     network_mode: host
     environment:
