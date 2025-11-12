@@ -413,7 +413,7 @@ services:
   ## if my n8n work well, I will use n8n
   discord-chatbot:
     container_name: discord-chatbot
-    image: ghcr.io/df-wu/llmcord
+    image: ghcr.io/stanley2058/js-llmcord:latest
     user: 3000:3000
     restart: unless-stopped
     network_mode: host
@@ -426,6 +426,7 @@ services:
     volumes:
       - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/app/config.yaml
       - /mnt/appdata/ChatStack/discord-chatbot/data:/app/data
+      - /mnt/appdata/ChatStack/discord-chatbot/extensions:/app/extensions
     depends_on:
       # 依賴 new-api 服務（容器名稱為 veloera）
       new-api:
