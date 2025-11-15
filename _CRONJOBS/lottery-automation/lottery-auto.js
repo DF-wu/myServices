@@ -187,20 +187,22 @@ async function main() {
     const currentUrlAfterAuth = page.url();
     console.log(`当前 URL: ${currentUrlAfterAuth}`);
 
-    // 检查是否有 Cloudflare Turnstile
+    const pageTitle = await page.title();
+    console.log(`当前页面标题: ${pageTitle}`);
+
+    // 检查是否有 Cloudflare Turnstile 或停留在 approve 页面
     const hasTurnstile = await page.locator('iframe[src*="turnstile"]').count() > 0 ||
                          await page.locator('text=确认您是真人').count() > 0 ||
-                         currentUrlAfterAuth.includes('challenges.cloudflare.com');
+                         currentUrlAfterAuth.includes('challenges.cloudflare.com') ||
+                         (currentUrlAfterAuth.includes('oauth2/approve') && !currentUrlAfterAuth.includes(LOTTERY_URL));
 
     if (hasTurnstile) {
-      console.log('⚠️ 检测到 Cloudflare Turnstile 验证');
+      console.log('⚠️ 检测到 Cloudflare Turnstile 验证或 approve 页面');
       await takeScreenshot(page, '04-turnstile-before');
 
       // 使用 FlareSolverr 绕过验证
-      // 注意：需要使用回调 URL，而不是当前卡住的 URL
-      const targetUrl = currentUrlAfterAuth.includes(LOTTERY_URL)
-        ? currentUrlAfterAuth
-        : `${LOTTERY_URL}/api/auth/callback`;
+      // 如果在 approve 页面，就解决当前页面
+      const targetUrl = currentUrlAfterAuth;
 
       console.log(`尝试解决的目标 URL: ${targetUrl}`);
       const solution = await solveTurnstile(targetUrl);
@@ -213,9 +215,9 @@ async function main() {
         const flareCookies = solution.cookies.map(cookie => {
           let domain = cookie.domain;
 
-          // 如果 cookie 没有域名，使用目标 URL 的域名
+          // 如果 cookie 没有域名，使用当前 URL 的域名
           if (!domain) {
-            const urlObj = new URL(LOTTERY_URL);
+            const urlObj = new URL(targetUrl);
             domain = urlObj.hostname;
           }
 
@@ -234,23 +236,21 @@ async function main() {
         await context.addCookies(flareCookies);
         console.log(`✅ 已注入 ${flareCookies.length} 个 FlareSolverr cookies`);
 
-        // 如果还没有跳转到目标域名，导航过去
-        if (!currentUrlAfterAuth.includes(LOTTERY_URL)) {
-          console.log('🔄 导航到抽奖页面...');
-          await page.goto(targetUrl, { waitUntil: 'networkidle' });
-        } else {
-          // 刷新页面以应用 cookies
-          await page.reload({ waitUntil: 'networkidle' });
-        }
+        // 刷新当前页面以应用 cookies，等待自动跳转
+        console.log('🔄 刷新页面以应用 cookies...');
+        await page.reload({ waitUntil: 'networkidle' });
 
-        await sleep(2000);
+        await sleep(3000);
         await takeScreenshot(page, '04-turnstile-after');
 
-        // 检查是否成功绕过
-        if (page.url().includes(LOTTERY_URL)) {
-          console.log('✅ Turnstile 验证已绕过！');
+        // 检查是否成功跳转
+        const urlAfterReload = page.url();
+        console.log(`刷新后 URL: ${urlAfterReload}`);
+
+        if (urlAfterReload.includes(LOTTERY_URL)) {
+          console.log('✅ Turnstile 验证已绕过，已跳转到抽奖页面！');
         } else {
-          console.log('⚠️ 可能仍需要等待验证...');
+          console.log('⚠️ 仍在等待跳转...');
         }
       } else {
         console.log('⚠️ FlareSolverr 未能解决，尝试手动等待...');
