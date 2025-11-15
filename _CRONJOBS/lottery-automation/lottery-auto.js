@@ -210,6 +210,24 @@ async function main() {
       if (solution && solution.cookies) {
         console.log('✅ 使用 FlareSolverr 获取的 cookies 注入到浏览器');
 
+        // 檢查 FlareSolverr 返回的 HTML
+        if (solution.html) {
+          console.log('\n=== FlareSolverr 返回的頁面分析 ===');
+          const htmlSnippet = solution.html.substring(0, 2000);
+          console.log('HTML 片段:', htmlSnippet);
+
+          // 檢查是否有重定向信息
+          if (solution.html.includes('window.location')) {
+            console.log('⚠️ 頁面包含 JavaScript 重定向');
+          }
+          if (solution.html.includes('<form')) {
+            console.log('⚠️ 頁面包含表單');
+          }
+          if (solution.html.includes('meta') && solution.html.includes('refresh')) {
+            console.log('⚠️ 頁面包含 meta refresh');
+          }
+        }
+
         // 将 FlareSolverr 返回的 cookies 注入到浏览器
         // 确保 cookies 设置到正确的域名
         const flareCookies = solution.cookies.map(cookie => {
@@ -236,7 +254,35 @@ async function main() {
         await context.addCookies(flareCookies);
         console.log(`✅ 已注入 ${flareCookies.length} 个 FlareSolverr cookies`);
 
-        // 不要刷新頁面，等待 approve 頁面自動跳轉到 callback
+        // 輸出注入的 cookies 名稱
+        console.log('注入的 cookies:', flareCookies.map(c => c.name).join(', '));
+
+        // 檢查當前頁面狀態
+        console.log('\n=== 檢查當前 Playwright 頁面狀態 ===');
+        const currentPageHtml = await page.content();
+        console.log('當前頁面 HTML 長度:', currentPageHtml.length);
+        console.log('當前頁面標題:', await page.title());
+
+        // 嘗試重新訪問 approve 頁面以觸發 JavaScript
+        console.log('\n🔄 重新訪問 approve 頁面以觸發跳轉...');
+        await page.goto(targetUrl, {
+          waitUntil: 'domcontentloaded',
+          timeout: 20000
+        });
+        await sleep(2000);
+
+        // 檢查頁面上是否有自動提交的表單
+        const forms = await page.locator('form').count();
+        console.log(`頁面表單數量: ${forms}`);
+
+        if (forms > 0) {
+          console.log('⚠️ 檢測到表單，檢查是否需要提交...');
+          // 嘗試獲取表單信息
+          const formHtml = await page.locator('form').first().innerHTML().catch(() => 'N/A');
+          console.log('表單內容:', formHtml.substring(0, 500));
+        }
+
+        // 等待跳轉
         console.log('⏳ 等待 OAuth approve 頁面自動跳轉到 callback...');
 
         try {
@@ -248,21 +294,18 @@ async function main() {
           const currentPageUrl = page.url();
           console.log(`當前 URL: ${currentPageUrl}`);
 
-          // 如果還在 approve 頁面，嘗試等待一下或手動觸發
-          if (currentPageUrl.includes('oauth2/approve')) {
-            console.log('⚠️ 仍在 approve 頁面，嘗試重新加載...');
-            try {
-              await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 });
-              await sleep(3000);
+          // 檢查頁面內容
+          const pageText = await page.locator('body').textContent();
+          console.log('頁面文本片段:', pageText.substring(0, 500));
 
-              // 再等一次跳轉
-              await page.waitForURL(`${LOTTERY_URL}/**`, { timeout: 30000 });
-              console.log('✅ Reload 後成功跳轉！');
-            } catch (retryError) {
-              console.log('❌ 重試失敗，OAuth 流程可能有問題');
-              throw new Error('無法完成 OAuth 跳轉');
-            }
+          // 檢查是否有錯誤信息
+          const hasError = pageText.includes('error') || pageText.includes('Error') ||
+                          pageText.includes('錯誤') || pageText.includes('失败');
+          if (hasError) {
+            console.log('⚠️ 頁面可能包含錯誤信息');
           }
+
+          throw new Error('無法完成 OAuth 跳轉 - approve 頁面未自動跳轉');
         }
 
         await takeScreenshot(page, '04-turnstile-after');
