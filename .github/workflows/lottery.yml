@@ -34,7 +34,9 @@ jobs:
           node-version: "20"
 
       - name: 安装依赖
-        run: npm install
+        run: |
+          cd _CRONJOBS/lottery-automation
+          npm install
 
       - name: 安装 Playwright 浏览器
         run: npx playwright install chromium
@@ -55,6 +57,7 @@ jobs:
         id: lottery
         continue-on-error: true
         env:
+          LOTTERY_URL: ${{ env.LOTTERY_URL }}
           LINUXDO_COOKIES: ${{ secrets.LINUXDO_COOKIES }}
           FLARESOLVERR_URL: http://localhost:8191/v1
         run: |
