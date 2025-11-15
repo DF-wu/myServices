@@ -1,4 +1,4 @@
-name: 薄荷公益站自动抽奖
+name: Daily Lottery Automation
 
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
     # 允许手动触发
 
 env:
-  LOTTERY_URL: "https://qd.x666.me"
+  LOTTERY_URL: ""  # 在腳本中動態組裝
 
 jobs:
   lottery:
@@ -59,6 +59,7 @@ jobs:
         env:
           LOTTERY_URL: ${{ env.LOTTERY_URL }}
           LINUXDO_COOKIES: ${{ secrets.LINUXDO_COOKIES }}
+          CONNECT_COOKIES: ${{ secrets.CONNECT_COOKIES }}
           FLARESOLVERR_URL: http://localhost:8191/v1
         run: |
           cd _CRONJOBS/lottery-automation

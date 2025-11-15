@@ -1,7 +1,7 @@
 {
   "name": "lottery-automation",
   "version": "1.0.0",
-  "description": "薄荷公益站抽奖自动化",
+  "description": "Daily lottery automation",
   "main": "lottery-auto.js",
   "scripts": {
     "start": "node lottery-auto.js",

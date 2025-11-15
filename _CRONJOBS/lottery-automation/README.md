@@ -1,263 +1,127 @@
-# 薄荷公益站抽奖自动化
+# Daily Lottery Automation
 
-使用 GitHub Actions + Playwright + **FlareSolverr** 实现每日自动抽奖，**自动绕过 Cloudflare Turnstile 验证**。
+Automated daily lottery system using GitHub Actions, Playwright, and FlareSolverr to handle Cloudflare protection.
 
-## 功能特点
+## Features
 
-- ✅ 每天自动抽奖（北京时间 8:00 AM）
-- ✅ 基于 linux.do Cookie，无需密码
-- ✅ 自动处理 OAuth 授权流程
-- ✅ **使用 FlareSolverr 自动绕过 Cloudflare Turnstile 验证**
-- ✅ 失败时自动截图并创建 Issue
-- ✅ 支持手动触发
+- ✅ Daily automation (8:00 AM Beijing Time)
+- ✅ Cookie-based authentication (no password required)
+- ✅ OAuth flow automation
+- ✅ Cloudflare Turnstile bypass with FlareSolverr
+- ✅ Screenshot capture on failure
+- ✅ Manual trigger support
 
-## 技术栈
+## Tech Stack
 
-- **Playwright**: 浏览器自动化
-- **FlareSolverr**: 绕过 Cloudflare 保护
-- **GitHub Actions**: 定时任务调度
-- **linux.do OAuth**: 身份验证
+- **Playwright**: Browser automation
+- **FlareSolverr**: Cloudflare protection bypass
+- **GitHub Actions**: Scheduled task orchestration
+- **OAuth 2.0**: Authentication
 
-## 快速开始
+## Setup
 
-### 1. Fork 或克隆此仓库
+### 1. Fork or Clone
 
 ```bash
 git clone <your-repo-url>
 cd lottery-automation
 ```
 
-### 2. 配置 GitHub Secrets
+### 2. Configure GitHub Secrets
 
-前往仓库的 `Settings` → `Secrets and variables` → `Actions` → `New repository secret`
+Navigate to `Settings` → `Secrets and variables` → `Actions` → `New repository secret`
 
-添加以下 Secret：
+Add the following secrets:
 
 #### `LINUXDO_COOKIES`
 
-**获取方法**：
+**How to obtain**:
 
-1. 在浏览器中登录 https://linux.do
-2. 打开开发者工具（F12）
-3. 进入 `Application` / `应用` 标签
-4. 左侧选择 `Cookies` → `https://linux.do`
-5. 使用浏览器插件（如 **Cookie-Editor**）导出为 JSON 格式
+1. Log in to the main site in your browser
+2. Open Developer Tools (F12)
+3. Go to `Application` tab
+4. Select `Cookies` from left sidebar
+5. Use browser extension (e.g., **Cookie-Editor**) to export as JSON
 
-**Cookie JSON 格式示例**：
+**JSON format example**:
 
 ```json
 [
   {
-    "Host raw": "https://linux.do/",
+    "Host raw": "https://example.com/",
     "Name raw": "_t",
     "Path raw": "/",
-    "Content raw": "你的cookie值",
+    "Content raw": "your_cookie_value",
     "Expires raw": "1768376592",
     "Send for raw": "true",
     "HTTP only raw": "true",
-    "SameSite raw": "lax",
-    "This domain only raw": "true"
-  },
-  {
-    "Host raw": "https://connect.linux.do/",
-    "Name raw": "auth.session-token",
-    "Path raw": "/",
-    "Content raw": "你的cookie值",
-    "Expires raw": "0",
-    "Send for raw": "true",
-    "HTTP only raw": "true",
-    "SameSite raw": "lax",
-    "This domain only raw": "true"
+    "SameSite raw": "lax"
   }
 ]
 ```
 
-**重要的 Cookie**：
-- `_t` - 长期认证令牌
-- `_forum_session` - 会话 cookie
-- `auth.session-token` - OAuth 认证令牌（connect.linux.do 域名）
+#### `CONNECT_COOKIES`
 
-### 3. 启用 GitHub Actions
+OAuth service cookies in the same JSON format as above.
 
-1. 进入仓库的 `Actions` 标签
-2. 如果提示启用工作流，点击 `I understand my workflows, go ahead and enable them`
-3. 找到 `薄荷公益站自动抽奖` 工作流
-4. 点击 `Enable workflow`
+### 3. Enable GitHub Actions
 
-### 4. 测试运行
+1. Navigate to `Actions` tab
+2. Enable workflows if prompted
+3. Find the lottery workflow
+4. Click `Enable workflow`
 
-点击 `Run workflow` → `Run workflow` 进行手动测试。
+### 4. Test Run
 
-查看运行日志，确认：
-- ✅ FlareSolverr 服务已启动
-- ✅ Cookie 注入成功
-- ✅ OAuth 授权成功
-- ✅ Cloudflare Turnstile 验证已绕过
-- ✅ 抽奖成功
+Click `Run workflow` → `Run workflow` for manual testing.
 
-## 工作流说明
+Check logs to verify:
+- ✅ FlareSolverr service started
+- ✅ Cookies injected
+- ✅ OAuth authorization successful
+- ✅ Cloudflare Turnstile bypassed
+- ✅ Lottery completed
 
-### 定时任务
+## Workflow Details
 
-- 每天 UTC 0:00 自动运行（北京时间 8:00 AM）
-- 使用 cron 表达式：`0 0 * * *`
+### Schedule
 
-### FlareSolverr 服务
+Runs daily at 00:00 UTC (08:00 Beijing Time) via cron schedule.
 
-GitHub Actions 会自动启动 FlareSolverr Docker 容器来绕过 Cloudflare 验证：
+### Manual Trigger
 
-```yaml
-services:
-  flaresolverr:
-    image: ghcr.io/flaresolverr/flaresolverr:latest
-    ports:
-      - 8191:8191
-```
+Use `workflow_dispatch` to trigger manually from GitHub Actions UI.
 
-当检测到 Cloudflare Turnstile 验证时，脚本会：
-1. 调用 FlareSolverr API 解决验证
-2. 获取绕过验证后的 cookies
-3. 注入 cookies 到浏览器
-4. 继续抽奖流程
+## Troubleshooting
 
-### 手动触发
+### Cookie Expired
 
-进入 `Actions` → 选择工作流 → `Run workflow`
+If authentication fails:
+1. Re-export cookies from browser
+2. Update GitHub Secrets
+3. Re-run workflow
 
-## 故障排查
+### Cloudflare Issues
 
-### Cookie 已过期
+If Cloudflare verification fails:
+- Check FlareSolverr service logs
+- Verify OAuth cookies are set
+- Review screenshots in workflow artifacts
 
-**症状**：工作流失败，截图显示未登录状态
+### Screenshot Access
 
-**解决**：
-1. 重新登录 linux.do
-2. 导出新的 cookie JSON
-3. 更新 GitHub Secrets 中的 `LINUXDO_COOKIES`
+When workflow fails:
+1. Go to failed workflow run
+2. Scroll to bottom → `Artifacts` section
+3. Download screenshot ZIP file
 
-### 今天已经抽过奖
+## Security Notes
 
-**症状**：日志显示 "今天已经抽过奖了"
-
-**解决**：这是正常的，脚本会自动退出
-
-### FlareSolverr 无法绕过验证
-
-**症状**：日志显示 "FlareSolverr 解决失败"
-
-**解决**：
-1. 查看 FlareSolverr 服务日志
-2. 检查 Cloudflare 是否更新了验证机制
-3. 尝试手动运行测试
-
-### 页面结构变化
-
-**症状**：找不到元素，选择器失败
-
-**解决**：
-1. 查看错误截图
-2. 更新 `lottery-auto.js` 中的选择器
-3. 可能需要修改 `.bg-red-500` 为新的授权按钮选择器
-
-## 本地测试
-
-### 安装依赖
-
-```bash
-npm install
-npx playwright install chromium
-```
-
-### 使用 Docker 运行 FlareSolverr
-
-```bash
-docker run -d \
-  --name=flaresolverr \
-  -p 8191:8191 \
-  ghcr.io/flaresolverr/flaresolverr:latest
-```
-
-### 运行脚本
-
-```bash
-export LINUXDO_COOKIES='[你的cookie JSON]'
-export FLARESOLVERR_URL='http://localhost:8191/v1'
-node lottery-auto.js
-```
-
-## 安全提示
-
-⚠️ **重要**：
-- 使用 **私有仓库** 以保护 cookie 和日志
-- 定期更新 cookie（建议每 1-2 个月）
-- 不要分享工作流日志（可能包含敏感信息）
-- 启用 GitHub 账号的两步验证
-
-## Cookie 有效期
-
-根据配置：
-- `_t` cookie：约 2 个月有效期
-- `_forum_session`：会话 cookie（需定期更新）
-- `auth.session-token`：会话 cookie（需定期更新）
-
-建议：每 1-2 个月更新一次 cookie。
-
-## 文件说明
-
-```
-.
-├── .github/
-│   └── workflows/
-│       └── lottery.yml          # GitHub Actions 工作流配置（含 FlareSolverr）
-├── lottery-auto.js              # Playwright 自动化脚本（集成 FlareSolverr）
-├── package.json                 # Node.js 依赖（含 axios）
-├── README.md                    # 本文件
-└── screenshots/                 # 截图目录（自动生成）
-```
-
-## 高级配置
-
-### 修改运行时间
-
-编辑 `.github/workflows/lottery.yml`：
-
-```yaml
-on:
-  schedule:
-    - cron: '0 1 * * *'  # UTC 1:00 = 北京时间 9:00
-```
-
-使用 [crontab.guru](https://crontab.guru/) 生成 cron 表达式。
-
-### FlareSolverr 配置
-
-FlareSolverr 服务在 GitHub Actions 中自动启动，无需额外配置。
-
-如需调整超时或其他参数，修改 `lottery-auto.js` 中的 `solveTurnstile` 函数：
-
-```javascript
-const response = await axios.post(FLARESOLVERR_URL, {
-  cmd: 'request.get',
-  url: url,
-  maxTimeout: 60000  // 调整超时时间（毫秒）
-});
-```
-
-## 工作原理
-
-1. **定时触发** → GitHub Actions 在设定时间启动
-2. **启动 FlareSolverr** → Docker 容器在后台运行
-3. **注入 Cookies** → 加载 linux.do 登录状态
-4. **访问抽奖页面** → 点击"开始转动"
-5. **OAuth 授权** → 自动点击"允许"按钮
-6. **Cloudflare 验证** → FlareSolverr 自动绕过 Turnstile
-7. **执行抽奖** → 等待转盘结果
-8. **提取兑换码** → 记录到工作流 Summary
+- Never commit cookies or tokens to repository
+- Use GitHub Secrets for all sensitive data
+- Rotate cookies periodically
+- Keep dependencies updated
 
 ## License
 
 MIT
-
-## 免责声明
-
-本项目仅供学习交流使用，使用者需遵守相关网站的服务条款。作者不对使用本项目导致的任何问题负责。
