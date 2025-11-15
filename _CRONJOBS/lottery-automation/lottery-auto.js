@@ -316,7 +316,7 @@ async function main() {
     // Step 7: 等待回调并提取 token
     console.log('\nStep 7: 等待回调到抽奖页面...');
     await page.waitForURL(`${LOTTERY_URL}/**`, { timeout: 30000 });
-    await sleep(2000);
+    await sleep(3000);
 
     const callbackUrl = page.url();
     console.log(`回调 URL: ${callbackUrl}`);
@@ -325,14 +325,66 @@ async function main() {
     const tokenMatch = callbackUrl.match(/[?&]token=([^&]+)/);
     if (tokenMatch) {
       console.log(`✅ Token 已获取: ${tokenMatch[1].substring(0, 20)}...`);
+    } else {
+      console.log(`⚠️ URL 中未找到 token 參數`);
     }
 
     await takeScreenshot(page, '05-after-callback');
 
+    // 檢查是否在根路徑且需要重新觸發抽獎
+    if (callbackUrl === LOTTERY_URL || callbackUrl === `${LOTTERY_URL}/`) {
+      console.log('⚠️ 當前在根路徑，檢查是否需要重新點擊抽獎按鈕...');
+
+      const spinBtn = await page.locator('#spinButton');
+      const spinBtnCount = await spinBtn.count();
+
+      if (spinBtnCount > 0) {
+        const btnText = await spinBtn.textContent();
+        console.log(`轉盤按鈕文字: ${btnText}`);
+
+        // 如果不是"已抽獎"狀態，可能需要重新點擊
+        if (!btnText.includes('已抽奖') && !btnText.includes('已签到')) {
+          console.log('⚠️ 檢測到按鈕未顯示已抽獎，可能 OAuth 流程有問題');
+          console.log('嘗試檢查登入狀態...');
+
+          // 檢查頁面上是否有登入信息
+          const bodyText = await page.locator('body').textContent();
+          console.log('頁面文本片段:', bodyText.substring(0, 500));
+        } else {
+          console.log('✅ 按鈕顯示已抽獎，OAuth 流程完成');
+        }
+      }
+    }
+
     // Step 8: 等待转盘动画并获取结果
     console.log('\nStep 8: 等待抽奖结果...');
 
+    // 先檢查頁面狀態
+    const pageContent = await page.content();
+    console.log('\n=== 當前頁面 HTML 片段 ===');
+    console.log(pageContent.substring(0, 1000));
+    console.log('... (總長度:', pageContent.length, '字符)\n');
+
+    // 檢查關鍵元素
+    const spinButtonExists = await page.locator('#spinButton').count();
+    const resultModalExists = await page.locator('#resultModal').count();
+    const resultInfoExists = await page.locator('#resultInfo').count();
+
+    console.log('DOM 元素檢查:');
+    console.log('- #spinButton 數量:', spinButtonExists);
+    console.log('- #resultModal 數量:', resultModalExists);
+    console.log('- #resultInfo 數量:', resultInfoExists);
+
+    // 檢查轉盤按鈕狀態
+    if (spinButtonExists > 0) {
+      const buttonText = await page.locator('#spinButton').textContent();
+      const buttonDisabled = await page.locator('#spinButton').getAttribute('disabled');
+      console.log('- 轉盤按鈕文字:', buttonText);
+      console.log('- 按鈕是否禁用:', buttonDisabled);
+    }
+
     // 等待结果弹窗出现
+    console.log('\n等待結果彈窗出現...');
     await page.waitForSelector('#resultModal[style*="flex"]', { timeout: 20000 });
     console.log('✅ 结果弹窗已出现');
     await sleep(1000);

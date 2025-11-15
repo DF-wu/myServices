@@ -74,3 +74,12 @@ jobs:
           echo ""
           echo "=== 截图文件列表 ==="
           ls -lh screenshots/ 2>/dev/null || echo "没有截图文件"
+
+      - name: 上传截图（如果失败）
+        if: steps.lottery.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lottery-screenshots-${{ github.run_number }}
+          path: _CRONJOBS/lottery-automation/screenshots/
+          retention-days: 7
+          if-no-files-found: warn
