@@ -1,0 +1,111 @@
+name: 薄荷公益站自动抽奖
+
+on:
+  schedule:
+    # 每天 UTC 0:00 运行（北京时间 8:00）
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # 允许手动触发
+
+env:
+  LOTTERY_URL: 'https://qd.x666.me'
+
+jobs:
+  lottery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      flaresolverr:
+        image: ghcr.io/flaresolverr/flaresolverr:latest
+        ports:
+          - 8191:8191
+        env:
+          LOG_LEVEL: info
+          CAPTCHA_SOLVER: none
+
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 安装依赖
+        run: npm install
+
+      - name: 安装 Playwright 浏览器
+        run: npx playwright install chromium
+
+      - name: 等待 FlareSolverr 启动
+        run: |
+          echo "等待 FlareSolverr 服务启动..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8191/health > /dev/null 2>&1; then
+              echo "✅ FlareSolverr 已就绪"
+              break
+            fi
+            echo "等待中... ($i/30)"
+            sleep 2
+          done
+
+      - name: 运行抽奖脚本
+        env:
+          LINUXDO_COOKIES: ${{ secrets.LINUXDO_COOKIES }}
+          FLARESOLVERR_URL: http://localhost:8191/v1
+        run: node lottery-auto.js
+
+      - name: 上传截图（如果失败）
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-screenshots
+          path: screenshots/
+          retention-days: 7
+
+      - name: 创建失败通知 Issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueTitle = '🎰 抽奖自动化失败 - ' + new Date().toISOString().split('T')[0];
+            const issueBody = `
+            ## 抽奖任务失败
+
+            **时间**: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
+
+            **工作流运行**: [查看详情](${context.payload.repository.html_url}/actions/runs/${context.runId})
+
+            ### 可能原因
+            - Cookie 已过期，需要更新 GitHub Secrets 中的 LINUXDO_COOKIES
+            - 网站维护或无法访问
+            - 已经抽过奖了
+            - 页面结构发生变化
+
+            ### 解决方法
+            1. 检查工作流日志
+            2. 查看上传的错误截图
+            3. 必要时更新 Cookie
+            `;
+
+            // 检查是否已有今天的 issue
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['lottery-automation']
+            });
+
+            const todayIssue = issues.data.find(issue => issue.title === issueTitle);
+
+            if (!todayIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: issueTitle,
+                body: issueBody,
+                labels: ['lottery-automation', 'bug']
+              });
+            }

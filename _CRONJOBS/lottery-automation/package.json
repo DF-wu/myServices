@@ -1,0 +1,21 @@
+{
+  "name": "lottery-automation",
+  "version": "1.0.0",
+  "description": "薄荷公益站抽奖自动化",
+  "main": "lottery-auto.js",
+  "scripts": {
+    "start": "node lottery-auto.js",
+    "test": "node lottery-auto.js"
+  },
+  "keywords": [
+    "lottery",
+    "automation",
+    "playwright"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "axios": "^1.6.0"
+  }
+}
