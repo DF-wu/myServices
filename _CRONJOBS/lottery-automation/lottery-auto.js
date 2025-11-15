@@ -236,52 +236,33 @@ async function main() {
         await context.addCookies(flareCookies);
         console.log(`✅ 已注入 ${flareCookies.length} 个 FlareSolverr cookies`);
 
-        // 刷新当前页面以应用 cookies，等待自动跳转
-        console.log('🔄 刷新页面以应用 cookies...');
+        // 不要刷新頁面，等待 approve 頁面自動跳轉到 callback
+        console.log('⏳ 等待 OAuth approve 頁面自動跳轉到 callback...');
+
         try {
-          await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
-        } catch (reloadError) {
-          console.log('⚠️ 页面 reload 超时，尝试手动等待跳转...');
-        }
+          // 等待 URL 變化到抽獎頁面（帶 code/token）
+          await page.waitForURL(`${LOTTERY_URL}/**`, { timeout: 45000 });
+          console.log('✅ 已自動跳轉到抽奖頁面！');
+        } catch (waitError) {
+          console.log('⚠️ 等待自動跳轉超時');
+          const currentPageUrl = page.url();
+          console.log(`當前 URL: ${currentPageUrl}`);
 
-        // 等待一段时间看是否自动跳转
-        await sleep(5000);
-        await takeScreenshot(page, '04-after-reload');
+          // 如果還在 approve 頁面，嘗試等待一下或手動觸發
+          if (currentPageUrl.includes('oauth2/approve')) {
+            console.log('⚠️ 仍在 approve 頁面，嘗試重新加載...');
+            try {
+              await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 });
+              await sleep(3000);
 
-        // 检查是否成功跳转
-        let currentPageUrl = page.url();
-        console.log(`当前 URL: ${currentPageUrl}`);
-
-        // 如果还没跳转，手动等待跳转或超时
-        if (!currentPageUrl.includes(LOTTERY_URL)) {
-          console.log('⚠️ 还未跳转到抽奖页面，等待自动跳转...');
-
-          let redirected = false;
-          for (let i = 0; i < 12; i++) {
-            await sleep(2500);
-            currentPageUrl = page.url();
-
-            if (currentPageUrl.includes(LOTTERY_URL)) {
-              redirected = true;
-              console.log('✅ 已自动跳转到抽奖页面！');
-              break;
-            }
-
-            if ((i + 1) % 4 === 0) {
-              console.log(`等待跳转中... (已等待 ${(i + 1) * 2.5} 秒)`);
+              // 再等一次跳轉
+              await page.waitForURL(`${LOTTERY_URL}/**`, { timeout: 30000 });
+              console.log('✅ Reload 後成功跳轉！');
+            } catch (retryError) {
+              console.log('❌ 重試失敗，OAuth 流程可能有問題');
+              throw new Error('無法完成 OAuth 跳轉');
             }
           }
-
-          if (!redirected) {
-            console.log('⚠️ 等待超时，尝试直接导航到回调 URL...');
-            await page.goto(`${LOTTERY_URL}/api/auth/callback`, {
-              waitUntil: 'domcontentloaded',
-              timeout: 15000
-            });
-            await sleep(2000);
-          }
-        } else {
-          console.log('✅ Turnstile 验证已绕过，已跳转到抽奖页面！');
         }
 
         await takeScreenshot(page, '04-turnstile-after');
