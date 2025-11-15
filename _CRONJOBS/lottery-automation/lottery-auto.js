@@ -238,20 +238,53 @@ async function main() {
 
         // 刷新当前页面以应用 cookies，等待自动跳转
         console.log('🔄 刷新页面以应用 cookies...');
-        await page.reload({ waitUntil: 'networkidle' });
+        try {
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
+        } catch (reloadError) {
+          console.log('⚠️ 页面 reload 超时，尝试手动等待跳转...');
+        }
 
-        await sleep(3000);
-        await takeScreenshot(page, '04-turnstile-after');
+        // 等待一段时间看是否自动跳转
+        await sleep(5000);
+        await takeScreenshot(page, '04-after-reload');
 
         // 检查是否成功跳转
-        const urlAfterReload = page.url();
-        console.log(`刷新后 URL: ${urlAfterReload}`);
+        let currentPageUrl = page.url();
+        console.log(`当前 URL: ${currentPageUrl}`);
 
-        if (urlAfterReload.includes(LOTTERY_URL)) {
-          console.log('✅ Turnstile 验证已绕过，已跳转到抽奖页面！');
+        // 如果还没跳转，手动等待跳转或超时
+        if (!currentPageUrl.includes(LOTTERY_URL)) {
+          console.log('⚠️ 还未跳转到抽奖页面，等待自动跳转...');
+
+          let redirected = false;
+          for (let i = 0; i < 12; i++) {
+            await sleep(2500);
+            currentPageUrl = page.url();
+
+            if (currentPageUrl.includes(LOTTERY_URL)) {
+              redirected = true;
+              console.log('✅ 已自动跳转到抽奖页面！');
+              break;
+            }
+
+            if ((i + 1) % 4 === 0) {
+              console.log(`等待跳转中... (已等待 ${(i + 1) * 2.5} 秒)`);
+            }
+          }
+
+          if (!redirected) {
+            console.log('⚠️ 等待超时，尝试直接导航到回调 URL...');
+            await page.goto(`${LOTTERY_URL}/api/auth/callback`, {
+              waitUntil: 'domcontentloaded',
+              timeout: 15000
+            });
+            await sleep(2000);
+          }
         } else {
-          console.log('⚠️ 仍在等待跳转...');
+          console.log('✅ Turnstile 验证已绕过，已跳转到抽奖页面！');
         }
+
+        await takeScreenshot(page, '04-turnstile-after');
       } else {
         console.log('⚠️ FlareSolverr 未能解决，尝试手动等待...');
 
