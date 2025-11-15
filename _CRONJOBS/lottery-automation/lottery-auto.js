@@ -102,15 +102,55 @@ async function main() {
   }
 
   const browser = await chromium.launch({
-    headless: true, // GitHub Actions 中使用 headless 模式
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-blink-features=AutomationControlled',
+      '--disable-dev-shm-usage',
+      '--disable-web-security',
+      '--disable-features=IsolateOrigins,site-per-process'
+    ]
   });
 
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     viewport: { width: 1920, height: 1080 },
     locale: 'zh-CN',
-    timezoneId: 'Asia/Shanghai'
+    timezoneId: 'Asia/Shanghai',
+    // 添加額外的 headers 來模擬真實瀏覽器
+    extraHTTPHeaders: {
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Upgrade-Insecure-Requests': '1'
+    }
+  });
+
+  // 隱藏 webdriver 特徵
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', {
+      get: () => undefined
+    });
+
+    // 模擬 Chrome 對象
+    window.chrome = {
+      runtime: {}
+    };
+
+    // 模擬權限
+    const originalQuery = window.navigator.permissions.query;
+    window.navigator.permissions.query = (parameters) => (
+      parameters.name === 'notifications' ?
+        Promise.resolve({ state: Notification.permission }) :
+        originalQuery(parameters)
+    );
   });
 
   const page = await context.newPage();
@@ -120,7 +160,24 @@ async function main() {
     console.log('Step 1: 注入 linux.do Cookies...');
     const cookies = await parseCookies(COOKIES_JSON);
     await context.addCookies(cookies);
-    console.log(`✅ 已注入 ${cookies.length} 个 cookies`);
+    console.log(`✅ 已注入 ${cookies.length} 个 linux.do cookies`);
+
+    // Step 1.5: 注入 connect.linux.do 的 cookies (hardcoded)
+    console.log('Step 1.5: 注入 connect.linux.do Cookies...');
+    const connectCookies = [
+      {
+        name: 'auth.session-token',
+        value: 'MTc2MzE5MjYzM3xVRW1zNE5XMXNDVU5fS09kUlFCNDlVZkx3OURCT2ZsTkxObkJIWlIxUjBPeC1heHdodmx0N2ZsUWhKX1VueTkyeDNNNWxaZURZSmNhejhFcjZJRFdFUDg3ZmZQVHxSPQzDS9BECNXvqTaNYj1Fn3mrhNCDSBzGbywd_QaXKw==',
+        domain: 'connect.linux.do',
+        path: '/',
+        expires: -1,
+        httpOnly: true,
+        secure: true,
+        sameSite: 'Lax'
+      }
+    ];
+    await context.addCookies(connectCookies);
+    console.log(`✅ 已注入 ${connectCookies.length} 个 connect.linux.do cookies`);
 
     // Step 2: 访问抽奖页面
     console.log('\nStep 2: 访问抽奖页面...');
