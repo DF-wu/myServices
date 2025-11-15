@@ -3,12 +3,12 @@ name: 薄荷公益站自动抽奖
 on:
   schedule:
     # 每天 UTC 0:00 运行（北京时间 8:00）
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch:
     # 允许手动触发
 
 env:
-  LOTTERY_URL: 'https://qd.x666.me'
+  LOTTERY_URL: "https://qd.x666.me"
 
 jobs:
   lottery:
@@ -31,7 +31,7 @@ jobs:
       - name: 设置 Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: 安装依赖
         run: npm install
@@ -52,18 +52,25 @@ jobs:
           done
 
       - name: 运行抽奖脚本
+        id: lottery
+        continue-on-error: true
         env:
           LINUXDO_COOKIES: ${{ secrets.LINUXDO_COOKIES }}
           FLARESOLVERR_URL: http://localhost:8191/v1
-        run: node lottery-auto.js
+        run: |
+          cd _CRONJOBS/lottery-automation
+          node lottery-auto.js 2>&1 | tee lottery-output.log
+          exit ${PIPESTATUS[0]}
 
-      - name: 上传截图（如果失败）
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: error-screenshots
-          path: screenshots/
-          retention-days: 7
+      - name: 显示完整日志（如果失败）
+        if: steps.lottery.outcome == 'failure'
+        run: |
+          cd _CRONJOBS/lottery-automation
+          echo "=== 完整错误日志 ==="
+          cat lottery-output.log || echo "无法读取日志文件"
+          echo ""
+          echo "=== 截图文件列表 ==="
+          ls -lh screenshots/ 2>/dev/null || echo "没有截图文件"
 
       - name: 创建失败通知 Issue
         if: failure()

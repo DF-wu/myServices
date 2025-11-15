@@ -337,8 +337,27 @@ ${resultCdk.trim()}
     }
 
   } catch (error) {
-    console.error('\n❌ 错误:', error.message);
-    await takeScreenshot(page, 'error');
+    console.error('\n❌ ========== 错误详情 ==========');
+    console.error('错误类型:', error.name);
+    console.error('错误消息:', error.message);
+    console.error('错误堆栈:', error.stack);
+    console.error('================================\n');
+
+    try {
+      await takeScreenshot(page, 'error');
+    } catch (screenshotError) {
+      console.error('⚠️ 截图失败:', screenshotError.message);
+    }
+
+    try {
+      const currentUrl = page.url();
+      console.error('当前页面 URL:', currentUrl);
+      const title = await page.title().catch(() => 'N/A');
+      console.error('当前页面标题:', title);
+    } catch (stateError) {
+      console.error('⚠️ 无法获取页面状态:', stateError.message);
+    }
+
     throw error;
   } finally {
     await browser.close();
