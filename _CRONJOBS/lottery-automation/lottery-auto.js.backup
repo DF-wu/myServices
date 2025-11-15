@@ -190,48 +190,201 @@ async function main() {
     const pageTitle = await page.title();
     console.log(`当前页面标题: ${pageTitle}`);
 
-    // 检查是否在 approve 页面
-    if (currentUrlAfterAuth.includes('oauth2/approve')) {
-      console.log('📋 當前在 OAuth approve 頁面，等待 Cloudflare 自動驗證並跳轉...');
-      await takeScreenshot(page, '04-approve-page');
+    // 检查是否有 Cloudflare Turnstile 或停留在 approve 页面
+    const hasTurnstile = await page.locator('iframe[src*="turnstile"]').count() > 0 ||
+                         await page.locator('text=确认您是真人').count() > 0 ||
+                         currentUrlAfterAuth.includes('challenges.cloudflare.com') ||
+                         (currentUrlAfterAuth.includes('oauth2/approve') && !currentUrlAfterAuth.includes(LOTTERY_URL));
 
-      // 直接等待跳轉（最多 60 秒）
-      let approvePageResolved = false;
+    if (hasTurnstile) {
+      console.log('⚠️ 检测到 Cloudflare Turnstile 验证或 approve 页面');
+      await takeScreenshot(page, '04-turnstile-before');
 
-      for (let i = 0; i < 30; i++) {
-        await sleep(2000);
-        const currentUrl = page.url();
+      // 檢查是否在 approve 頁面
+      const isApprovePage = currentUrlAfterAuth.includes('oauth2/approve');
 
-        // 檢查是否跳轉到抽獎頁面
-        if (currentUrl.includes(LOTTERY_URL)) {
-          approvePageResolved = true;
-          console.log('✅ approve 頁面已自動跳轉到抽獎頁面！');
-          break;
-        }
+      if (isApprovePage) {
+        console.log('📋 當前在 OAuth approve 頁面，等待 Cloudflare 自動驗證...');
+        console.log('提示：approve 頁面通常會自動完成驗證並跳轉');
 
-        // 檢查是否還在 approve 頁面
-        if (!currentUrl.includes('oauth2/approve')) {
-          console.log('⚠️ 頁面已跳轉但不是抽獎頁面:', currentUrl);
-        }
+        // 直接等待跳轉，不使用 FlareSolverr
+        // 因為 approve 頁面的 Cloudflare 通常會自動通過（有 OAuth session）
+        let approvePageResolved = false;
 
-        if ((i + 1) % 5 === 0) {
-          console.log(`等待驗證中... (${(i + 1) * 2}秒)`);
-          // 檢查頁面文本
-          const bodyText = await page.locator('body').textContent();
-          console.log('頁面文本片段:', bodyText.substring(0, 300));
+        for (let i = 0; i < 30; i++) {
+          await sleep(2000);
+          const currentUrl = page.url();
 
-          if (bodyText.includes('Enable JavaScript')) {
-            console.log('⚠️ 仍在 Cloudflare 驗證頁面');
+          // 檢查是否跳轉到抽獎頁面
+          if (currentUrl.includes(LOTTERY_URL)) {
+            approvePageResolved = true;
+            console.log('✅ approve 頁面已自動跳轉到抽獎頁面！');
+            break;
+          }
+
+          // 檢查是否還在 approve 頁面
+          if (!currentUrl.includes('oauth2/approve')) {
+            console.log('⚠️ 頁面已跳轉但不是抽獎頁面:', currentUrl);
+          }
+
+          if ((i + 1) % 5 === 0) {
+            console.log(`等待驗證中... (${(i + 1) * 2}秒)`);
+            // 檢查頁面文本
+            const bodyText = await page.locator('body').textContent();
+            if (bodyText.includes('Enable JavaScript')) {
+              console.log('⚠️ 仍在 Cloudflare 驗證頁面');
+            }
           }
         }
-      }
 
-      if (!approvePageResolved) {
-        await takeScreenshot(page, '04-approve-timeout');
-        throw new Error('approve 頁面未自動跳轉 - Cloudflare 驗證可能失敗');
-      }
+        if (!approvePageResolved) {
+          console.log('⚠️ approve 頁面未自動跳轉，嘗試使用 FlareSolverr...');
+          const targetUrl = currentUrlAfterAuth;
+          const solution = await solveTurnstile(targetUrl);
+
+          if (solution && solution.cookies) {
+            console.log('✅ FlareSolverr 獲取到 cookies，但 approve 頁面可能需要其他處理');
+            // 這裡不注入 cookies，因為之前證明沒用
+          }
+
+          throw new Error('approve 頁面 Cloudflare 驗證超時');
+        }
+      } else {
+        // 不在 approve 頁面，使用原來的 FlareSolverr 邏輯
+        const targetUrl = currentUrlAfterAuth;
+
+        console.log(`尝试解决的目标 URL: ${targetUrl}`);
+        const solution = await solveTurnstile(targetUrl);
+
+        if (solution && solution.cookies) {
+          console.log('✅ 使用 FlareSolverr 获取的 cookies 注入到浏览器');
+
+          // 檢查 FlareSolverr 返回的 HTML
+        if (solution.html) {
+          console.log('\n=== FlareSolverr 返回的頁面分析 ===');
+          const htmlSnippet = solution.html.substring(0, 2000);
+          console.log('HTML 片段:', htmlSnippet);
+
+          // 檢查是否有重定向信息
+          if (solution.html.includes('window.location')) {
+            console.log('⚠️ 頁面包含 JavaScript 重定向');
+          }
+          if (solution.html.includes('<form')) {
+            console.log('⚠️ 頁面包含表單');
+          }
+          if (solution.html.includes('meta') && solution.html.includes('refresh')) {
+            console.log('⚠️ 頁面包含 meta refresh');
+          }
+        }
+
+        // 将 FlareSolverr 返回的 cookies 注入到浏览器
+        // 确保 cookies 设置到正确的域名
+        const flareCookies = solution.cookies.map(cookie => {
+          let domain = cookie.domain;
+
+          // 如果 cookie 没有域名，使用当前 URL 的域名
+          if (!domain) {
+            const urlObj = new URL(targetUrl);
+            domain = urlObj.hostname;
+          }
+
+          return {
+            name: cookie.name,
+            value: cookie.value,
+            domain: domain,
+            path: cookie.path || '/',
+            expires: cookie.expires || -1,
+            httpOnly: cookie.httpOnly || false,
+            secure: cookie.secure || false,
+            sameSite: cookie.sameSite || 'Lax'
+          };
+        });
+
+        await context.addCookies(flareCookies);
+        console.log(`✅ 已注入 ${flareCookies.length} 个 FlareSolverr cookies`);
+
+        // 輸出注入的 cookies 名稱
+        console.log('注入的 cookies:', flareCookies.map(c => c.name).join(', '));
+
+        // 檢查當前頁面狀態
+        console.log('\n=== 檢查當前 Playwright 頁面狀態 ===');
+        const currentPageHtml = await page.content();
+        console.log('當前頁面 HTML 長度:', currentPageHtml.length);
+        console.log('當前頁面標題:', await page.title());
+
+        // 嘗試重新訪問 approve 頁面以觸發 JavaScript
+        console.log('\n🔄 重新訪問 approve 頁面以觸發跳轉...');
+        await page.goto(targetUrl, {
+          waitUntil: 'domcontentloaded',
+          timeout: 20000
+        });
+        await sleep(2000);
+
+        // 檢查頁面上是否有自動提交的表單
+        const forms = await page.locator('form').count();
+        console.log(`頁面表單數量: ${forms}`);
+
+        if (forms > 0) {
+          console.log('⚠️ 檢測到表單，檢查是否需要提交...');
+          // 嘗試獲取表單信息
+          const formHtml = await page.locator('form').first().innerHTML().catch(() => 'N/A');
+          console.log('表單內容:', formHtml.substring(0, 500));
+        }
+
+        // 等待跳轉
+        console.log('⏳ 等待 OAuth approve 頁面自動跳轉到 callback...');
+
+        try {
+          // 等待 URL 變化到抽獎頁面（帶 code/token）
+          await page.waitForURL(`${LOTTERY_URL}/**`, { timeout: 45000 });
+          console.log('✅ 已自動跳轉到抽奖頁面！');
+        } catch (waitError) {
+          console.log('⚠️ 等待自動跳轉超時');
+          const currentPageUrl = page.url();
+          console.log(`當前 URL: ${currentPageUrl}`);
+
+          // 檢查頁面內容
+          const pageText = await page.locator('body').textContent();
+          console.log('頁面文本片段:', pageText.substring(0, 500));
+
+          // 檢查是否有錯誤信息
+          const hasError = pageText.includes('error') || pageText.includes('Error') ||
+                          pageText.includes('錯誤') || pageText.includes('失败');
+          if (hasError) {
+            console.log('⚠️ 頁面可能包含錯誤信息');
+          }
+
+          throw new Error('無法完成 OAuth 跳轉 - approve 頁面未自動跳轉');
+        }
+
+          await takeScreenshot(page, '04-turnstile-after');
+        } else {
+          console.log('⚠️ FlareSolverr 未能解决，尝试手动等待...');
+
+          // 回退到手动等待
+          let verified = false;
+          for (let i = 0; i < 24; i++) {
+            await sleep(5000);
+            const url = page.url();
+
+            if (url.includes(LOTTERY_URL)) {
+              verified = true;
+              console.log('✅ Turnstile 验证通过！');
+              break;
+            }
+
+            if ((i + 1) % 4 === 0) {
+              console.log(`等待中... (已等待 ${(i + 1) * 5} 秒)`);
+            }
+          }
+
+          if (!verified) {
+            console.log('⚠️ Turnstile 验证超时，但继续尝试...');
+          }
+        }
+      } // 結束 else (不在 approve 頁面的分支)
     } else {
-      console.log('✅ 未檢測到 approve 頁面，繼續流程');
+      console.log('✅ 无需 Turnstile 验证');
     }
 
     // Step 7: 等待回调并提取 token
