@@ -164,8 +164,10 @@ services:
 
   # migrate to veloera https://github.com/Veloera/Veloera
   new-api:
-    image: ghcr.io/veloera/veloera:latest
-    container_name: veloera
+    # newapi: calciumion/new-api:latest
+    # image: ghcr.io/veloera/veloera:latest
+    image: calciumion/new-api:latest
+    container_name: new-api
     user: 3000:3000
     restart: always
     command: --log-dir /app/logs
@@ -185,6 +187,7 @@ services:
       - DEBUG=true
       - GIN_MODE=debug
       - BATCH_UPDATE_ENABLED=true
+      - ERROR_LOG_ENABLED=true # 是否启用错误日志记录 (Whether to enable error log recording)
 
     depends_on:
       chatstack-unified-redis:
