@@ -353,8 +353,47 @@ async function main() {
 
           await browser.close();
           return; // 直接退出，不進入 Step 8
+        } else if (btnText.includes('开始转动') || btnText.includes('立即抽奖')) {
+          console.log('⚠️ 按鈕顯示「開始轉動」，OAuth 完成但未自動抽獎');
+
+          // 等待頁面完全初始化（/api/user/info 可能還在請求中）
+          console.log('⏳ 等待 5 秒讓頁面初始化完成...');
+          await sleep(5000);
+
+          // 重新檢查按鈕狀態
+          const updatedBtnText = await spinBtn.textContent();
+          console.log(`更新後的按鈕文字: ${updatedBtnText}`);
+
+          if (updatedBtnText.includes('已抽奖') || updatedBtnText.includes('已签到')) {
+            console.log('✅ 頁面初始化後發現今日已抽獎');
+            console.log('\n🎉 今天已經抽過獎了！');
+
+            if (process.env.GITHUB_STEP_SUMMARY) {
+              const summary = `
+# 🎰 抽獎結果
+
+**時間**: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
+
+## 狀態
+✅ 今天已經抽過獎了
+
+---
+*自動化運行成功* ✅
+`;
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+            }
+
+            await browser.close();
+            return;
+          }
+
+          // 仍然是「開始轉動」，執行點擊
+          console.log('🔄 重新點擊按鈕來觸發抽獎...');
+          await spinBtn.click();
+          console.log('✅ 已重新點擊抽獎按鈕');
+          await sleep(2000);
         } else {
-          console.log('⚠️ 檢測到按鈕未顯示已抽獎，可能 OAuth 流程有問題');
+          console.log('⚠️ 按鈕文字異常:', btnText);
           console.log('嘗試檢查登入狀態...');
 
           // 檢查頁面上是否有登入信息
