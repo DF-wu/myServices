@@ -202,7 +202,18 @@ async function main() {
 
     await spinButton.click();
     console.log('✅ 已点击按钮');
-    await sleep(2000);
+    await sleep(3000);
+
+    // 檢查是否跳轉到登入頁面（表示 cookies 過期）
+    const currentUrl = page.url();
+    console.log(`點擊後的 URL: ${currentUrl}`);
+
+    if (currentUrl.includes('/login')) {
+      console.error('❌ 跳轉到登入頁面，表示 linux.do cookies 已過期！');
+      console.error('請重新導出 linux.do cookies 並更新 GitHub Secret: LINUXDO_COOKIES');
+      await takeScreenshot(page, '03-login-page');
+      throw new Error('Cookies 已過期，請更新 LINUXDO_COOKIES');
+    }
 
     // Step 4: 等待跳转到 OAuth 授权页面
     console.log('\nStep 4: 等待跳转到 OAuth 授权页面...');
@@ -217,8 +228,8 @@ async function main() {
     }
 
     // Step 5: 点击授权按钮
-    const currentUrl = page.url();
-    if (currentUrl.includes('connect.linux.do/oauth2/authorize')) {
+    const currentUrlBeforeAuth = page.url();
+    if (currentUrlBeforeAuth.includes('connect.linux.do/oauth2/authorize')) {
       console.log('\nStep 5: 点击授权按钮 (.bg-red-500)...');
 
       // 等待授权按钮出现
