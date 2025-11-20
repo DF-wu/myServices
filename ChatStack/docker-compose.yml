@@ -188,6 +188,8 @@ services:
       - GIN_MODE=debug
       - BATCH_UPDATE_ENABLED=true
       - ERROR_LOG_ENABLED=true # 是否启用错误日志记录 (Whether to enable error log recording)
+      # migrate to postgres from sqlite
+      - SQL_DSN=postgres://postgres:postgres@chatstack-postgres17-pgvector:5432/veloera_db?sslmode=disable
 
     depends_on:
       chatstack-unified-redis:
