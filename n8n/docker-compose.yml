@@ -8,6 +8,8 @@ services:
       - TZ=Asia/Taipei
       - GENERIC_TIMEZONE=Asia/Taipei
       - N8N_SECURE_COOKIE=false
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true 
+      - N8N_RUNNERS_ENABLED=true 
     volumes:
       - /mnt/appdata/n8n:/home/node/.n8n
     ports:
