@@ -7,7 +7,7 @@ services:
     # guide https://docs.n8n.io/hosting/installation/docker/#setting-timezone
       - TZ=Asia/Taipei
       - GENERIC_TIMEZONE=Asia/Taipei
-
+      - N8N_SECURE_COOKIE=false
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true 
       - N8N_RUNNERS_ENABLED=true 
       - DB_SQLITE_POOL_SIZE=8
@@ -18,4 +18,5 @@ services:
     volumes:
       - /mnt/appdata/n8n:/home/node/.n8n
     ports:
+    # only work after reverse proxy
       - 5678:5678
