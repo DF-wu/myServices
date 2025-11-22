@@ -61,10 +61,13 @@ services:
   # - Database 2: new-api/veloera (API 分發器)
   # - Database 3: searxng (搜尋引擎快取) - TODO: 需配置 searxng settings.yml
   # - Database 4: claude-relay-service (Claude 中繼服務)
+  # - Database 5: n8n dc chatbot service 
   chatstack-unified-redis:
     image: docker.io/valkey/valkey:8-alpine
     container_name: chatstack-unified-redis
     user: 3000:3000
+    port:
+      - 16379:6379
     volumes:
       - /mnt/appdata/ChatStack/unified-redis:/data
     command: "valkey-server --save 30 1"
