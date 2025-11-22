@@ -10,6 +10,11 @@ services:
       - N8N_SECURE_COOKIE=false
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true 
       - N8N_RUNNERS_ENABLED=true 
+      - DB_SQLITE_POOL_SIZE=8
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      # to fix my permissions
+      - PUID=3000
+      - PGID=3000
     volumes:
       - /mnt/appdata/n8n:/home/node/.n8n
     ports:
