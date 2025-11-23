@@ -66,8 +66,6 @@ services:
     image: docker.io/valkey/valkey:8-alpine
     container_name: chatstack-unified-redis
     user: 3000:3000
-    port:
-      - 16379:6379
     volumes:
       - /mnt/appdata/ChatStack/unified-redis:/data
     command: "valkey-server --save 30 1"
