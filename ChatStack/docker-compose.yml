@@ -261,6 +261,21 @@ services:
       timeout: 10s
       retries: 3
 
+  # chinrain api conversion proxy
+  api-conversion:
+    image: ghcr.io/chinrain/api-conversion:0.2.4
+    container_name: api-conversion
+    restart: unless-stopped
+    ports:
+      - "43061:8000"
+    env_file:
+      - ./api-conversion.env
+    environment:
+      - TZ=Asia/Taipei
+    volumes:
+      - /mnt/appdata/ChatStack/api-conversion/data:/app/data
+      - /mnt/appdata/ChatStack/api-conversion/logs:/app/logs
+
   # TTSFM - Free Text-to-Speech service (OpenAI-compatible)
   # doc: https://github.com/dbccccccc/ttsfm
   # endpoints:
