@@ -267,7 +267,7 @@ services:
     container_name: api-conversion
     restart: unless-stopped
     ports:
-      - "43061:3000"
+      - "43061:8000"
     env_file:
       - .api-conversion.env
     environment:
