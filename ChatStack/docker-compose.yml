@@ -269,7 +269,7 @@ services:
     ports:
       - "43061:3000"
     env_file:
-      - api-conversion.env
+      - .api-conversion.env
     environment:
       - TZ=Asia/Taipei
     volumes:
