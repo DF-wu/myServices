@@ -30,7 +30,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@chatstack-postgres17-pgvector:5432/openwebui_db
       - VECTOR_DB=pgvector
 
-      - ENABLE_WEBSOCKET_SUPPORT="true"
+      - ENABLE_WEBSOCKET_SUPPORT=true
       - WEBSOCKET_MANAGER="redis"
       # 使用統一 Redis 的 Database 1
       - WEBSOCKET_REDIS_URL="redis://chatstack-unified-redis:6379/1"
@@ -250,7 +250,7 @@ services:
       - PGID=3000
     restart: unless-stopped
     expose:
-      - 6879
+      - 6379
     volumes:
       # persistant.  IDK WTF why CRS need persist on redis.
       - /mnt/appdata/ChatStack/claudeRelayService/redis:/data
@@ -472,9 +472,7 @@ services:
     image: reg.stw.tw/lilac-rag-dashboard
     restart: unless-stopped
     ports:
-      - 43020:3000
-    depends_on:
-      - postgres-vector
+      - 43021:3000
     environment:
       - POSTGRES_URI=postgresql://postgres:postgres@chatstack-postgres17-pgvector:5432/js_llmcord_rag?sslmode=disable
       - OPENAI_API_KEY=<api_key> # for embedding search
