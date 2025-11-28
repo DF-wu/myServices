@@ -467,6 +467,19 @@ services:
       new-api:
         condition: service_started
 
+  # yuder RAG dashboard for vector db management
+  rag-dashboard:
+    image: reg.stw.tw/lilac-rag-dashboard
+    restart: unless-stopped
+    ports:
+      - 43020:3000
+    depends_on:
+      - postgres-vector
+    environment:
+      - POSTGRES_URI=postgresql://postgres:postgres@chatstack-postgres17-pgvector:5432/js_llmcord_rag?sslmode=disable
+      - OPENAI_API_KEY=<api_key> # for embedding search
+
+
   # currens
   # another choice : https://searx.perennialte.ch/
   # another choice : https://searxng.ddaodan.cc/search?q=<query>&safesearch=0&language=auto&format=json
