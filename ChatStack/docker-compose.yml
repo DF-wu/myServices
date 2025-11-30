@@ -326,9 +326,9 @@ services:
       # 啟用 GPT 精修需設定以下兩行（可省略）
       # - OPENAI_BASE_URL=https://api.openai.com/v1
       # - OPENAI_API_KEY=sk-xxxx
-    volumes:
-      # 模型/快取目錄：首次啟動會自動下載模型到此處
-      - /mnt/appdata/ChatStack/whisper-fastapi/hf-cache:/root/.cache/huggingface
+    # 不掛載模型目錄，模型僅存在於容器內（容器刪除後需重新下載）
+    # volumes:
+    #   - /mnt/appdata/ChatStack/whisper-fastapi/hf-cache:/root/.cache/huggingface
     tmpfs:
       - /tmp
     # 依需求調整模型：large-v2 需 GPU；僅 CPU 建議改 small / medium / distil 等
