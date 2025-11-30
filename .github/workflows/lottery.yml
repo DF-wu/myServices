@@ -33,13 +33,11 @@ jobs:
         with:
           node-version: "20"
 
-      - name: 安装依赖
+      - name: 安装依赖和 Playwright 浏览器
         run: |
           cd _CRONJOBS/lottery-automation
           npm install
-
-      - name: 安装 Playwright 浏览器
-        run: npx playwright install chromium
+          npx playwright install chromium --with-deps
 
       - name: 等待 FlareSolverr 启动
         run: |
