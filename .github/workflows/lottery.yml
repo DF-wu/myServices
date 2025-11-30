@@ -8,7 +8,7 @@ on:
     # 允许手动触发
 
 env:
-  LOTTERY_URL: ""  # 在腳本中動態組裝
+  LOTTERY_URL: "" # 在腳本中動態組裝
 
 jobs:
   lottery:
