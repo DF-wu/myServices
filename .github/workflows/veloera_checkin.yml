@@ -47,16 +47,30 @@ jobs:
             sleep 2
           done
 
-      - name: 執行 Veloera 與 New-API（獨立執行，最後再判斷）
+      - name: 執行 Veloera 與 New-API（獨立執行，全部打印結果）
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
           FLARESOLVERR_URL: "http://localhost:8191"
         run: |
           set +e
+          echo "==== Veloera 簽到開始 ===="
           python _CRONJOBS/veloera_sign/checkin.py
           VELOERA_RC=$?
+          if [ "$VELOERA_RC" = "0" ]; then
+            echo "✅ Veloera 簽到成功 (rc=$VELOERA_RC)"
+          else
+            echo "❌ Veloera 簽到失敗 (rc=$VELOERA_RC)"
+          fi
+
+          echo "==== New-API 簽到開始 ===="
           python _CRONJOBS/new_api_sign/checkin.py
           NEWAPI_RC=$?
+          if [ "$NEWAPI_RC" = "0" ]; then
+            echo "✅ New-API 簽到成功 (rc=$NEWAPI_RC)"
+          else
+            echo "❌ New-API 簽到失敗 (rc=$NEWAPI_RC)"
+          fi
+
           echo "Veloera return code: $VELOERA_RC"
           echo "New-API return code: $NEWAPI_RC"
           echo "VELOERA_RC=$VELOERA_RC" >> $GITHUB_ENV
