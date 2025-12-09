@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-New-API 自動簽到腳本（無需 FlareSolverr）
+New-API 自動簽到腳本（預設直連，可選 FlareSolverr）
 
 配置優先級：
 1. 環境變數 NEWAPI_AUTOSIGN_*（含 SECRETS_CONTEXT 中的同名項）
