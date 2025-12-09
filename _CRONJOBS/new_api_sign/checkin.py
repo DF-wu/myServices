@@ -92,7 +92,7 @@ def load_configs():
 
 
 def newapi_checkin_direct(cfg: dict) -> bool:
-    """直接請求，不經 FlareSolverr。"""
+    """直接請求，不經 FlareSolverr（預設 fallback）。"""
     base_url = cfg["base_url"].rstrip('/')
     user_id = str(cfg["user_id"])
     token = cfg["access_token"]
@@ -226,6 +226,7 @@ def main():
         log(f"🚀 開始簽到: {cfg['base_url']}")
         success = False
         for attempt in range(3):
+            # 預設：使用 workflow 內建的 FlareSolverr；若未提供 URL，才退回直連
             if flaresolverr_url:
                 success = newapi_checkin_flaresolverr(cfg, flaresolverr_url)
             else:
