@@ -1,4 +1,4 @@
-name: Veloera 自動簽到
+name: Veloera / New-API 自動簽到
 
 on:
   workflow_dispatch: # 允許手動觸發
@@ -29,12 +29,13 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: 安裝依賴
+      - name: 安裝依賴（Veloera + New-API）
         run: |
           python -m pip install --upgrade pip
           pip install -r _CRONJOBS/veloera_sign/requirements.txt
+          pip install -r _CRONJOBS/new_api_sign/requirements.txt
 
-      - name: 等待 FlareSolverr 啟動
+      - name: 等待 FlareSolverr 啟動（僅 Veloera 需要）
         run: |
           echo "等待 FlareSolverr 服務啟動..."
           for i in {1..30}; do
@@ -46,9 +47,16 @@ jobs:
             sleep 2
           done
 
-      - name: 執行簽到
+      - name: 執行 Veloera 簽到
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
           FLARESOLVERR_URL: "http://localhost:8191"
         run: |
           python _CRONJOBS/veloera_sign/checkin.py
+
+      - name: 執行 New-API 簽到（可選 FlareSolverr）
+        env:
+          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+          FLARESOLVERR_URL: "http://localhost:8191"
+        run: |
+          python _CRONJOBS/new_api_sign/checkin.py
