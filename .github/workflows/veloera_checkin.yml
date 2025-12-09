@@ -1,4 +1,4 @@
-name: Veloera 自動簽到
+name: Veloera + New-API 自動簽到
 
 on:
   workflow_dispatch: # 允許手動觸發
@@ -29,12 +29,13 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: 安裝依賴
+      - name: 安裝依賴（Veloera + New-API）
         run: |
           python -m pip install --upgrade pip
           pip install -r _CRONJOBS/veloera_sign/requirements.txt
+          pip install -r _CRONJOBS/new_api_sign/requirements.txt
 
-      - name: 等待 FlareSolverr 啟動
+      - name: 等待 FlareSolverr 啟動（供 Veloera 與需要 FS 的情況使用）
         run: |
           echo "等待 FlareSolverr 服務啟動..."
           for i in {1..30}; do
@@ -46,9 +47,26 @@ jobs:
             sleep 2
           done
 
-      - name: 執行簽到
+      - name: 執行 Veloera 與 New-API（獨立執行，最後再判斷）
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
           FLARESOLVERR_URL: "http://localhost:8191"
         run: |
+          set +e
           python _CRONJOBS/veloera_sign/checkin.py
+          VELOERA_RC=$?
+          python _CRONJOBS/new_api_sign/checkin.py
+          NEWAPI_RC=$?
+          echo "Veloera return code: $VELOERA_RC"
+          echo "New-API return code: $NEWAPI_RC"
+          echo "VELOERA_RC=$VELOERA_RC" >> $GITHUB_ENV
+          echo "NEWAPI_RC=$NEWAPI_RC" >> $GITHUB_ENV
+
+      - name: 匯總結果（兩者都跑完後再判斷）
+        run: |
+          echo "Veloera RC=$VELOERA_RC"
+          echo "New-API RC=$NEWAPI_RC"
+          if [ "$VELOERA_RC" != "0" ] || [ "$NEWAPI_RC" != "0" ]; then
+            echo "有簽到失敗"
+            exit 1
+          fi
