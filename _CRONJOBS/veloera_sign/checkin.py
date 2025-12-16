@@ -147,9 +147,26 @@ def flaresolverr_checkin(base_url, checkin_url, headers):
             return False
         solution = challenge_json.get('solution', {})
         browser_ua = solution.get('userAgent', '')
+        clearance_cookies = solution.get('cookies', [])
 
-        # 透過 FlareSolverr 在同一 session 內直接發送 POST
-        api_headers = {
+        if not browser_ua or not clearance_cookies:
+            log("❌ FlareSolverr 未返回必要的 user agent 或 cookies")
+            return False
+
+        # 根據官方文檔，FlareSolverr 只負責解題；後續 API 需自行帶 cookies + UA
+        session = requests.Session()
+        session.verify = False
+        for cookie in clearance_cookies:
+            if not cookie.get('name'):
+                continue
+            session.cookies.set(
+                cookie.get('name'),
+                cookie.get('value'),
+                domain=cookie.get('domain'),
+                path=cookie.get('path', '/'),
+            )
+
+        session.headers.update({
             'Authorization': headers.get('Authorization', ''),
             'Veloera-User': headers.get('Veloera-User', ''),
             'User-Agent': browser_ua,
@@ -157,36 +174,23 @@ def flaresolverr_checkin(base_url, checkin_url, headers):
             'Content-Type': 'application/json;charset=UTF-8',
             'Origin': base_url,
             'Referer': f'{base_url}/',
-        }
-        post_payload = {
-            'cmd': 'request.post',
-            'url': checkin_url,
-            'session': session_id,
-            'maxTimeout': 60000,
-            'postData': json.dumps({}),
-            'headers': api_headers,
-        }
-        post_resp = requests.post(f"{flaresolverr_url}/v1", json=post_payload, timeout=70, verify=False)
-        post_resp.raise_for_status()
-        post_json = post_resp.json()
-        if post_json.get('status') != 'ok':
-            log("❌ FlareSolverr 未返回有效的簽到結果")
+        })
+
+        try:
+            api_response = session.post(checkin_url, json={}, timeout=30)
+        except Exception as api_error:
+            log(f"❌ 透過 requests 發送簽到失敗: {api_error}")
             return False
 
-        api_solution = post_json.get('solution', {})
-        status_code = api_solution.get('status')
-        body = api_solution.get('response', '')
-        if status_code != 200:
-            log(f"❌ API 請求失敗，狀態碼: {status_code}")
-            return False
-        if not body:
-            log("❌ API 回應為空")
+        if api_response.status_code != 200:
+            log(f"❌ API 請求失敗，狀態碼: {api_response.status_code}")
+            log(f"回應內容: {api_response.text[:200]}")
             return False
 
         try:
-            data = json.loads(body)
+            data = api_response.json()
         except json.JSONDecodeError:
-            log(f"❌ 回應非 JSON: {body[:200]}")
+            log(f"❌ 回應非 JSON: {api_response.text[:200]}")
             return False
 
         if data.get('success'):
