@@ -109,65 +109,99 @@ def load_configs():
     return configs
 
 def flaresolverr_checkin(base_url, checkin_url, headers):
-    """統一 FlareSolverr 簽到方法"""
-    flaresolverr_url = os.environ.get("FLARESOLVERR_URL", "http://localhost:8191")
+    """透過 FlareSolverr 完整模擬瀏覽器流程並提交簽到請求"""
+    flaresolverr_url = os.environ.get("FLARESOLVERR_URL", "http://localhost:8191").rstrip('/')
 
     session_id = None
     try:
         # 建立 session
-        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1",
-                               json={'cmd': 'sessions.create'}, timeout=20, verify=False)
-        if response.status_code != 200 or response.json().get('status') != 'ok':
+        response = requests.post(
+            f"{flaresolverr_url}/v1",
+            json={'cmd': 'sessions.create'},
+            timeout=20,
+            verify=False,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if payload.get('status') != 'ok':
+            log("❌ 無法於 FlareSolverr 建立 session")
             return False
-        session_id = response.json()['session']
+        session_id = payload.get('session')
 
-        # 獲取 clearance
-        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1", json={
-            'cmd': 'request.get',
-            'url': base_url,
-            'session': session_id,
-            'maxTimeout': 60000
-        }, timeout=70, verify=False)
-        
-        if response.status_code != 200 or response.json().get('status') != 'ok':
+        # 進入站點以通過第一層防護（Turnstile / JS 挑戰）
+        challenge_resp = requests.post(
+            f"{flaresolverr_url}/v1",
+            json={
+                'cmd': 'request.get',
+                'url': base_url,
+                'session': session_id,
+                'maxTimeout': 60000,
+            },
+            timeout=70,
+            verify=False,
+        )
+        challenge_resp.raise_for_status()
+        challenge_json = challenge_resp.json()
+        if challenge_json.get('status') != 'ok':
+            log("❌ FlareSolverr 無法通過首段挑戰")
             return False
-        
-        solution = response.json().get('solution', {})
-        cookies = {c.get('name'): c.get('value') for c in solution.get('cookies', [])}
-        user_agent = solution.get('userAgent', '')
+        solution = challenge_json.get('solution', {})
+        browser_ua = solution.get('userAgent', '')
 
-        # 發送簽到請求
+        # 透過 FlareSolverr 在同一 session 內直接發送 POST
         api_headers = {
             'Authorization': headers.get('Authorization', ''),
             'Veloera-User': headers.get('Veloera-User', ''),
-            'User-Agent': user_agent,
+            'User-Agent': browser_ua,
             'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json;charset=UTF-8',
             'Origin': base_url,
             'Referer': f'{base_url}/',
         }
-
-        api_response = requests.post(checkin_url, headers=api_headers,
-                                   cookies=cookies, json={}, timeout=30, verify=False)
-        
-        if api_response.status_code == 200:
-            data = api_response.json()
-            if data.get('success'):
-                quota = data.get('data', {}).get('quota', 0)
-                message = data.get('message', '簽到成功')
-                log(f"✅ {message} - 獲得額度: {quota}")
-                return True
-            else:
-                error_msg = data.get('message', '簽到失敗')
-                if "已经签到" in error_msg or "checked in" in error_msg:
-                    log(f"ℹ️ 今天已經簽到過了")
-                    return True
-                else:
-                    log(f"❌ 簽到失敗: {error_msg}")
-                    return False
-        else:
-            log(f"❌ API 請求失敗，狀態碼: {api_response.status_code}")
+        post_payload = {
+            'cmd': 'request.post',
+            'url': checkin_url,
+            'session': session_id,
+            'maxTimeout': 60000,
+            'postData': json.dumps({}),
+            'headers': api_headers,
+        }
+        post_resp = requests.post(f"{flaresolverr_url}/v1", json=post_payload, timeout=70, verify=False)
+        post_resp.raise_for_status()
+        post_json = post_resp.json()
+        if post_json.get('status') != 'ok':
+            log("❌ FlareSolverr 未返回有效的簽到結果")
             return False
+
+        api_solution = post_json.get('solution', {})
+        status_code = api_solution.get('status')
+        body = api_solution.get('response', '')
+        if status_code != 200:
+            log(f"❌ API 請求失敗，狀態碼: {status_code}")
+            return False
+        if not body:
+            log("❌ API 回應為空")
+            return False
+
+        try:
+            data = json.loads(body)
+        except json.JSONDecodeError:
+            log(f"❌ 回應非 JSON: {body[:200]}")
+            return False
+
+        if data.get('success'):
+            quota = data.get('data', {}).get('quota', 0)
+            message = data.get('message', '簽到成功')
+            log(f"✅ {message} - 獲得額度: {quota}")
+            return True
+
+        error_msg = data.get('message', '簽到失敗')
+        if "已经签到" in error_msg or "checked in" in error_msg:
+            log("ℹ️ 今天已經簽到過了")
+            return True
+
+        log(f"❌ 簽到失敗: {error_msg}")
+        return False
 
     except Exception as e:
         log(f"❌ 錯誤: {e}")
@@ -175,9 +209,13 @@ def flaresolverr_checkin(base_url, checkin_url, headers):
     finally:
         if session_id:
             try:
-                requests.post(f"{flaresolverr_url.rstrip('/')}/v1",
-                            json={'cmd': 'sessions.destroy', 'session': session_id}, timeout=20, verify=False)
-            except:
+                requests.post(
+                    f"{flaresolverr_url}/v1",
+                    json={'cmd': 'sessions.destroy', 'session': session_id},
+                    timeout=20,
+                    verify=False,
+                )
+            except Exception:
                 pass
 
 def main():
