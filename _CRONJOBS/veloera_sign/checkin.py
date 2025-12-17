@@ -109,103 +109,65 @@ def load_configs():
     return configs
 
 def flaresolverr_checkin(base_url, checkin_url, headers):
-    """透過 FlareSolverr 完整模擬瀏覽器流程並提交簽到請求"""
-    flaresolverr_url = os.environ.get("FLARESOLVERR_URL", "http://localhost:8191").rstrip('/')
+    """統一 FlareSolverr 簽到方法"""
+    flaresolverr_url = os.environ.get("FLARESOLVERR_URL", "http://localhost:8191")
 
     session_id = None
     try:
         # 建立 session
-        response = requests.post(
-            f"{flaresolverr_url}/v1",
-            json={'cmd': 'sessions.create'},
-            timeout=20,
-            verify=False,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        if payload.get('status') != 'ok':
-            log("❌ 無法於 FlareSolverr 建立 session")
+        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1",
+                               json={'cmd': 'sessions.create'}, timeout=20, verify=False)
+        if response.status_code != 200 or response.json().get('status') != 'ok':
             return False
-        session_id = payload.get('session')
+        session_id = response.json()['session']
 
-        # 進入站點以通過第一層防護（Turnstile / JS 挑戰）
-        challenge_resp = requests.post(
-            f"{flaresolverr_url}/v1",
-            json={
-                'cmd': 'request.get',
-                'url': base_url,
-                'session': session_id,
-                'maxTimeout': 60000,
-            },
-            timeout=70,
-            verify=False,
-        )
-        challenge_resp.raise_for_status()
-        challenge_json = challenge_resp.json()
-        if challenge_json.get('status') != 'ok':
-            log("❌ FlareSolverr 無法通過首段挑戰")
+        # 獲取 clearance
+        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1", json={
+            'cmd': 'request.get',
+            'url': base_url,
+            'session': session_id,
+            'maxTimeout': 60000
+        }, timeout=70, verify=False)
+        
+        if response.status_code != 200 or response.json().get('status') != 'ok':
             return False
-        solution = challenge_json.get('solution', {})
-        browser_ua = solution.get('userAgent', '')
-        clearance_cookies = solution.get('cookies', [])
+        
+        solution = response.json().get('solution', {})
+        cookies = {c.get('name'): c.get('value') for c in solution.get('cookies', [])}
+        user_agent = solution.get('userAgent', '')
 
-        if not browser_ua or not clearance_cookies:
-            log("❌ FlareSolverr 未返回必要的 user agent 或 cookies")
-            return False
-
-        # 根據官方文檔，FlareSolverr 只負責解題；後續 API 需自行帶 cookies + UA
-        session = requests.Session()
-        session.verify = False
-        for cookie in clearance_cookies:
-            if not cookie.get('name'):
-                continue
-            session.cookies.set(
-                cookie.get('name'),
-                cookie.get('value'),
-                domain=cookie.get('domain'),
-                path=cookie.get('path', '/'),
-            )
-
-        session.headers.update({
+        # 發送簽到請求
+        api_headers = {
             'Authorization': headers.get('Authorization', ''),
             'Veloera-User': headers.get('Veloera-User', ''),
-            'User-Agent': browser_ua,
+            'User-Agent': user_agent,
             'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json;charset=UTF-8',
             'Origin': base_url,
             'Referer': f'{base_url}/',
-        })
+        }
 
-        try:
-            api_response = session.post(checkin_url, json={}, timeout=30)
-        except Exception as api_error:
-            log(f"❌ 透過 requests 發送簽到失敗: {api_error}")
-            return False
-
-        if api_response.status_code != 200:
-            log(f"❌ API 請求失敗，狀態碼: {api_response.status_code}")
-            log(f"回應內容: {api_response.text[:200]}")
-            return False
-
-        try:
+        api_response = requests.post(checkin_url, headers=api_headers,
+                                   cookies=cookies, json={}, timeout=30, verify=False)
+        
+        if api_response.status_code == 200:
             data = api_response.json()
-        except json.JSONDecodeError:
-            log(f"❌ 回應非 JSON: {api_response.text[:200]}")
+            if data.get('success'):
+                quota = data.get('data', {}).get('quota', 0)
+                message = data.get('message', '簽到成功')
+                log(f"✅ {message} - 獲得額度: {quota}")
+                return True
+            else:
+                error_msg = data.get('message', '簽到失敗')
+                if "已经签到" in error_msg or "checked in" in error_msg:
+                    log(f"ℹ️ 今天已經簽到過了")
+                    return True
+                else:
+                    log(f"❌ 簽到失敗: {error_msg}")
+                    return False
+        else:
+            log(f"❌ API 請求失敗，狀態碼: {api_response.status_code}")
             return False
-
-        if data.get('success'):
-            quota = data.get('data', {}).get('quota', 0)
-            message = data.get('message', '簽到成功')
-            log(f"✅ {message} - 獲得額度: {quota}")
-            return True
-
-        error_msg = data.get('message', '簽到失敗')
-        if "已经签到" in error_msg or "checked in" in error_msg:
-            log("ℹ️ 今天已經簽到過了")
-            return True
-
-        log(f"❌ 簽到失敗: {error_msg}")
-        return False
 
     except Exception as e:
         log(f"❌ 錯誤: {e}")
@@ -213,13 +175,9 @@ def flaresolverr_checkin(base_url, checkin_url, headers):
     finally:
         if session_id:
             try:
-                requests.post(
-                    f"{flaresolverr_url}/v1",
-                    json={'cmd': 'sessions.destroy', 'session': session_id},
-                    timeout=20,
-                    verify=False,
-                )
-            except Exception:
+                requests.post(f"{flaresolverr_url.rstrip('/')}/v1",
+                            json={'cmd': 'sessions.destroy', 'session': session_id}, timeout=20, verify=False)
+            except:
                 pass
 
 def main():
