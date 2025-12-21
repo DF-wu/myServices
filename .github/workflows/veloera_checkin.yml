@@ -11,7 +11,7 @@ jobs:
 
     services:
       flaresolverr:
-        image: ghcr.io/flaresolverr/flaresolverr:v3.3.17
+        image: ghcr.io/flaresolverr/flaresolverr:v3.4.6
         ports:
           - 8191:8191
         env:
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 設定 Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
