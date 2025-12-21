@@ -3,7 +3,8 @@ name: Veloera + New-API 自動簽到
 on:
   workflow_dispatch: # 允許手動觸發
   schedule:
-    - cron: "0  2 * * *" # active every day at 8:00 AM UTC+8
+    - cron: "0 0 * * *"  # 08:00 UTC+8
+    - cron: "0 12 * * *" # 20:00 UTC+8，每 12 小時一次
 
 jobs:
   check-in:
