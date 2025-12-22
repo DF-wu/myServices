@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-通用自動簽到腳本 - 統一使用 FlareSolverr（同一 session 內完成 GET+POST）
+通用自動簽到腳本 - 使用 FlareSolverr 獲取 Cloudflare clearance，然後直接 POST
 
 配置優先級：
 1. 環境變數 VELOERA_AUTOSIGN_*
 2. 本地 config.json（僅當無環境變數時）
 
-Cloudflare 攔截處理：
-- 以 FlareSolverr 建立 session，先 request.get 取得 clearance，再於同一 session request.post 完成簽到，保持瀏覽器指紋一致。
+Cloudflare 攔截處理（FlareSolverr v2+ 兼容）：
+- FlareSolverr v2+ 移除了 headers 參數支持，因此改用以下策略：
+  1. 使用 FlareSolverr 建立 session 並 request.get 取得 Cloudflare clearance cookies
+  2. 提取 cookies 和 User-Agent
+  3. 使用 requests 直接發送 POST 請求，帶上 clearance cookies 和 Authorization header
 - 如遇錯誤會重試三次，全部失敗則回傳失敗。
 - Turnstile/Recaptcha 官方仍未自動解決；若站點要求，需額外 solver。
 """
@@ -136,7 +139,12 @@ def load_configs():
 
 
 def flaresolverr_checkin(base_url: str, user_id: str, access_token: str) -> bool:
-    """統一 FlareSolverr 簽到方法（同一 session 完成 GET+POST）。"""
+    """統一 FlareSolverr 簽到方法（使用 FlareSolverr 獲取 clearance，然後直接 POST）。
+
+    FlareSolverr v2+ 移除了 headers 參數支持，因此我們：
+    1. 使用 FlareSolverr 獲取 Cloudflare clearance cookies
+    2. 使用 requests 直接發送 POST 請求，帶上 clearance cookies 和 Authorization header
+    """
     flaresolverr_url = os.environ.get("FLARESOLVERR_URL", "http://localhost:8191").rstrip('/')
     session_id = None
 
@@ -177,9 +185,21 @@ def flaresolverr_checkin(base_url: str, user_id: str, access_token: str) -> bool
         solution = data.get('solution', {})
         status_code = solution.get('status')
         user_agent = solution.get('userAgent') or DEFAULT_UA
+        cookies_list = solution.get('cookies', [])
         log(f"ℹ️ clearance HTTP {status_code}, UA: {user_agent}")
+        log(f"ℹ️ 獲得 {len(cookies_list)} 個 cookies")
 
-        # 在同一 session 內執行 POST 簽到
+        # 將 cookies 轉換為 requests 可用的格式
+        session = requests.Session()
+        for cookie in cookies_list:
+            session.cookies.set(
+                cookie.get('name'),
+                cookie.get('value'),
+                domain=cookie.get('domain'),
+                path=cookie.get('path', '/')
+            )
+
+        # 使用 requests 直接發送 POST 請求（帶上 clearance cookies 和 Authorization header）
         checkin_url = f"{base_url}/api/user/check_in"
         headers = {
             'Authorization': f'Bearer {access_token}',
@@ -190,24 +210,10 @@ def flaresolverr_checkin(base_url: str, user_id: str, access_token: str) -> bool
             'Referer': f'{base_url}/',
             'User-Agent': user_agent,
         }
-        payload = {
-            'cmd': 'request.post',
-            'url': checkin_url,
-            'session': session_id,
-            'headers': headers,
-            'postData': '{}',
-            'maxTimeout': 60000,
-        }
-        resp = requests.post(f"{flaresolverr_url}/v1", json=payload, timeout=70, verify=False)
-        resp.raise_for_status()
-        data = resp.json()
-        if data.get('status') != 'ok':
-            log(f"❌ FlareSolverr post 狀態非 ok: {data}")
-            return False
 
-        solution = data.get('solution', {})
-        http_status = solution.get('status')
-        body = solution.get('response', '')
+        resp = session.post(checkin_url, headers=headers, json={}, timeout=30, verify=False)
+        http_status = resp.status_code
+        body = resp.text
         log(f"ℹ️ 簽到回應 HTTP {http_status}")
 
         if http_status != 200:
