@@ -17,7 +17,7 @@ jobs:
 
     services:
       flaresolverr:
-        image: ghcr.io/flaresolverr/flaresolverr:latest
+        image: ghcr.io/flaresolverr/flaresolverr:v3.3.17
         ports:
           - 8191:8191
         env:

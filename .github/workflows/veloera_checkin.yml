@@ -1,9 +1,10 @@
-name: Veloera 自動簽到
+name: Veloera + New-API 自動簽到
 
 on:
   workflow_dispatch: # 允許手動觸發
   schedule:
-    - cron: "0  2 * * *" # active every day at 8:00 AM UTC+8
+    - cron: "0 0 * * *"  # 08:00 UTC+8
+    - cron: "0 12 * * *" # 20:00 UTC+8
 
 jobs:
   check-in:
@@ -11,7 +12,7 @@ jobs:
 
     services:
       flaresolverr:
-        image: ghcr.io/flaresolverr/flaresolverr:latest
+        image: ghcr.io/flaresolverr/flaresolverr:v3.4.6
         ports:
           - 8191:8191
         env:
@@ -25,16 +26,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 設定 Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: 安裝依賴
+      - name: 安裝依賴（Veloera + New-API）
         run: |
           python -m pip install --upgrade pip
           pip install -r _CRONJOBS/veloera_sign/requirements.txt
+          pip install -r _CRONJOBS/new_api_sign/requirements.txt
 
-      - name: 等待 FlareSolverr 啟動
+      - name: 等待 FlareSolverr 啟動（供 Veloera 與需要 FS 的情況使用）
         run: |
           echo "等待 FlareSolverr 服務啟動..."
           for i in {1..30}; do
@@ -46,9 +48,40 @@ jobs:
             sleep 2
           done
 
-      - name: 執行簽到
+      - name: 執行 Veloera 與 New-API（獨立執行，全部打印結果）
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
           FLARESOLVERR_URL: "http://localhost:8191"
         run: |
+          set +e
+          echo "==== Veloera 簽到開始 ===="
           python _CRONJOBS/veloera_sign/checkin.py
+          VELOERA_RC=$?
+          if [ "$VELOERA_RC" = "0" ]; then
+            echo "✅ Veloera 簽到成功 (rc=$VELOERA_RC)"
+          else
+            echo "❌ Veloera 簽到失敗 (rc=$VELOERA_RC)"
+          fi
+
+          echo "==== New-API 簽到開始 ===="
+          python _CRONJOBS/new_api_sign/checkin.py
+          NEWAPI_RC=$?
+          if [ "$NEWAPI_RC" = "0" ]; then
+            echo "✅ New-API 簽到成功 (rc=$NEWAPI_RC)"
+          else
+            echo "❌ New-API 簽到失敗 (rc=$NEWAPI_RC)"
+          fi
+
+          echo "Veloera return code: $VELOERA_RC"
+          echo "New-API return code: $NEWAPI_RC"
+          echo "VELOERA_RC=$VELOERA_RC" >> $GITHUB_ENV
+          echo "NEWAPI_RC=$NEWAPI_RC" >> $GITHUB_ENV
+
+      - name: 匯總結果（兩者都跑完後再判斷）
+        run: |
+          echo "Veloera RC=$VELOERA_RC"
+          echo "New-API RC=$NEWAPI_RC"
+          if [ "$VELOERA_RC" != "0" ] || [ "$NEWAPI_RC" != "0" ]; then
+            echo "有簽到失敗"
+            exit 1
+          fi

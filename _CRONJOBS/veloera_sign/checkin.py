@@ -1,25 +1,54 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-通用自動簽到腳本 - 統一使用 FlareSolverr
+通用自動簽到腳本 - 使用 FlareSolverr 獲取 Cloudflare clearance，然後直接 POST
 
 配置優先級：
 1. 環境變數 VELOERA_AUTOSIGN_*
 2. 本地 config.json（僅當無環境變數時）
 
-統一使用 FlareSolverr 處理所有站點
+Cloudflare 攔截處理（FlareSolverr v2+ 兼容）：
+- FlareSolverr v2+ 移除了 headers 參數支持，因此改用以下策略：
+  1. 使用 FlareSolverr 建立 session 並 request.get 取得 Cloudflare clearance cookies
+  2. 提取 cookies 和 User-Agent
+  3. 使用 requests 直接發送 POST 請求，帶上 clearance cookies 和 Authorization header
+- 如遇錯誤會重試三次，全部失敗則回傳失敗。
+- Turnstile/Recaptcha 官方仍未自動解決；若站點要求，需額外 solver。
 """
 
+import json
 import os
 import sys
-import json
-from time import sleep
-import requests
 from datetime import datetime
+from time import sleep
+from typing import Optional
 
-def log(message):
+import requests
+
+DEFAULT_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/122.0.0.0 Safari/537.36"
+)
+
+
+def log(message: str) -> None:
     """日誌記錄"""
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}")
+
+
+def truncate(text: str, length: int = 400) -> str:
+    if text is None:
+        return ""
+    return text[:length] + ("…" if len(text) > length else "")
+
+
+def parse_api_response(body: str) -> Optional[dict]:
+    try:
+        return json.loads(body)
+    except Exception:
+        return None
+
 
 def load_configs():
     """載入配置：優先環境變數，備用 config.json"""
@@ -108,66 +137,107 @@ def load_configs():
     log(f"✅ 總共載入了 {len(configs)} 個配置")
     return configs
 
-def flaresolverr_checkin(base_url, checkin_url, headers):
-    """統一 FlareSolverr 簽到方法"""
-    flaresolverr_url = os.environ.get("FLARESOLVERR_URL", "http://localhost:8191")
 
+def flaresolverr_checkin(base_url: str, user_id: str, access_token: str) -> bool:
+    """統一 FlareSolverr 簽到方法（使用 FlareSolverr 獲取 clearance，然後直接 POST）。
+
+    FlareSolverr v2+ 移除了 headers 參數支持，因此我們：
+    1. 使用 FlareSolverr 獲取 Cloudflare clearance cookies
+    2. 使用 requests 直接發送 POST 請求，帶上 clearance cookies 和 Authorization header
+    """
+    flaresolverr_url = os.environ.get("FLARESOLVERR_URL", "http://localhost:8191").rstrip('/')
     session_id = None
+
+    log(f"🧩 FlareSolverr 簽到開始: {base_url}")
     try:
         # 建立 session
-        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1",
-                               json={'cmd': 'sessions.create'}, timeout=20, verify=False)
-        if response.status_code != 200 or response.json().get('status') != 'ok':
+        resp = requests.post(
+            f"{flaresolverr_url}/v1",
+            json={'cmd': 'sessions.create'},
+            timeout=20,
+            verify=False,
+        )
+        resp.raise_for_status()
+        session_id = resp.json().get('session')
+        if not session_id:
+            log("❌ FlareSolverr 未返回 session")
             return False
-        session_id = response.json()['session']
+        log(f"ℹ️ session 建立: {session_id}")
 
-        # 獲取 clearance
-        response = requests.post(f"{flaresolverr_url.rstrip('/')}/v1", json={
-            'cmd': 'request.get',
-            'url': base_url,
-            'session': session_id,
-            'maxTimeout': 60000
-        }, timeout=70, verify=False)
-        
-        if response.status_code != 200 or response.json().get('status') != 'ok':
+        # 取得 clearance
+        resp = requests.post(
+            f"{flaresolverr_url}/v1",
+            json={
+                'cmd': 'request.get',
+                'url': base_url,
+                'session': session_id,
+                'maxTimeout': 60000,
+            },
+            timeout=70,
+            verify=False,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get('status') != 'ok':
+            log(f"❌ FlareSolverr get 狀態非 ok: {data}")
             return False
-        
-        solution = response.json().get('solution', {})
-        cookies = {c.get('name'): c.get('value') for c in solution.get('cookies', [])}
-        user_agent = solution.get('userAgent', '')
 
-        # 發送簽到請求
-        api_headers = {
-            'Authorization': headers.get('Authorization', ''),
-            'Veloera-User': headers.get('Veloera-User', ''),
-            'User-Agent': user_agent,
+        solution = data.get('solution', {})
+        status_code = solution.get('status')
+        user_agent = solution.get('userAgent') or DEFAULT_UA
+        cookies_list = solution.get('cookies', [])
+        log(f"ℹ️ clearance HTTP {status_code}, UA: {user_agent}")
+        log(f"ℹ️ 獲得 {len(cookies_list)} 個 cookies")
+
+        # 將 cookies 轉換為 requests 可用的格式
+        session = requests.Session()
+        for cookie in cookies_list:
+            session.cookies.set(
+                cookie.get('name'),
+                cookie.get('value'),
+                domain=cookie.get('domain'),
+                path=cookie.get('path', '/')
+            )
+
+        # 使用 requests 直接發送 POST 請求（帶上 clearance cookies 和 Authorization header）
+        checkin_url = f"{base_url}/api/user/check_in"
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Veloera-User': str(user_id),
             'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json;charset=UTF-8',
             'Origin': base_url,
             'Referer': f'{base_url}/',
+            'User-Agent': user_agent,
         }
 
-        api_response = requests.post(checkin_url, headers=api_headers,
-                                   cookies=cookies, json={}, timeout=30, verify=False)
-        
-        if api_response.status_code == 200:
-            data = api_response.json()
-            if data.get('success'):
-                quota = data.get('data', {}).get('quota', 0)
-                message = data.get('message', '簽到成功')
-                log(f"✅ {message} - 獲得額度: {quota}")
-                return True
-            else:
-                error_msg = data.get('message', '簽到失敗')
-                if "已经签到" in error_msg or "checked in" in error_msg:
-                    log(f"ℹ️ 今天已經簽到過了")
-                    return True
-                else:
-                    log(f"❌ 簽到失敗: {error_msg}")
-                    return False
-        else:
-            log(f"❌ API 請求失敗，狀態碼: {api_response.status_code}")
+        resp = session.post(checkin_url, headers=headers, json={}, timeout=30, verify=False)
+        http_status = resp.status_code
+        body = resp.text
+        log(f"ℹ️ 簽到回應 HTTP {http_status}")
+
+        if http_status != 200:
+            log(f"⚠️ 回應內容: {truncate(body)}")
             return False
+
+        body_json = parse_api_response(body)
+        if not body_json:
+            log(f"❌ 回應非 JSON: {truncate(body)}")
+            return False
+
+        if body_json.get('success'):
+            quota = body_json.get('data', {}).get('quota', 0)
+            message = body_json.get('message', '簽到成功')
+            log(f"✅ {message} - 獲得額度: {quota}")
+            return True
+
+        error_msg = body_json.get('message', '簽到失敗')
+        if "已" in error_msg and "签" in error_msg:
+            log(f"ℹ️ {error_msg}")
+            return True
+
+        log(f"❌ 簽到失敗: {error_msg}")
+        return False
 
     except Exception as e:
         log(f"❌ 錯誤: {e}")
@@ -175,10 +245,15 @@ def flaresolverr_checkin(base_url, checkin_url, headers):
     finally:
         if session_id:
             try:
-                requests.post(f"{flaresolverr_url.rstrip('/')}/v1",
-                            json={'cmd': 'sessions.destroy', 'session': session_id}, timeout=20, verify=False)
-            except:
+                requests.post(
+                    f"{flaresolverr_url}/v1",
+                    json={'cmd': 'sessions.destroy', 'session': session_id},
+                    timeout=20,
+                    verify=False,
+                )
+            except Exception:
                 pass
+
 
 def main():
     """主程序"""
@@ -195,16 +270,10 @@ def main():
         
         log(f"🚀 開始簽到: {base_url}")
         
-        checkin_url = f"{base_url}/api/user/check_in"
-        headers = {
-            'Authorization': f'Bearer {access_token}',
-            'Veloera-User': str(user_id),
-        }
-        
         # 重試機制
         success = False
         for attempt in range(3):
-            success = flaresolverr_checkin(base_url, checkin_url, headers)
+            success = flaresolverr_checkin(base_url, user_id, access_token)
             if success:
                 break
             if attempt < 2:
@@ -215,6 +284,7 @@ def main():
             any_failed = True
     
     sys.exit(1 if any_failed else 0)
+
 
 if __name__ == "__main__":
     main()
