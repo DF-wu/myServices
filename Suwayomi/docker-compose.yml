@@ -1,16 +1,11 @@
----
-version: '3.7'
 services:
   suwayomi:
-    image: ghcr.io/suwayomi/tachidesk:preview
+    image: ghcr.io/suwayomi/suwayomi-server:preview
     environment:
       - TZ=Asia/Taipei # Use TZ database name from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
       # Comment these out if you do not use the flaresolverr container at the bottom of this file
       - FLARESOLVERR_ENABLED=true
-      - FLARESOLVERR_URL=http://suwayomi-flaresolverr:8191
-      - DEBUG=true
-      - WEB_UI_ENABLED=true
-      - MAX_SOURCES_IN_PARALLEL=10
+      - FLARESOLVERR_URL=http://flaresolverr:8191
 #  #################################################################################################
 #
 #    !!! IMPORTANT !!!
@@ -22,24 +17,22 @@ services:
 #    example for setting env vars:
 #
 #      - BIND_IP=0.0.0.0
-      - BIND_PORT=4567
+#      - BIND_PORT=4567
 #      - SOCKS_PROXY_ENABLED=false
 #      - DOWNLOAD_AS_CBZ=true
-#      - BASIC_AUTH_ENABLED=false
-#      - BASIC_AUTH_USERNAME=df
-#      - BASIC_AUTH_PASSWORD=0
+#      - AUTH_MODE=basic_auth
+#      - AUTH_USERNAME=df
+#      - AUTH_PASSWORD=change_me
 #      - EXTENSION_REPOS=["http://github.com/orginazation-name/repo-name", "http://github.com/orginazation-name-2/repo-name-2"]
     volumes:
       - /mnt/appdata/suwayomi:/home/suwayomi/.local/share/Tachidesk
     ports:
       - "4567:4567"
-    restart: unless-stopped
+    restart: on-failure:3
 
-  suwayomi-flaresolverr:
-    image: ghcr.io/flaresolverr/flaresolverr:latest
+  flaresolverr:
+    image: ghcr.io/thephaseless/byparr:latest
     container_name: suwayomi-flaresolverr
     environment:
       - TZ=Asia/Taipei # Use TZ database name from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-    ports:
-      - "8191:8191"
     restart: unless-stopped
