@@ -25,7 +25,7 @@ services:
 #      - AUTH_PASSWORD=change_me
 #      - EXTENSION_REPOS=["http://github.com/orginazation-name/repo-name", "http://github.com/orginazation-name-2/repo-name-2"]
     volumes:
-      - /mnt/appdata/suwayomi:/home/suwayomi/.local/share/Tachidesk
+      - /mnt/appdata/suwayomi:/home/suwayomi/.local/share/Suwayomi
     ports:
       - "4567:4567"
     restart: on-failure:3
