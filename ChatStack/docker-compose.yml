@@ -473,13 +473,15 @@ services:
   # yuder RAG dashboard for vector db management
   rag-dashboard:
     # image: reg.stw.tw/lilac-rag-dashboard
+
     image: ghcr.io/df-wu/lilac-ai-rag-dashboard
     restart: unless-stopped
     ports:
       - 43021:3000
     environment:
       - POSTGRES_URI=postgresql://postgres:postgres@chatstack-postgres17-pgvector:5432/js_llmcord_rag?sslmode=disable
-      - OPENAI_API_KEY=<api_key> # for embedding search
+      - OPENAI_API_KEY=${DC_OPENAI_KEY} # for embedding search
+      - OPENAI_API_BASE_URL="http://api:3000/v1"
     depends_on:
       - chatstack-postgres17-pgvector
 
