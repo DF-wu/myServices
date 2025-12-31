@@ -472,7 +472,8 @@ services:
 
   # yuder RAG dashboard for vector db management
   rag-dashboard:
-    image: reg.stw.tw/lilac-rag-dashboard
+    # image: reg.stw.tw/lilac-rag-dashboard
+    image: ghcr.io/df-wu/lilac-ai-rag-dashboard
     restart: unless-stopped
     ports:
       - 43021:3000
