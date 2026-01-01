@@ -482,7 +482,7 @@ services:
     environment:
       - POSTGRES_URI=postgresql://postgres:postgres@chatstack-postgres17-pgvector:5432/js_llmcord_rag?sslmode=disable
       - OPENAI_API_KEY=${DC_OPENAI_KEY} # for embedding search
-      - OPENAI_API_BASE_URL=http://api:3000/v1
+      - OPENAI_API_BASE_URL=http://new-api:3000/v1
     depends_on:
       - chatstack-postgres17-pgvector
 
