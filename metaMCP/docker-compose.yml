@@ -7,6 +7,14 @@ services:
     #  sensitive env injected by Portainer
     env_file:
       - .env
+    # Fetch exa_pool_mcp.py into the container at startup; dependencies are handled by uv when MetaMCP runs it via stdio
+    command: >
+      /bin/sh -c "set -e
+      && mkdir -p /home/nextjs/.local/mcp
+      && curl -fsSL https://raw.githubusercontent.com/TullyMonster/exa-pool-mcp/main/exa_pool_mcp.py -o /home/nextjs/.local/mcp/exa_pool_mcp.py
+      && chmod +x /home/nextjs/.local/mcp/exa_pool_mcp.py
+      && export PATH=\"$${PATH}:/home/nextjs/.local/bin\"
+      && exec ./docker-entrypoint.sh"
     ports:
       - "12008:12008"
     environment:
