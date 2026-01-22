@@ -241,6 +241,8 @@ services:
     volumes:
       - /mnt/appdata/ChatStack/claudeRelayService/logs:/app/logs
       - /mnt/appdata/ChatStack/claudeRelayService/data:/app/data
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     depends_on:
       - crs-redis
 
@@ -609,3 +611,18 @@ services:
       - "/mnt/appdata/ChatStack/sillytarven/plugins:/home/node/app/plugins"
       - "/mnt/appdata/ChatStack/sillytarven/extensions:/home/node/app/public/scripts/extensions/third-party"
     restart: unless-stopped
+
+  # Watchtower - 自動更新 Docker 容器
+  # 只更新有 com.centurylinklabs.watchtower.enable=true 標籤的容器
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: chatstack-watchtower
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Taipei
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_POLL_INTERVAL=3600
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
