@@ -1,7 +1,7 @@
 services:
   photoprism: 
     image: photoprism/photoprism
-    restart: unless-stopped
+    restart: always
     container_name: photoprism
     security_opt:
       - seccomp:unconfined
