@@ -12,10 +12,9 @@ version: "3"
 
 services:
   teslamate:
-    image: teslamate/teslamate:latest
+    image: teslamate/teslamate:1.33
     restart: always
     environment:
-      - TZ=Asia/Taipei
       - ENCRYPTION_KEY=${DF_PASSWORD} #replace with a secure key to encrypt your Tesla API tokens
       - DATABASE_USER=df
       - DATABASE_PASS=${DF_PASSWORD} # password injecy from my portainer
@@ -34,21 +33,19 @@ services:
 
   # https://github.com/teslamate-org/teslamate/releases/tag/v2.0.0
   database:
-    image: postgres:18-trixie
+    image: postgres:15
     restart: always
     environment:
-      - TZ=Asia/Taipei
       - POSTGRES_USER=df
       - POSTGRES_PASSWORD=${DF_PASSWORD} # my own password
       - POSTGRES_DB=teslamate
     volumes:
-      - teslamate-db:/var/lib/postgresql
+      - teslamate-db:/var/lib/postgresql/data
 
   grafana:
     image: teslamate/grafana:latest
     restart: always
     environment:
-      - TZ=Asia/Taipei
       - DATABASE_USER=df
       - DATABASE_PASS=${DF_PASSWORD} #insert your secure database password!
       - DATABASE_NAME=teslamate
@@ -63,8 +60,6 @@ services:
   mosquitto:
     image: eclipse-mosquitto:2
     restart: always
-    environment:
-      - TZ=Asia/Taipei
     command: mosquitto -c /mosquitto-no-auth.conf
     # ports:
     #   - 1883:1883
