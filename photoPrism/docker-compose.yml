@@ -39,20 +39,20 @@ services:
       - TZ=Asia/Taipei
     env_file:
       - .env
-    devices:
-    
-      - "/dev/nvidia0:/dev/nvidia0"                 # Nvidia CUDA
-      - "/dev/nvidiactl:/dev/nvidiactl"
-      # - "/dev/nvidia-modeset:/dev/nvidia-modeset"     ???????Quantem state?   
-      # - "/dev/nvidia-nvswitchctl:/dev/nvidia-nvswitchctl" This one is not in my system
-      - "/dev/nvidia-uvm:/dev/nvidia-uvm"
-      - "/dev/nvidia-uvm-tools:/dev/nvidia-uvm-tools"
+    healthcheck:
+      test: ["CMD", "photoprism", "status"]
+      interval: 60s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+    # NVIDIA GPU acceleration (official configuration)
+    # Reference: https://docs.photoprism.app/getting-started/advanced/transcoding/
     deploy:
       resources:
         reservations:
           devices:
             - driver: "nvidia"
+              capabilities: [gpu]
               count: 1
-              capabilities: [gpu, compute, video]
 
 
