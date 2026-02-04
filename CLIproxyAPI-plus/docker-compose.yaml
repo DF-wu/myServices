@@ -8,6 +8,6 @@ services:
       - "8317:8317"
 
     volumes:
-      - /mnt/CLIProxyAPI/config.yaml:/CLIProxyAPI/config.yaml
-      - /mnt/CLIProxyAPI/auth:/root/.cli-proxy-api
-      - /mnt/CLIProxyAPI/logs:/CLIProxyAPI/logs
+      - /mnt/appdata/CLIProxyAPI/config.yaml:/CLIProxyAPI/config.yaml
+      - /mnt/appdata/CLIProxyAPI/auth:/root/.cli-proxy-api
+      - /mnt/appdata/CLIProxyAPI/logs:/CLIProxyAPI/logs
