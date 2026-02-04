@@ -2,7 +2,7 @@ services:
   cli-proxy-api:
     image: eceasy/cli-proxy-api-plus:latest
     container_name: cli-proxy-api-plus
-    pull_policy: unless-stopped
+    restart: unless-stopped
         
     ports:
       - "8317:8317"
