@@ -21,7 +21,7 @@ services:
   #     - VPN_TYPE=openvpn
   #     - OPENVPN_USER=${OPENVPN_USER}
   #     - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-  #     - OPENVPN_CUSTOM_CONFIG=/gluetun/tw-tai.prod.surfshark.com_udp.ovpn
+  #     - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/tw-tai.prod.surfshark.com_udp.ovpn
   #     # 系統設定
   #     - TZ=${TZ}
   #     - UMASK=000
@@ -54,7 +54,7 @@ services:
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-      - OPENVPN_CUSTOM_CONFIG=/gluetun/se-sto.prod.surfshark.com_udp.ovpn
+      - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/se-sto.prod.surfshark.com_udp.ovpn
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
@@ -88,7 +88,7 @@ services:
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-      - OPENVPN_CUSTOM_CONFIG=/gluetun/jp-tok.prod.surfshark.com_udp.ovpn
+      - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/jp-tok.prod.surfshark.com_udp.ovpn
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
@@ -118,7 +118,7 @@ services:
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-      - OPENVPN_CUSTOM_CONFIG=/gluetun/ro-buc.prod.surfshark.com_udp.ovpn
+      - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/ro-buc.prod.surfshark.com_udp.ovpn
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
