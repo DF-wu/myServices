@@ -3,10 +3,12 @@ services:
     image: eceasy/cli-proxy-api-plus:latest
     container_name: cli-proxy-api-plus
     restart: unless-stopped
-        
-    ports:
-      - "8317:8317"
-
+    network_mode: container:gluetun-sweden
+         
+    # because network interface is replaced by another container. 
+    # expose ports here will not work.
+    # ports:
+    #   - "8317:8317"
     volumes:
       - /mnt/appdata/CLIProxyAPI-plus/config.yaml:/CLIProxyAPI/config.yaml
       - /mnt/appdata/CLIProxyAPI-plus/auth:/root/.cli-proxy-api
