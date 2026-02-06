@@ -4,6 +4,8 @@ services:
     container_name: cli-proxy-api-plus
     restart: unless-stopped
     network_mode: container:gluetun-sweden
+    depends_on:
+      - gluetun-sweden
          
     # because network interface is replaced by another container. 
     # expose ports here will not work.
