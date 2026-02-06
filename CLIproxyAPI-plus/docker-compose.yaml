@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     network_mode: container:gluetun-sweden
     depends_on:
-      - gluetun-sweden
+      - container:gluetun-sweden
          
     # because network interface is replaced by another container. 
     # expose ports here will not work.
