@@ -50,11 +50,12 @@ services:
       - /mnt/appdata/gluetun:/gluetun
     environment:
       # 基本 VPN 設定 (必填)
-      - VPN_SERVICE_PROVIDER=custom
-      - VPN_TYPE=openvpn
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=openvpn 
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-      - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/se-sto.prod.surfshark.com_udp.ovpn
+      # - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/se-sto.prod.surfshark.com_udp.ovpn
+      - SERVER_COUNTRIES=Sweden
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
@@ -66,8 +67,7 @@ services:
 
 
 
-
-
+## updater is here
   gluetun-jp:
     image: qmcgaw/gluetun
     container_name: gluetun-jp
@@ -92,6 +92,7 @@ services:
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
+      - UPDATER_PERIOD=24h
       # 伺服器選擇 (可選)
       # - SERVER_COUNTRIES="Romania"
       # - SERVER_REGIONS="București"
