@@ -3,7 +3,7 @@ services:
     image: eceasy/cli-proxy-api-plus:latest
     container_name: cli-proxy-api-plus
     restart: unless-stopped
-    network_mode: gluetun-sweden
+    network_mode: service:gluetun-sweden
     depends_on:
       - gluetun-sweden
    
