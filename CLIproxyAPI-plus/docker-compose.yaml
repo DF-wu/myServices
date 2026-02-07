@@ -3,7 +3,7 @@ services:
     image: eceasy/cli-proxy-api-plus:latest
     container_name: cli-proxy-api-plus
     restart: unless-stopped
-    network_mode: container:gluetun-sweden
+    network_mode: gluetun-sweden
     depends_on:
       - gluetun-sweden
    
@@ -26,8 +26,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     ports:
       - 19000:8888/tcp # HTTP proxy
-      - 19001:8388/tcp # Shadowsocks
-      - 19001:8388/udp # Shadowsocks
+
       # for CLIproxyAPI-plus
       - 8317:8317/tcp
     volumes:
