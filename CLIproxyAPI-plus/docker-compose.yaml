@@ -28,7 +28,7 @@ services:
       - 19000:8888/tcp # HTTP proxy
 
       # for CLIproxyAPI-plus
-      - 8317:8317/tcp
+      - 8317:8317
     volumes:
       - /mnt/appdata/gluetun:/gluetun
     environment:
