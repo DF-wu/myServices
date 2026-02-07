@@ -1,4 +1,6 @@
 version: "3"
+
+
 services:
  
   # gluetun-tw:
@@ -30,42 +32,6 @@ services:
   #     # - SERVER_REGIONS="București"
   #     # - SERVER_CITIES="Bucharest"
   #     # - SERVER_HOSTNAMES="ro2-auto-udp.ptoserver.com"
-
-
-  gluetun-sweden:
-    image: qmcgaw/gluetun
-    container_name: gluetun-sweden
-    restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    ports:
-      - 19000:8888/tcp # HTTP proxy
-      - 19001:8388/tcp # Shadowsocks
-      - 19001:8388/udp # Shadowsocks
-      # for CLIproxyAPI-plus
-      - 8317:8317/tcp
-    volumes:
-      - /mnt/appdata/gluetun:/gluetun
-    environment:
-      # 基本 VPN 設定 (必填)
-      - VPN_SERVICE_PROVIDER=surfshark
-      - VPN_TYPE=openvpn 
-      - OPENVPN_USER=${OPENVPN_USER}
-      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-      # - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/se-sto.prod.surfshark.com_udp.ovpn
-      - SERVER_COUNTRIES=Sweden
-      # 系統設定
-      - TZ=${TZ}
-      - UMASK=000
-      # 伺服器選擇 (可選)
-      # - SERVER_COUNTRIES="Romania"
-      # - SERVER_REGIONS="București"
-      # - SERVER_CITIES="Bucharest"
-      # - SERVER_HOSTNAMES="ro2-auto-udp.ptoserver.com"
-
-
 
 ## updater is here
   gluetun-jp:
