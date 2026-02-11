@@ -50,7 +50,7 @@ services:
       - /mnt/appdata/gluetun:/gluetun
     environment:
       # 基本 VPN 設定 (必填)
-      - VPN_SERVICE_PROVIDER=custom
+      - VPN_SERVICE_PROVIDER=surfshark
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
@@ -81,7 +81,7 @@ services:
       - /mnt/appdata/gluetun:/gluetun
     environment:
       # 基本 VPN 設定 (必填)
-      - VPN_SERVICE_PROVIDER=custom
+      - VPN_SERVICE_PROVIDER=surfshark
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
