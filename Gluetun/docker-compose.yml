@@ -50,11 +50,11 @@ services:
       - /mnt/appdata/gluetun:/gluetun
     environment:
       # 基本 VPN 設定 (必填)
-      - VPN_SERVICE_PROVIDER=custom
+      - VPN_SERVICE_PROVIDER=surfshark
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-      - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/jp-tok.prod.surfshark.com_udp.ovpn
+      - SERVER_COUNTRIES=Japan
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
@@ -81,11 +81,11 @@ services:
       - /mnt/appdata/gluetun:/gluetun
     environment:
       # 基本 VPN 設定 (必填)
-      - VPN_SERVICE_PROVIDER=custom
+      - VPN_SERVICE_PROVIDER=surfshark
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-      - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/ro-buc.prod.surfshark.com_udp.ovpn
+      - SERVER_COUNTRIES=Romania
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
