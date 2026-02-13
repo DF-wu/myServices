@@ -84,9 +84,11 @@ services:
     environment:
       # 基本 VPN 設定 (必填)
       - VPN_SERVICE_PROVIDER=surfshark
-      - VPN_TYPE=openvpn
+      - VPN_TYPE=wireguard
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=10.14.0.2/16
       - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/ro-buc.prod.surfshark.com_udp.ovpn
       # 系統設定
       - TZ=${TZ}

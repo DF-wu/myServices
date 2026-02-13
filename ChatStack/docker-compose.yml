@@ -701,14 +701,21 @@ services:
     environment:
       # 基本 VPN 設定 (必填)
       - VPN_SERVICE_PROVIDER=surfshark
-      - VPN_TYPE=openvpn 
+      - VPN_TYPE=wireguard
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=10.14.0.2/16
       # - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/se-sto.prod.surfshark.com_udp.ovpn
       - SERVER_COUNTRIES=Sweden
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
+      # 連線穩定性設定
+      - HEALTH_VPN_DURATION_INITIAL=30s
+      - HEALTH_VPN_DURATION_ADDITION=15s
+      - HEALTH_SUCCESS_WAIT_DURATION=10s
+      - OPENVPN_FLAGS=--connect-retry 60
       # 伺服器選擇 (可選)
       # - SERVER_COUNTRIES="Romania"
       # - SERVER_REGIONS="București"
