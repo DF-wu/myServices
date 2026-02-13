@@ -738,7 +738,7 @@ services:
   # =============================================================================
   lilac:
     container_name: lilac-discord
-    image: reg.stw.tw/lilac-mono:latest
+    image: ghcr.io/df-wu/lilac-mono
     restart: unless-stopped
     environment:
       - TZ=Asia/Taipei
@@ -749,10 +749,10 @@ services:
       - LL_TOOL_SERVER_PORT=8080
       # Provider: OpenAI (via new-api)
       - OPENAI_BASE_URL=http://new-api:3000/v1
-      - OPENAI_API_KEY=${LILAC_OPENAI_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
 
       # Discord bot token
-      - DISCORD_TOKEN=${LILAC_DISCORD_TOKEN}
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
 
     volumes:
       - /mnt/appdata/ChatStack/lilac-mono/data:/data
