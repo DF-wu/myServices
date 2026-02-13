@@ -742,8 +742,6 @@ services:
     restart: unless-stopped
     environment:
       - TZ=Asia/Taipei
-      - PUID=3000
-      - PGID=3000
       - LOG_LEVEL=debug
       - REDIS_URL=redis://chatstack-unified-redis:6379/5
       - DATA_DIR=/data
