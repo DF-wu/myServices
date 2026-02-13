@@ -455,25 +455,25 @@ services:
         condition: service_started
 
   ## if my n8n work well, I will use n8n
-  discord-chatbot:
-    container_name: discord-chatbot
-    image: ghcr.io/df-wu/js-llmcord:latest
-    restart: unless-stopped
-    # network_mode: host
-    environment:
-      # df image only
-      - MY_ADDED_MODEL=glm-4.5v
-      - TZ=Asia/Taipei
-      - PGID=3000
-      - PUID=3000
-    volumes:
-      - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/app/config.yaml
-      - /mnt/appdata/ChatStack/discord-chatbot/data:/app/data
-      - /mnt/appdata/ChatStack/discord-chatbot/extensions:/app/extensions
-    depends_on:
-      # 依賴 new-api 服務（容器名稱為 veloera）
-      new-api:
-        condition: service_started
+  # discord-chatbot:
+  #   container_name: discord-chatbot
+  #   image: ghcr.io/df-wu/js-llmcord:latest
+  #   restart: unless-stopped
+  #   # network_mode: host
+  #   environment:
+  #     # df image only
+  #     - MY_ADDED_MODEL=glm-4.5v
+  #     - TZ=Asia/Taipei
+  #     - PGID=3000
+  #     - PUID=3000
+  #   volumes:
+  #     - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/app/config.yaml
+  #     - /mnt/appdata/ChatStack/discord-chatbot/data:/app/data
+  #     - /mnt/appdata/ChatStack/discord-chatbot/extensions:/app/extensions
+  #   depends_on:
+  #     # 依賴 new-api 服務（容器名稱為 veloera）
+  #     new-api:
+  #       condition: service_started
 
   # yuder RAG dashboard for vector db management
   rag-dashboard:
