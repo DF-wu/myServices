@@ -468,6 +468,7 @@ services:
   #     - PUID=3000
   #   volumes:
   #     - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/app/config.yaml
+  
   #     - /mnt/appdata/ChatStack/discord-chatbot/data:/app/data
   #     - /mnt/appdata/ChatStack/discord-chatbot/extensions:/app/extensions
   #   depends_on:
@@ -698,24 +699,30 @@ services:
       - 8317:8317
     volumes:
       - /mnt/appdata/gluetun:/gluetun
+    env_file:
+      - .secret.env
+      - .secret.env.local
     environment:
       # 基本 VPN 設定 (必填)
       - VPN_SERVICE_PROVIDER=surfshark
       - VPN_TYPE=wireguard
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_PRIVATE_KEY=${SURFSHARK_WIREGUARD_PRIVATE_KEY}
       - WIREGUARD_ADDRESSES=10.14.0.2/16
       # - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/se-sto.prod.surfshark.com_udp.ovpn
       - SERVER_COUNTRIES=Sweden
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
-      # 連線穩定性設定
-      - HEALTH_VPN_DURATION_INITIAL=30s
-      - HEALTH_VPN_DURATION_ADDITION=15s
-      - HEALTH_SUCCESS_WAIT_DURATION=10s
-      - OPENVPN_FLAGS=--connect-retry 60
+      # ===== 修復 1: 關掉 DNS-over-TLS，改用 plaintext =====
+      # DoT 通過高延遲 VPN 隧道 (台灣→Sweden ~340ms) TLS handshake 經常 reset
+      - DOT=off
+      - DNS_PLAINTEXT_ADDRESS=1.1.1.1
+      # ===== 修復 2: 用 IP-based healthcheck，避免 DNS 依賴 =====
+      # VPN tunnel 本身通 (ping OK)，但 DNS 暫時故障會誤觸 VPN 重啟→死亡螺旋
+      - HEALTH_TARGET_ADDRESS=1.1.1.1:443
+      - HEALTH_SUCCESS_WAIT_DURATION=15s
       # 伺服器選擇 (可選)
       # - SERVER_COUNTRIES="Romania"
       # - SERVER_REGIONS="București"
