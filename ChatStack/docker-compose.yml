@@ -720,6 +720,7 @@ services:
 
       # EXA web search key
       - EXA_API_KEY=${EXA_API_KEY}
+      - EXA_API_BASE_URL=${EXA_API_BASE_URL}
 
     volumes:
       - /mnt/appdata/ChatStack/lilac-mono/data:/data
