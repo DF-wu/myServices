@@ -718,6 +718,9 @@ services:
       # Discord bot token
       - DISCORD_TOKEN=${DISCORD_TOKEN}
 
+      # EXA web search key
+      - EXA_API_KEY=${EXA_API_KEY}
+
     volumes:
       - /mnt/appdata/ChatStack/lilac-mono/data:/data
       - /home/df/.agents:/home/lilac/.agents
