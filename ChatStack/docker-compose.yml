@@ -744,5 +744,6 @@ services:
         condition: service_healthy
       new-api:
         condition: service_started
-    # ports:
-    #   - "43090:8080"  # Uncomment to expose tool server externally
+    ports:
+      - "8787:8787"  # GitHub webhook ingress
+      # - "43090:8080"  # Uncomment to expose tool server externally
