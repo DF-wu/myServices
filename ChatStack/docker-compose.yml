@@ -728,13 +728,17 @@ services:
       - EXA_API_BASE_URL=${EXA_API_BASE_URL}
 
     volumes:
+      ## REBEMBER WHAT YOU MODIFY FOR IMAGE USER NAME and ID.
+      ## it's affect the path you should mount for config and data.
+
+
       - /mnt/appdata/ChatStack/lilac-mono/data:/data
-      - /home/df/.agents:/home/lilac/.agents
-      - /mnt/appdata/ChatStack/lilac-mono/.ssh:/home/lilac/.ssh
-      # - /home/df/.ssh:/home/lilac/.ssh
+      - /home/df/.agents:/home/Catalinna/.agents
+      - /mnt/appdata/ChatStack/lilac-mono/.ssh:/home/Catalinna/.ssh
+      # - /home/df/.ssh:/home/Catalinna/.ssh
       # advised
-      - /mnt/appdata/ChatStack/lilac-mono/data/.cache:/home/lilac/.cache
-      - /mnt/appdata/ChatStack/lilac-mono/data/.config:/home/lilac/.config
+      - /mnt/appdata/ChatStack/lilac-mono/data/.cache:/home/Catalinna/.cache
+      - /mnt/appdata/ChatStack/lilac-mono/data/.config:/home/Catalinna/.config
     depends_on:
       chatstack-unified-redis:
         condition: service_healthy
