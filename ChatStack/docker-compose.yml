@@ -284,7 +284,7 @@ services:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
       - SERVER_MODE=release
-      - RUN_MODE=simple
+      # - RUN_MODE=simple
       - TZ=Asia/Taipei
 
       # use existing ChatStack Postgres (pg17)
