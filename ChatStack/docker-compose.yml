@@ -65,6 +65,7 @@ services:
   # - Database 3: searxng (搜尋引擎快取) - TODO: 需配置 searxng settings.yml
   # - Database 4: claude-relay-service (Claude 中繼服務)
   # - Database 5: lilac-mono
+  # - Database 6: sub2api (CRS 2.0)
   chatstack-unified-redis:
     image: docker.io/valkey/valkey:8-alpine
     container_name: chatstack-unified-redis
@@ -286,17 +287,20 @@ services:
       - RUN_MODE=simple
       - TZ=Asia/Taipei
 
-      - DATABASE_HOST=sub2api-postgres
+      # use existing ChatStack Postgres (pg17)
+      # NOTE: you must create DB first (once): CREATE DATABASE sub2api;
+      - DATABASE_HOST=chatstack-postgres17-pgvector
       - DATABASE_PORT=5432
-      - DATABASE_USER=sub2api
-      - DATABASE_PASSWORD=${DF_PASSWORD:-postgres}
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
       - DATABASE_DBNAME=sub2api
       - DATABASE_SSLMODE=disable
 
-      - REDIS_HOST=sub2api-redis
+      # use ChatStack unified redis; allocate DB 6 for sub2api
+      - REDIS_HOST=chatstack-unified-redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=
-      - REDIS_DB=0
+      - REDIS_DB=6
       - REDIS_ENABLE_TLS=false
 
       - ADMIN_EMAIL=admin@sub2api.local
@@ -307,9 +311,9 @@ services:
       - SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS=true
       - SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=true
     depends_on:
-      sub2api-postgres:
-        condition: service_healthy
-      sub2api-redis:
+      chatstack-postgres17-pgvector:
+        condition: service_started
+      chatstack-unified-redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -317,41 +321,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-
-  sub2api-postgres:
-    image: postgres:16-alpine
-    container_name: sub2api-postgres
-    restart: unless-stopped
-    environment:
-      - POSTGRES_USER=sub2api
-      - POSTGRES_PASSWORD=${DF_PASSWORD:-postgres}
-      - POSTGRES_DB=sub2api
-      - TZ=Asia/Taipei
-    volumes:
-      - /mnt/appdata/ChatStack/sub2api/postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sub2api -d sub2api"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
-  sub2api-redis:
-    image: docker.io/valkey/valkey:8-alpine
-    container_name: sub2api-redis
-    user: 3000:3000
-    restart: unless-stopped
-    environment:
-      - TZ=Asia/Taipei
-    volumes:
-      - /mnt/appdata/ChatStack/sub2api/redis:/data
-    command: "valkey-server --save 60 1 --appendonly yes --appendfsync everysec"
-    healthcheck:
-      test: "[ $$(valkey-cli ping) = 'PONG' ]"
-      start_period: 5s
-      interval: 1s
-      timeout: 3s
-      retries: 5
 
   # chinrain api conversion proxy
   api-conversion:
