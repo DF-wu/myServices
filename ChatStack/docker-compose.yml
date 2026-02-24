@@ -337,7 +337,6 @@ services:
       - /mnt/appdata/ChatStack/api-conversion/data:/app/data
       - /mnt/appdata/ChatStack/api-conversion/logs:/app/logs
 
-
   # Whisper-FastAPI - Speech-to-Text service (OpenAI Whisper-compatible)
   # repo: https://github.com/heimoshuiyu/whisper-fastapi
   # endpoints:
@@ -500,7 +499,7 @@ services:
   #     - PUID=3000
   #   volumes:
   #     - /mnt/appdata/ChatStack/discord-chatbot/config.yaml:/app/config.yaml
-  
+
   #     - /mnt/appdata/ChatStack/discord-chatbot/data:/app/data
   #     - /mnt/appdata/ChatStack/discord-chatbot/extensions:/app/extensions
   #   depends_on:
@@ -523,7 +522,6 @@ services:
   #     - OPENAI_API_BASE_URL=http://new-api:3000/v1
   #   depends_on:
   #     - chatstack-postgres17-pgvector
-
 
   # currens
   # another choice : https://searx.perennialte.ch/
@@ -645,11 +643,9 @@ services:
       - "/mnt/appdata/ChatStack/sillytarven/extensions:/home/node/app/public/scripts/extensions/third-party"
     restart: unless-stopped
 
-
-
-# author : df
-# AstrBot - AI-powered chatbot
-# doc: https://docs.astrbot.app/deploy/astrbot/docker.html
+  # author : df
+  # AstrBot - AI-powered chatbot
+  # doc: https://docs.astrbot.app/deploy/astrbot/docker.html
   astrbot:
     image: soulter/astrbot:latest
     container_name: astrbot
@@ -684,7 +680,6 @@ services:
       - /mnt/appdata/ChatStack/astrbot/data/shipyard/bay_data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
-
   cli-proxy-api:
     image: eceasy/cli-proxy-api-plus:latest
     container_name: cli-proxy-api-plus
@@ -692,8 +687,8 @@ services:
     network_mode: service:gluetun-sweden
     depends_on:
       - gluetun-sweden
-   
-    # because network interface is replaced by another container. 
+
+    # because network interface is replaced by another container.
     # expose ports here will not work.
     # ports:
     #   - "8317:8317"
@@ -744,9 +739,6 @@ services:
       # - SERVER_CITIES="Bucharest"
       # - SERVER_HOSTNAMES="ro2-auto-udp.ptoserver.com"
 
-
-
-
   # =============================================================================
   # Lilac - Discord AI Agent Runtime (js-llmcord successor)
   # repo: https://github.com/DF-wu/lilac-mono
@@ -785,10 +777,11 @@ services:
       - EXA_API_KEY=${EXA_API_KEY}
       - EXA_API_BASE_URL=${EXA_API_BASE_URL}
 
+      # weird empty string patch
+      - LILAC_SKIP_EMPTY_REASONING_REPLY=true
     volumes:
       ## REBEMBER WHAT YOU MODIFY FOR IMAGE USER NAME and ID.
       ## it's affect the path you should mount for config and data.
-
 
       - /mnt/appdata/ChatStack/lilac-mono/data:/data
       - /home/df/.agents:/home/Catalinna/.agents
@@ -803,5 +796,6 @@ services:
       new-api:
         condition: service_started
     ports:
-      - "8787:8787"  # GitHub webhook ingress
+      - "8787:8787" # GitHub webhook ingress
       # - "43090:8080"  # Uncomment to expose tool server externally
+
