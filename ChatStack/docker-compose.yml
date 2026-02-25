@@ -721,7 +721,8 @@ services:
       - WIREGUARD_PRIVATE_KEY=${SURFSHARK_WIREGUARD_PRIVATE_KEY}
       - WIREGUARD_ADDRESSES=10.14.0.2/16
       # - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/se-sto.prod.surfshark.com_udp.ovpn
-      - SERVER_COUNTRIES=Sweden
+      # - SERVER_COUNTRIES=Sweden
+      - SERVER_CITIES=Phoenix
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
