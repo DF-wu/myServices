@@ -779,6 +779,10 @@ services:
 
       # weird empty string patch
       - LILAC_SKIP_EMPTY_REASONING_REPLY=true
+      - LILAC_LLM_WIRE_DEBUG=1
+      - LILAC_LLM_WIRE_DEBUG_DIR=/data/debug/llm-wire
+      - LILAC_LLM_WIRE_DEBUG_MAX_BODY_BYTES=65536
+      - LILAC_LLM_WIRE_DEBUG_MAX_EVENTS=400
     volumes:
       ## REBEMBER WHAT YOU MODIFY FOR IMAGE USER NAME and ID.
       ## it's affect the path you should mount for config and data.
