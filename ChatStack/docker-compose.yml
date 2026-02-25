@@ -3,6 +3,26 @@
 # date: 2025.8.15
 # description: open-webui
 # doc: https://github.com/open-webui/open-webui
+# active host port index (sorted)
+# format: <host_port> | <service>
+# -  6333 | qdrant
+# -  8317 | gluetun-sweden
+# -  8787 | lilac
+# - 19000 | gluetun-sweden
+# - 43000 | open-webui
+# - 43001 | new-api
+# - 43002 | open-webui
+# - 43003 | sillytavern
+# - 43004 | astrbot
+# - 43020 | chatstack-postgres17-pgvector
+# - 43056 | claude-code-router
+# - 43057 | claude-relay-service
+# - 43059 | whisper-fastapi
+# - 43060 | whisper-fastapi
+# - 43061 | api-conversion
+# - 43062 | sub2api
+# - 43080 | telegram-chatbot
+# - 59998 | tika
 
 services:
   open-webui:
@@ -803,4 +823,3 @@ services:
     ports:
       - "8787:8787" # GitHub webhook ingress
       # - "43090:8080"  # Uncomment to expose tool server externally
-
