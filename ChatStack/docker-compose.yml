@@ -6,9 +6,9 @@
 # active host port index (sorted)
 # format: <host_port> | <service>
 # -  6333 | qdrant
-# -  8317 | gluetun-sweden
+# -  8317 | gluetun-proxy
 # -  8787 | lilac
-# - 19000 | gluetun-sweden
+# - 19000 | gluetun-proxy
 # - 43000 | open-webui
 # - 43001 | new-api
 # - 43002 | open-webui
@@ -704,9 +704,9 @@ services:
     image: eceasy/cli-proxy-api-plus:latest
     container_name: cli-proxy-api-plus
     restart: unless-stopped
-    network_mode: service:gluetun-sweden
+    network_mode: service:gluetun-proxy
     depends_on:
-      - gluetun-sweden
+      - gluetun-proxy
 
     # because network interface is replaced by another container.
     # expose ports here will not work.
@@ -717,9 +717,9 @@ services:
       - /mnt/appdata/CLIProxyAPI-plus/auth:/root/.cli-proxy-api
       - /mnt/appdata/CLIProxyAPI-plus/logs:/CLIProxyAPI/logs
 
-  gluetun-sweden:
+  gluetun-proxy:
     image: qmcgaw/gluetun
-    container_name: gluetun-sweden
+    container_name: gluetun-proxy
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
