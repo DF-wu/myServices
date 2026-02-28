@@ -787,10 +787,14 @@ services:
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
       - GITHUB_WEBHOOK_PORT=${GITHUB_WEBHOOK_PORT:-8787}
       - GITHUB_WEBHOOK_PATH=${GITHUB_WEBHOOK_PATH:-/github/webhook}
-      # Provider: OpenAI (via new-api)
+      # Provider: OpenAI 
       - OPENAI_BASE_URL=${OPENAI_BASE_URL}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-
+      - OPENAI_COMPATIBLE_BASE_URL=${OPENAI_COMPATIBLE_BASE_URL}
+      - OPENAI_COMPATIBLE_API_KEY=${OPENAI_COMPATIBLE_API_KEY}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      
       # Discord bot token
       - DISCORD_TOKEN=${DISCORD_TOKEN}
 
@@ -803,6 +807,10 @@ services:
       - LILAC_LLM_WIRE_DEBUG_DIR=/data/debug/llm-wire
       - LILAC_LLM_WIRE_DEBUG_MAX_BODY_BYTES=65536
       - LILAC_LLM_WIRE_DEBUG_MAX_EVENTS=400
+
+
+
+    
     volumes:
       ## REBEMBER WHAT YOU MODIFY FOR IMAGE USER NAME and ID.
       ## it's affect the path you should mount for config and data.
