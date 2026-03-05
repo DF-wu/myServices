@@ -834,7 +834,7 @@ services:
       # - "43090:8080"  # Uncomment to expose tool server externally
 
 
-lilac-claudia:
+  lilac-claudia:
     container_name: lilac-mono-claudia
     image: ghcr.io/df-wu/lilac-mono
     restart: unless-stopped
