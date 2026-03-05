@@ -836,7 +836,7 @@ services:
 
   lilac-claudia:
     container_name: lilac-mono-claudia
-    image: ghcr.io/df-wu/lilac-mono
+    image: ghcr.io/df-wu/lilac-mono:claudia
     restart: unless-stopped
     environment:
       - TZ=Asia/Taipei
@@ -877,12 +877,12 @@ services:
       ## it's affect the path you should mount for config and data.
 
       - /mnt/appdata/ChatStack/lilac-mono-claudia/data:/data
-      - /home/df/.agents:/home/claudia/.agents
-      - /mnt/appdata/ChatStack/lilac-mono-claudia/.ssh:/home/claudia/.ssh
+      - /home/df/.agents:/home/Claudia/.agents
+      - /mnt/appdata/ChatStack/lilac-mono-claudia/.ssh:/home/Claudia/.ssh
       # - /home/df/.ssh:/home/Elysia/.ssh
       # advised
-      - /mnt/appdata/ChatStack/lilac-mono-claudia/data/.cache:/home/claudia/.cache
-      - /mnt/appdata/ChatStack/lilac-mono-claudia/data/.config:/home/claudia/.config
+      - /mnt/appdata/ChatStack/lilac-mono-claudia/data/.cache:/home/Claudia/.cache
+      - /mnt/appdata/ChatStack/lilac-mono-claudia/data/.config:/home/Claudia/.config
     depends_on:
       chatstack-unified-redis:
         condition: service_healthy
