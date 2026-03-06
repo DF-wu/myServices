@@ -289,7 +289,8 @@ services:
   # next-gen CRS: sub2api (migrate from claude-relay-service)
   # doc: https://github.com/Wei-Shaw/sub2api
   sub2api:
-    image: weishaw/sub2api:latest
+    # Faster than dockerhub wei-shaw/sub2api
+    image: ghcr.io/wei-shaw/sub2api
     container_name: sub2api
     restart: unless-stopped
     ports:
