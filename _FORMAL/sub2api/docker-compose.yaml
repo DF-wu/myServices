@@ -1,14 +1,22 @@
 # =============================================================================
-# Sub2API Docker Compose Configuration
+# Sub2API Docker Compose - Local Directory Version
 # =============================================================================
+# This configuration uses local directories for data storage instead of named
+# volumes, making it easy to migrate the entire deployment by simply copying
+# the deploy directory.
+#
 # Quick Start:
 #   1. Copy .env.example to .env and configure
-#   2. docker-compose up -d
-#   3. Check logs: docker-compose logs -f sub2api
-#   4. Access: http://localhost:8080
+#   2. mkdir -p data postgres_data redis_data
+#   3. docker-compose -f docker-compose.local.yml up -d
+#   4. Check logs: docker-compose -f docker-compose.local.yml logs -f sub2api
+#   5. Access: http://localhost:8080
 #
-# All configuration is done via environment variables.
-# No Setup Wizard needed - the system auto-initializes on first run.
+# Migration to New Server:
+#   1. docker-compose -f docker-compose.local.yml down
+#   2. tar czf sub2api-deploy.tar.gz deploy/
+#   3. Transfer to new server and extract
+#   4. docker-compose -f docker-compose.local.yml up -d
 # =============================================================================
 
 services:
@@ -26,11 +34,13 @@ services:
     ports:
       - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-8080}:8080"
     volumes:
-      # Data persistence (config.yaml will be auto-generated here)
-      - /home/df/appdata/sub2api:/app/data
+      # Local directory mapping for easy migration
+      - /home/df/appdata/sub2api/data:/app/data
       # Optional: Mount custom config.yaml (uncomment and create the file first)
       # Copy config.example.yaml to config.yaml, modify it, then uncomment:
       # - ./config.yaml:/app/data/config.yaml
+    env_file:
+      - .env
     environment:
       # =======================================================================
       # Auto Setup (REQUIRED for Docker deployment)
@@ -51,7 +61,7 @@ services:
       - DATABASE_HOST=postgres
       - DATABASE_PORT=5432
       - DATABASE_USER=${POSTGRES_USER:-sub2api}
-      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-sub2api}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       - DATABASE_DBNAME=${POSTGRES_DB:-sub2api}
       - DATABASE_SSLMODE=disable
       - DATABASE_MAX_OPEN_CONNS=${DATABASE_MAX_OPEN_CONNS:-50}
@@ -105,7 +115,7 @@ services:
       # - Log timestamps
       # Common values: Asia/Shanghai, America/New_York, Europe/London, UTC
       # =======================================================================
-      - TZ=Asia/Taipei
+      - TZ=${TZ:-Asia/Taipei}
 
       # =======================================================================
       # Gemini OAuth Configuration (for Gemini accounts)
@@ -164,16 +174,14 @@ services:
         soft: 100000
         hard: 100000
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Local directory mapping for easy migration
+      - /home/df/appdata/sub2api/postgres/data:/var/lib/postgresql/data
     environment:
-      # postgres:18-alpine 默认 PGDATA=/var/lib/postgresql/18/docker（位于镜像声明的匿名卷 /var/lib/postgresql 内）。
-      # 若不显式设置 PGDATA，则即使挂载了 postgres_data 到 /var/lib/postgresql/data，数据也不会落盘到该命名卷，
-      # docker compose down/up 后会触发 initdb 重新初始化，导致用户/密码等数据丢失。
-      - PGDATA=/var/lib/postgresql/data
       - POSTGRES_USER=${POSTGRES_USER:-sub2api}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-sub2api}
       - POSTGRES_DB=${POSTGRES_DB:-sub2api}
-      - TZ=${TZ:-Asia/Shanghai}
+      - PGDATA=/var/lib/postgresql/data
+      - TZ=Asia/Taipei
     networks:
       - sub2api-network
     healthcheck:
@@ -197,7 +205,8 @@ services:
         soft: 100000
         hard: 100000
     volumes:
-      - redis_data:/data
+      # Local directory mapping for easy migration
+      - /home/df/appdata/sub2api/redis_data:/data
     command: >
         sh -c '
           redis-server
@@ -206,7 +215,7 @@ services:
           --appendfsync everysec
           ${REDIS_PASSWORD:+--requirepass "$REDIS_PASSWORD"}'
     environment:
-      - TZ=${TZ:-Asia/Shanghai}
+      - TZ=Asia/Taipei
       # REDISCLI_AUTH is used by redis-cli for authentication (safer than -a flag)
       - REDISCLI_AUTH=${REDIS_PASSWORD:-}
     networks:
@@ -217,17 +226,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
-
-# =============================================================================
-# Volumes
-# =============================================================================
-volumes:
-  sub2api_data:
-    driver: local
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
 
 # =============================================================================
 # Networks
