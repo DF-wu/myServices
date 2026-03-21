@@ -1,0 +1,63 @@
+services:
+  vproxy:
+    # 建議固定版本，不要直接 latest，避免哪天 upstream 改了行為
+    image: ghcr.io/0x676e67/vproxy:v2.5.5
+    container_name: vproxy-home
+    restart: unless-stopped
+    init: true
+
+    # 把宿主機的高位 port 映射到容器內的 1080
+    # 你之後在路由器做 port forward，就是把 WAN 的這個 port 轉進來
+    ports:
+      - "${HOST_PROXY_PORT:-32480}:1080/tcp"
+
+    # vproxy 主要靠 stdout/stderr 輸出日誌
+    environment:
+      VPROXY_LOG: "${VPROXY_LOG:-debug}"
+
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+
+    # 這裡不用 auto / http / https，先用最單純的 socks5
+    # sub2api 那端請填 socks5h://...
+    command:
+      - run
+
+      # 監聽位址：容器內 0.0.0.0:1080
+      - -b
+      - 0.0.0.0:1080
+
+      # 最大同時活躍連線數
+      - -c
+      - "${VPROXY_CONCURRENT:-1024}"
+
+      # 對外連線 timeout（秒）
+      - -t
+      - "${VPROXY_CONNECT_TIMEOUT:-10}"
+
+      # 代理型別：SOCKS5
+      - socks5
+
+      # 驗證帳密
+      - -u
+      - "${VPROXY_USERNAME}"
+      - -p
+      - "${VPROXY_PASSWORD}"
+
+    # 簡單健康檢查：確認 1080 有在 listen
+    healthcheck:
+      test: ["CMD-SHELL", "ss -ltn | grep -q ':1080'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # 避免 json-file log 無限長大
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
