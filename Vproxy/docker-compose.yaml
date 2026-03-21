@@ -36,7 +36,7 @@ services:
 
       # 對外連線 timeout（秒）
       - -t
-      - "${VPROXY_CONNECT_TIMEOUT:-10}"
+      - "${VPROXY_CONNECT_TIMEOUT:-300}"
 
       # 代理型別：SOCKS5
       - socks5
