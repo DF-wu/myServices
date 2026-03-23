@@ -47,7 +47,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     ports:
       # 第二組 HTTP proxy 對外改用不同主機端口，避免與 home1 衝突。
-      - ${GLUETUN_HOME2_HTTP_PROXY_PORT:-10001}:888"
+      - ${GLUETUN_HOME2_HTTP_PROXY_PORT:-10001}:8888
     volumes:
       # 每個 Gluetun 節點各自保存自己的狀態資料，避免互相覆蓋。
       - /home/df/appdata/gluetun/home2/data:/gluetun
