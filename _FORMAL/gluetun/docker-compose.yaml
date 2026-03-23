@@ -1,0 +1,65 @@
+services:
+  # Gluetun 節點 1：使用 home1 的 WireGuard 設定檔，並提供一組獨立的 HTTP proxy。
+  gluetun-home1:
+    # 官方 README 範例使用 qmcgaw/gluetun；先沿用官方主範例的映像名稱。
+    image: qmcgaw/gluetun
+    # 參考 repo 內其他 compose 的慣例，固定容器名稱，方便跨 compose 以 container 名稱引用。
+    # 官方文件也提到：若要讓其他 compose 直接共用 Gluetun 的 network stack，固定名稱會更實用。
+    container_name: gluetun-home1
+    # 參考 myServices 既有服務設定，主機重啟後自動恢復服務。
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      # Gluetun 內建 HTTP proxy 預設監聽容器內 8888；主機端口可用 .env 或環境變數覆蓋。
+      - ${GLUETUN_HOME1_HTTP_PROXY_PORT:-10000}:8888
+    volumes:
+      # 官方 README 範例建議保留 /gluetun 持久化目錄；主機路徑預設沿用 repo 常見的 /root/service/<service> 風格。
+      - /home/df/appdata/gluetun/home1/data:/gluetun
+      # 官方 custom provider 文件：自訂 WireGuard 設定檔需掛到 /gluetun/wireguard/wg0.conf。
+      - /home/df/appdata/gluetun/home1.conf:/gluetun/wireguard/wg0.conf:ro
+    environment:
+      # 官方 README 範例保留 TZ；這裡沿用 repo 內常見的 Asia/Taipei。
+      - TZ=${TZ:-Asia/Taipei}
+      # 官方 custom provider 文件：自訂 VPN + WireGuard 模式。
+      - VPN_SERVICE_PROVIDER=custom
+      - VPN_TYPE=wireguard
+      # 官方 HTTP proxy 文件：啟用內建 HTTP proxy，並明確指定容器內監聽位址。
+      - HTTPPROXY=on
+      - HTTPPROXY_LISTENING_ADDRESS=:8888
+      # HTTP proxy 認證：請在環境變數中提供帳號密碼，未提供時 compose 啟動會直接報錯，避免意外開成匿名代理。
+      - HTTPPROXY_USER=${GLUETUN_HOME1_HTTP_PROXY_USER:-df}
+      - HTTPPROXY_PASSWORD=${GLUETUN_HOME1_HTTP_PROXY_PASSWORD:-df}
+
+  # Gluetun 節點 2：使用 home2 的 WireGuard 設定檔，並提供另一組獨立的 HTTP proxy。
+  gluetun-home2:
+    # 與 home1 保持一致，避免同一份 compose 中出現不同的官方映像寫法。
+    image: qmcgaw/gluetun
+    # 固定名稱，方便其他服務以 service/container 方式共用這個 Gluetun 節點。
+    container_name: gluetun-home2
+    # 參考 repo 既有 compose 慣例。
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      # 第二組 HTTP proxy 對外改用不同主機端口，避免與 home1 衝突。
+      - ${GLUETUN_HOME2_HTTP_PROXY_PORT:-10001}:888"
+    volumes:
+      # 每個 Gluetun 節點各自保存自己的狀態資料，避免互相覆蓋。
+      - /home/df/appdata/gluetun/home2/data:/gluetun
+      # 第二份 WireGuard 設定檔。
+      - /home/df/appdata/gluetun/home2.conf:/gluetun/wireguard/wg0.conf:ro
+    environment:
+      # 與 home1 保持一致，降低維護成本。
+      - TZ=${TZ:-Asia/Taipei}
+      - VPN_SERVICE_PROVIDER=custom
+      - VPN_TYPE=wireguard
+      - HTTPPROXY=on
+      - HTTPPROXY_LISTENING_ADDRESS=:8888
+      # 第二組 HTTP proxy 也要求獨立認證，避免兩個出口共用同一組固定帳密。
+      - HTTPPROXY_USER=${GLUETUN_HOME2_HTTP_PROXY_USER:-df}
+      - HTTPPROXY_PASSWORD=${GLUETUN_HOME2_HTTP_PROXY_PASSWORD:-df}
