@@ -1,50 +1,43 @@
 services:
-  
 
-  # ichien家vpn. for sub2api connection. for VIP user
-  gluetun-proxy-ichien:
-    # 官方 README 範例使用 qmcgaw/gluetun；先沿用官方主範例的映像名稱。
-    image: qmcgaw/gluetun
-    # 參考 repo 內其他 compose 的慣例，固定容器名稱，方便跨 compose 以 container 名稱引用。
-    # 官方文件也提到：若要讓其他 compose 直接共用 Gluetun 的 network stack，固定名稱會更實用。
-    container_name: gluetun-proxy-ichien
-    # 參考 myServices 既有服務設定，主機重啟後自動恢復服務。
+  # ichien家 vpn，供 VIP sub2api 直接共用網路 namespace。
+  openvpn-proxy-ichien:
+    image: dperson/openvpn-client:latest
+    container_name: openvpn-proxy-ichien
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      # Gluetun 內建 HTTP proxy 預設監聽容器內 8888；主機端口可用 .env 或環境變數覆蓋。
-      - ${GLUETUN_ICHIEN_HTTP_PROXY_PORT:-10000}:8888
+      # sub2api 使用 service network mode 後，對外 port 要掛在 VPN 容器上。
+      - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-8080}:8080"
     volumes:
-      # 官方 README 範例建議保留 /gluetun 持久化目錄；主機路徑預設沿用 repo 常見的 /root/service/<service> 風格。
-      - /root/appdata/gluetun/gluetun-proxy-ichien/data:/gluetun
-      # 官方 custom provider 文件：自訂 WireGuard 設定檔需掛到 /gluetun/wireguard/wg0.conf。
-      - /root/appdata/gluetun/gluetun-proxy-ichien.conf:/gluetun/wireguard/wg0.conf:ro
+      # 把 .ovpn 與其引用的憑證 / auth 檔都放進這個目錄。
+      - /root/appdata/openvpn-client/openvpn-proxy-ichien:/vpn
     environment:
-      # 官方 README 範例保留 TZ；這裡沿用 repo 內常見的 Asia/Taipei。
       - TZ=${TZ:-Asia/Taipei}
-      # 官方 custom provider 文件：自訂 VPN + WireGuard 模式。
-      - VPN_SERVICE_PROVIDER=custom
-      - VPN_TYPE=wireguard
-      # 官方 HTTP proxy 文件：啟用內建 HTTP proxy，並明確指定容器內監聽位址。
-      - HTTPPROXY=on
-      - HTTPPROXY_LISTENING_ADDRESS=:8888
-      # HTTP proxy 認證：請在環境變數中提供帳號密碼，未提供時 compose 啟動會直接報錯，避免意外開成匿名代理。
-      - HTTPPROXY_USER=${GLUETUN_ICHIEN_HTTP_PROXY_USER:-df}
-      - HTTPPROXY_PASSWORD=${GLUETUN_ICHIEN_HTTP_PROXY_PASSWORD:-df}
+      # 預設讀取 /vpn/client.ovpn；若實際檔名不同可用環境變數覆蓋。
+      - VPN_FILES=${OPENVPN_VPN_FILES:-client.ovpn}
+    command:
+      # -f ""：VPN 掛掉時封鎖外連，避免直接裸連。
+      # -r：保留 Docker 內網，讓 sub2api 仍能連 postgres / redis。
+      - -f
+      - ""
+      - -r
+      - ${DOCKER_OUTBOUND_SUBNET:-172.31.50.0/24}
+    networks:
+      - app_net
 
   sub2api-vip1:
     image: weishaw/sub2api:latest
     container_name: sub2api-vip1
     restart: unless-stopped
+    network_mode: "service:openvpn-proxy-ichien"
     ulimits:
       nofile:
         soft: 100000
         hard: 100000
-    ports:
-      - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-8080}:8080"
     volumes:
       # Local directory mapping for easy migration
       - /root/appdata/sub2api-vip1/data:/app/data
@@ -164,7 +157,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      gluetun-proxy-ichien:
+      openvpn-proxy-ichien:
         condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://localhost:8080/health"]
@@ -199,6 +192,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - app_net
     # 注意：不暴露端口到宿主机，应用通过内部网络连接
     # 如需调试，可临时添加：ports: ["127.0.0.1:5433:5432"]
 
@@ -233,3 +228,12 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    networks:
+      - app_net
+
+networks:
+  app_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${DOCKER_OUTBOUND_SUBNET:-172.31.50.0/24}
