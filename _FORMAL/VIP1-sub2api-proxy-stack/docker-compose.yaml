@@ -166,6 +166,7 @@ services:
       redis:
         condition: service_healthy
       gluetun-proxy-ichien:
+        condition: service_healthy
 
     healthcheck:
       test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://localhost:8080/health"]
