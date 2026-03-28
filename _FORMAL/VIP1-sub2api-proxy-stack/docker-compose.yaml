@@ -21,13 +21,8 @@ services:
       - VPN_FILES=${OPENVPN_VPN_FILES:-client.ovpn}
     command:
       # -f ""：VPN 掛掉時封鎖外連，避免直接裸連。
-      # -r：保留 Docker 內網，讓 sub2api 仍能連 postgres / redis。
       - -f
       - ""
-      - -r
-      - ${DOCKER_OUTBOUND_SUBNET:-172.31.50.0/24}
-    networks:
-      - app_net
 
   sub2api-vip1:
     image: weishaw/sub2api:latest
@@ -192,8 +187,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    networks:
-      - app_net
     # 注意：不暴露端口到宿主机，应用通过内部网络连接
     # 如需调试，可临时添加：ports: ["127.0.0.1:5433:5432"]
 
@@ -228,12 +221,3 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
-    networks:
-      - app_net
-
-networks:
-  app_net:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: ${DOCKER_OUTBOUND_SUBNET:-172.31.50.0/24}
