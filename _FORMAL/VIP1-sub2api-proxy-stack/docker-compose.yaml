@@ -26,7 +26,7 @@ services:
     volumes:
       # README 規範：OpenVPN 設定檔與其引用的 cert/key/auth 檔都放在 /vpn。
       # 這裡用 host bind mount，讓 .ovpn / 憑證檔直接由宿主機維護。
-      - /root/appdata/openvpn-client/openvpn-proxy-ichien:/vpn
+      - /root/appdata/openvpn-client/vpn:/vpn
     environment:
       - TZ=${TZ:-Asia/Taipei}
       # README 的 VPN_FILES 支援指定 /vpn 內要使用的設定檔名稱；
