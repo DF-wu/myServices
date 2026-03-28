@@ -1,5 +1,15 @@
 services:
 
+  # 設計依據已對照：
+  # 1) dperson/openvpn-client README：這個容器就是設計成先啟動，其他容器用
+  #    `--net=container:vpn` 共用它的 network stack；在 Compose 中等價寫法就是
+  #    `network_mode: "service:openvpn-proxy-ichien"`。
+  # 2) Docker Compose 官方文件：同一個 compose project 預設會自動建立一個
+  #    default network；加入該網路的 service 彼此可直接用 service name 互連。
+  # 3) dperson/openvpn-client 的 openvpn.sh：啟用 `-f ""` 後，防火牆會自動讀取
+  #    eth0 所在的 docker bridge CIDR (`docker_network`) 並放行，也會放行
+  #    Docker 內建 DNS `127.0.0.11`。因此這個 compose 不需要手動指定 subnet 或 `-r`。
+
   # ichien家 vpn，供 VIP sub2api 直接共用網路 namespace。
   openvpn-proxy-ichien:
     image: dperson/openvpn-client:latest
@@ -10,17 +20,23 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      # sub2api 使用 service network mode 後，對外 port 要掛在 VPN 容器上。
+      # 依 README 說明：如果有要對外開放的 port，必須掛在 VPN 容器上；
+      # 因為 sub2api 會共用這個容器的 network stack，而不是自己持有獨立網卡。
       - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-8080}:8080"
     volumes:
-      # 把 .ovpn 與其引用的憑證 / auth 檔都放進這個目錄。
+      # README 規範：OpenVPN 設定檔與其引用的 cert/key/auth 檔都放在 /vpn。
+      # 這裡用 host bind mount，讓 .ovpn / 憑證檔直接由宿主機維護。
       - /root/appdata/openvpn-client/openvpn-proxy-ichien:/vpn
     environment:
       - TZ=${TZ:-Asia/Taipei}
-      # 預設讀取 /vpn/client.ovpn；若實際檔名不同可用環境變數覆蓋。
+      # README 的 VPN_FILES 支援指定 /vpn 內要使用的設定檔名稱；
+      # 預設讀 /vpn/client.ovpn，若檔名不同可覆寫 OPENVPN_VPN_FILES。
       - VPN_FILES=${OPENVPN_VPN_FILES:-client.ovpn}
     command:
-      # -f ""：VPN 掛掉時封鎖外連，避免直接裸連。
+      # README: `-f ""` 會啟用 kill switch。
+      # codebase(openvpn.sh): 防火牆會自動放行 eth0 所在 docker bridge CIDR，
+      # 所以 postgres / redis 只要跟 openvpn-proxy-ichien 在同一個 compose 預設網路，
+      # sub2api 共用此 network namespace 後就仍可用 service name 連到它們。
       - -f
       - ""
 
@@ -28,6 +44,8 @@ services:
     image: weishaw/sub2api:latest
     container_name: sub2api-vip1
     restart: unless-stopped
+    # Compose 官方 `network_mode: service:<name>`：讓 sub2api 直接共用
+    # openvpn-proxy-ichien 的 network namespace，所有對外流量都經過 VPN。
     network_mode: "service:openvpn-proxy-ichien"
     ulimits:
       nofile:
@@ -155,6 +173,7 @@ services:
       openvpn-proxy-ichien:
         condition: service_started
     healthcheck:
+      # sub2api 與 openvpn-proxy-ichien 共用網路，所以健康檢查直接打 localhost。
       test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
@@ -168,6 +187,9 @@ services:
     image: postgres:18-alpine
     container_name: sub2api-postgres
     restart: unless-stopped
+    # 不手動指定 networks：讓它加入 Compose 預設 default network。
+    # Docker Compose 官方文件：同一個 default network 內的 service 可直接用名稱互連，
+    # 因此 sub2api 內直接連 DATABASE_HOST=postgres 即可。
     ulimits:
       nofile:
         soft: 100000
@@ -197,6 +219,7 @@ services:
     image: redis:8-alpine
     container_name: sub2api-redis
     restart: unless-stopped
+    # 同 postgres，保留在 Compose 預設 default network，讓 `REDIS_HOST=redis` 直接可用。
     ulimits:
       nofile:
         soft: 100000
