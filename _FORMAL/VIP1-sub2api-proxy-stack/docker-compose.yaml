@@ -4,11 +4,13 @@ services:
   # 1) dperson/openvpn-client README：這個容器就是設計成先啟動，其他容器用
   #    `--net=container:vpn` 共用它的 network stack；在 Compose 中等價寫法就是
   #    `network_mode: "service:openvpn-proxy-ichien"`。
-  # 2) Docker Compose 官方文件：同一個 compose project 預設會自動建立一個
-  #    default network；加入該網路的 service 彼此可直接用 service name 互連。
-  # 3) dperson/openvpn-client 的 openvpn.sh：啟用 `-f ""` 後，防火牆會自動讀取
-  #    eth0 所在的 docker bridge CIDR (`docker_network`) 並放行，也會放行
-  #    Docker 內建 DNS `127.0.0.11`。因此這個 compose 不需要手動指定 subnet 或 `-r`。
+  # 2) `network_mode: service:...` 在理論上可以沿用 Docker 內建 DNS，但實機上
+  #    子容器對 127.0.0.11 的解析不夠穩定，曾導致 postgres / redis lookup 失敗。
+  # 3) 為了降低維護成本，這份 stack 改成「固定內網 + 固定 IP + 應用直接連 IP」：
+  #    不再依賴 shared network namespace 下的 Docker DNS，重建後仍然可預期。
+  # 4) dperson/openvpn-client 的 openvpn.sh：啟用 `-f ""` 後，防火牆會自動讀取
+  #    eth0 所在的 docker bridge CIDR (`docker_network`) 並放行；因此只要 postgres /
+  #    redis / openvpn-proxy-ichien 都在同一個固定 bridge subnet，就能穩定互通。
 
   # ichien家 vpn，供 VIP sub2api 直接共用網路 namespace。
   openvpn-proxy-ichien:
@@ -34,11 +36,13 @@ services:
       - VPN_FILES=${OPENVPN_VPN_FILES:-client.ovpn}
     command:
       # README: `-f ""` 會啟用 kill switch。
-      # codebase(openvpn.sh): 防火牆會自動放行 eth0 所在 docker bridge CIDR，
-      # 所以 postgres / redis 只要跟 openvpn-proxy-ichien 在同一個 compose 預設網路，
-      # sub2api 共用此 network namespace 後就仍可用 service name 連到它們。
+      # codebase(openvpn.sh): 防火牆會自動放行 eth0 所在 docker bridge CIDR。
+      # 因此這裡只要加入固定的 app_net，即可穩定連到同網段上的 postgres / redis。
       - -f
       - ""
+    networks:
+      app_net:
+        ipv4_address: 172.31.50.2
 
   sub2api-vip1:
     image: weishaw/sub2api:latest
@@ -75,7 +79,9 @@ services:
       # =======================================================================
       # Database Configuration (PostgreSQL)
       # =======================================================================
-      - DATABASE_HOST=postgres
+      # 直接使用固定 IP，避免 shared network namespace 對 Docker DNS(127.0.0.11)
+      # 的依賴，降低重建後偶發解析失敗的機率。
+      - DATABASE_HOST=172.31.50.11
       - DATABASE_PORT=5432
       - DATABASE_USER=${POSTGRES_USER:-sub2api}
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-sub2api}
@@ -89,7 +95,8 @@ services:
       # =======================================================================
       # Redis Configuration
       # =======================================================================
-      - REDIS_HOST=redis
+      # 同上，直接使用固定 IP，避免依賴 Docker 內建 DNS。
+      - REDIS_HOST=172.31.50.10
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_DB=${REDIS_DB:-0}
@@ -187,9 +194,7 @@ services:
     image: postgres:18-alpine
     container_name: sub2api-postgres
     restart: unless-stopped
-    # 不手動指定 networks：讓它加入 Compose 預設 default network。
-    # Docker Compose 官方文件：同一個 default network 內的 service 可直接用名稱互連，
-    # 因此 sub2api 內直接連 DATABASE_HOST=postgres 即可。
+    # 固定 IP：讓 sub2api 共用 VPN namespace 時仍可直接連線，不依賴 Docker DNS。
     ulimits:
       nofile:
         soft: 100000
@@ -209,6 +214,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      app_net:
+        ipv4_address: 172.31.50.11
     # 注意：不暴露端口到宿主机，应用通过内部网络连接
     # 如需调试，可临时添加：ports: ["127.0.0.1:5433:5432"]
 
@@ -219,7 +227,7 @@ services:
     image: redis:8-alpine
     container_name: sub2api-redis
     restart: unless-stopped
-    # 同 postgres，保留在 Compose 預設 default network，讓 `REDIS_HOST=redis` 直接可用。
+    # 固定 IP：讓 sub2api 共用 VPN namespace 時仍可直接連線，不依賴 Docker DNS。
     ulimits:
       nofile:
         soft: 100000
@@ -244,3 +252,17 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    networks:
+      app_net:
+        ipv4_address: 172.31.50.10
+
+networks:
+  app_net:
+    driver: bridge
+    ipam:
+      config:
+        # 固定 subnet 是刻意的：
+        # 1) 讓 postgres / redis 的位址長期穩定。
+        # 2) 避開這台主機現有的 172.17/16、172.18/16、172.19/16。
+        # 3) 避開家中 VPN 已使用的 192.168.68.0/22。
+        - subnet: 172.31.50.0/24
