@@ -1,0 +1,11 @@
+# Axios VERSION variable (from Claude Code v2.1.81 binary):
+W8H="1.13.6"
+
+# Axios default UA logic (from binary):
+y.set("User-Agent","axios/"+W8H,!1)
+# false = don't overwrite existing, but no UA is set in token calls, so this takes effect
+
+# Known axios versions across Claude Code releases:
+# claude-code 1.0.3 ~ 2.1.72  → axios 1.8.4
+# claude-code 2.1.78           → axios 1.13.4
+# claude-code 2.1.80 ~ 2.1.87 → axios 1.13.6

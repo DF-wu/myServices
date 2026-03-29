@@ -1,0 +1,15 @@
+# Three UA builder functions in Claude Code v2.1.81:
+
+## 1. vV() — Used for API requests (/v1/messages)
+# Format: claude-cli/<VERSION> (external, <entrypoint>[, agent-sdk/<ver>][, client-app/<app>])
+# Example: claude-cli/2.1.81 (external, cli)
+
+## 2. co() — Used for MCP connections, WebSocket
+# Format: claude-code/<VERSION>[ (<entrypoint>[, agent-sdk/<ver>])]
+# Example: claude-code/2.1.81
+
+## 3. jO() — Used for client_data API, metrics, org metrics
+# Format: claude-code/<VERSION>
+# Example: claude-code/2.1.81
+
+## Token exchange/refresh: NO explicit UA set → axios default "axios/<version>"
