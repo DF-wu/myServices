@@ -703,8 +703,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   cli-proxy-api:
-    image: eceasy/cli-proxy-api-plus:latest
-    container_name: cli-proxy-api-plus
+    image: eceasy/cli-proxy-api:latest
+    # image: eceasy/cli-proxy-api-plus:latest
+    container_name: cli-proxy-api
     restart: unless-stopped
     network_mode: service:gluetun-proxy
     depends_on:
