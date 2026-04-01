@@ -24,6 +24,8 @@ services:
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
       - OPENVPN_CUSTOM_CONFIG=/gluetun/custom.conf
+      # NOTE: custom.conf 已移除 route-method exe / route-delay 0 / route 0.0.0.0 0.0.0.0 / script-security 2
+      # 這些由 gluetun 自行管理，重複設定會導致 RTNETLINK route already exists 錯誤
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
