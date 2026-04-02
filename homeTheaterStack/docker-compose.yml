@@ -45,6 +45,9 @@ services:
       - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data/AutoBangumi:/data/AutoBangumi
       
     environment:
+      - PGID=3000
+      - PUID=3000
+
       - TZ=Asia/Taipei
       # https://github.com/linuxserver/docker-jellyfin#nvidia or https://jellyfin.org/docs/general/administration/hardware-acceleration/nvidia/
       - NVIDIA_VISIBLE_DEVICES=all
