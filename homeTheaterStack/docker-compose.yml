@@ -107,20 +107,6 @@ services:
       # appdata
       - /mnt/appdata/jproxy:/app/database
 
-  # This is for metatube scratching metadata. Ref: https://metatube-community.github.io/wiki/server-deployment/
-  # I use sqlite for easier deployment
-  metatube-server:
-    container_name: metatube
-    restart: unless-stopped
-    image: metatube/metatube-server:latest
-    ports:
-      - 48080:8080
-    volumes:
-      - /mnt/appdata/metatube-server/config:/config
-    environment:
-      - TZ=Asia/Taipei
-    command: -dsn /config/metatube.db
-  
   # Autobangumi for 自動追番。 replace my own rough download chain. REF: https://www.autobangumi.org/home/
 
   AutoBangumi:
