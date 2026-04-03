@@ -161,3 +161,16 @@ services:
       - ENABLE_RESTART=true
       - ENABLE_SHUTDOWN=false
 
+  # let jellyfin support danmu. 
+  danmu-api:
+    image: logvar/danmu-api:latest
+    restart: unless-stopped
+    container_name: danmu-api
+    
+    ports:
+    # 應該不用 
+      # - "9321:9321"
+    # 热更新支持：挂载 config/.env 文件，修改后容器会自动重新加载配置（无需重启容器）
+    volumes:
+      - /mnt/appdata/danmu-api/config:/app/config    # config目录下需要创建.env
+      - /mnt/appdata/danmu-api/chche:/app/.cache    # 配置.chche目录，会将缓存实时保存在本地文件
