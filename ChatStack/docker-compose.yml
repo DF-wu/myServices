@@ -905,8 +905,11 @@ services:
       - /mnt/appdata/ChatStack/lilac-mono-claudia/data:/data
       - /home/df/.agents:/home/Claudia/.agents
       - /mnt/appdata/ChatStack/lilac-mono-claudia/.ssh:/home/Claudia/.ssh
-      # - /home/df/.ssh:/home/Claudia/.ssh
+      - /mnt/appdata/ChatStack/lilac-mono/data/prompts/memory/homelab.md:/data/prompts/memory/homelab.md
       - /mnt/appdata/ChatStack/lilac-mono-claudia/data/.cache:/home/Claudia/.cache
+
+  
+
     depends_on:
       chatstack-unified-redis:
         condition: service_healthy
