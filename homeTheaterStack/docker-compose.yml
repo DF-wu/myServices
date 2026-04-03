@@ -133,4 +133,31 @@ services:
       # - PUID=$(id -u)
       - UMASK=022
 
+  # Shoko Server for anime collection management and Shokofin/Jellyfin integration.
+  # Docs: https://docs.shokoanime.com/getting-started/
+  shokoserver:
+    image: ghcr.io/shokoanime/server:latest
+    container_name: shokoserver
+    restart: unless-stopped
+    shm_size: 256m
+    ports:
+      # Shoko WebUI / API
+      - 8111:8111
+    volumes:
+      # Shoko config / database / cached metadata
+      - /mnt/appdata/shokoserver:/home/shoko/.shoko
+      # Main anime library path for Shoko / Shokofin mapping
+      - /mnt/mydata/Public/ACGN:/mnt/anime
+      # Download / drop folders for import automation
+      - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data/AutoBangumi:/mnt/import/AutoBangumi
+      - /mnt/mydata/diskMigration/BrokenHDD_BeCareful/qbittorrentDownloads/data/FinishedBox/ACGN-online:/mnt/import/ACGN-online
+    environment:
+      # Match Jellyfin permissions so both services can see/manage the same files.
+      - PUID=3000
+      - PGID=3000
+      - TZ=Asia/Taipei
+      - UMASK=022
+      # Keep web restart available; disallow full shutdown from the UI.
+      - ENABLE_RESTART=true
+      - ENABLE_SHUTDOWN=false
 
