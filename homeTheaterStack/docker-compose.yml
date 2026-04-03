@@ -168,6 +168,24 @@ services:
     container_name: danmu-api
     env_file:
       - .env
+    environment:
+      - TMDB_API_KEY= ${TMDB_API_KEY}
+      # AI服务的基础URL地址，用于配置AI相关功能的API端点
+      # 默认值：https://api.openai.com/v1
+      - AI_BASE_URL=http://axolotl.newhome:43001/v1
+
+      # AI模型名称，指定使用的AI模型
+      # 默认值：gpt-4o
+      - AI_MODEL=gemini-3-flash-preview
+
+      # AI服务的API密钥，用于身份验证
+      # 默认值：空（不使用AI功能）
+      - AI_API_KEY=${AI_API_KEY}
+
+      # AI匹配提示词，用于自定义AI匹配行为
+      # 默认值：空（使用默认提示词）
+      - AI_MATCH_PROMPT=
+
     ports:
       - 9321:9321
     # 热更新支持：挂载 config/.env 文件，修改后容器会自动重新加载配置（无需重启容器）
