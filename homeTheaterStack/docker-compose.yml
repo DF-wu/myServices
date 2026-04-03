@@ -166,7 +166,8 @@ services:
     image: logvar/danmu-api:latest
     restart: unless-stopped
     container_name: danmu-api
-
+    env_file:
+      - .env
     ports:
       - 9321:9321
     # 热更新支持：挂载 config/.env 文件，修改后容器会自动重新加载配置（无需重启容器）
