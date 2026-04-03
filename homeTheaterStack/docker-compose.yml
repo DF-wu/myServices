@@ -142,7 +142,7 @@ services:
     shm_size: 256m
     ports:
       # Shoko WebUI / API
-      - 8111:8111
+      - 58111:8111
     volumes:
       # Shoko config / database / cached metadata
       - /mnt/appdata/shokoserver:/home/shoko/.shoko
