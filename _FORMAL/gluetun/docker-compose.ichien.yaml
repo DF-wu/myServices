@@ -1,0 +1,24 @@
+services:
+
+  # check the image .this is not gluetun.
+  openvpn-proxy-ichien:
+    image: dperson/openvpn-client:latest
+    container_name: openvpn-proxy-ichien
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      # 依 README 說明：如果有要對外開放的 port，必須掛在 VPN 容器上；
+      # 因為 sub2api 會共用這個容器的 network stack，而不是自己持有獨立網卡。
+      - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-40000}:8080"
+    volumes:
+      # README 規範：OpenVPN 設定檔與其引用的 cert/key/auth 檔都放在 /vpn。
+      # 這裡用 host bind mount，讓 .ovpn / 憑證檔直接由宿主機維護。
+      - /root/appdata/openvpn-client/vpn:/vpn
+    environment:
+      - TZ=${TZ:-Asia/Taipei}
+      # README 的 VPN_FILES 支援指定 /vpn 內要使用的設定檔名稱；
+      # 預設讀 /vpn/client.ovpn，若檔名不同可覆寫 OPENVPN_VPN_FILES。
+      - VPN_FILES=${OPENVPN_VPN_FILES:-client.ovpn}
