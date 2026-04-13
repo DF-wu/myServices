@@ -1,0 +1,71 @@
+services:
+  ddns-init:
+    image: ghcr.io/df-wu/ddns-openvpn-proxy-watcher
+    restart: no
+    volumes:
+      - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
+      - ${STATE_DIR:-./state}:/gluetun/state
+    environment:
+      TZ: ${TZ:-UTC}
+      OPENVPN_SOURCE_CONFIG: ${OPENVPN_SOURCE_CONFIG:-}
+      OPENVPN_SOURCE_DIR: /gluetun/source/openvpn
+      OPENVPN_RENDERED_CONFIG: /gluetun/state/openvpn/current.ovpn
+      DDNS_HOSTNAME: ${DDNS_HOSTNAME:-}
+      DDNS_POLL_SECONDS: ${DDNS_POLL_SECONDS:-60}
+      DDNS_COOLDOWN_SECONDS: ${DDNS_COOLDOWN_SECONDS:-15}
+      DDNS_RESOLVER: ${DDNS_RESOLVER:-}
+      DDNS_OVERRIDE_IP: ${DDNS_OVERRIDE_IP:-}
+      STATE_DIR: /gluetun/state
+    entrypoint: ["/app/scripts/ddns-init.sh"]
+
+  gluetun:
+    image: ${GLUETUN_IMAGE:-qmcgaw/gluetun:latest}
+    container_name: ${GLUETUN_CONTAINER_NAME:-ddns-openvpn-proxy}
+    restart: unless-stopped
+    depends_on:
+      ddns-init:
+        condition: service_completed_successfully
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${HTTP_PROXY_PORT:-8888}:8888/tcp"
+    volumes:
+      - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
+      - ${STATE_DIR:-./state}:/gluetun/state
+    environment:
+      TZ: ${TZ:-UTC}
+      VPN_SERVICE_PROVIDER: custom
+      VPN_TYPE: openvpn
+      OPENVPN_CUSTOM_CONFIG: /gluetun/state/openvpn/current.ovpn
+      HTTPPROXY: on
+      HTTPPROXY_LISTENING_ADDRESS: :8888
+      HTTPPROXY_USER: ${HTTPPROXY_USER:-}
+      HTTPPROXY_PASSWORD: ${HTTPPROXY_PASSWORD:-}
+      HTTPPROXY_STEALTH: on
+
+  ddns-watcher:
+    image: ${WATCHER_IMAGE:-ghcr.io/df-wu/ddns-openvpn-proxy-watcher:latest}
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_started
+    volumes:
+      - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
+      - ${STATE_DIR:-./state}:/gluetun/state
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      TZ: ${TZ:-UTC}
+      OPENVPN_SOURCE_CONFIG: ${OPENVPN_SOURCE_CONFIG:-}
+      OPENVPN_SOURCE_DIR: /gluetun/source/openvpn
+      OPENVPN_RENDERED_CONFIG: /gluetun/state/openvpn/current.ovpn
+      DDNS_HOSTNAME: ${DDNS_HOSTNAME:-}
+      DDNS_POLL_SECONDS: ${DDNS_POLL_SECONDS:-60}
+      DDNS_COOLDOWN_SECONDS: ${DDNS_COOLDOWN_SECONDS:-15}
+      DDNS_RESOLVER: ${DDNS_RESOLVER:-}
+      DDNS_OVERRIDE_IP: ${DDNS_OVERRIDE_IP:-}
+      GLUETUN_CONTAINER_NAME: ${GLUETUN_CONTAINER_NAME:-ddns-openvpn-proxy}
+      STATE_DIR: /gluetun/state
