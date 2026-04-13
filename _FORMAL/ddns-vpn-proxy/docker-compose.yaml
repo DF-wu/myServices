@@ -5,6 +5,8 @@ services:
     volumes:
       - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
       - ${STATE_DIR:-./state}:/gluetun/state
+    env_file:
+      - .env
     environment:
       TZ: ${TZ:-UTC}
       OPENVPN_SOURCE_CONFIG: ${OPENVPN_SOURCE_CONFIG:-}
@@ -22,6 +24,8 @@ services:
     image: ${GLUETUN_IMAGE:-qmcgaw/gluetun:latest}
     container_name: ${GLUETUN_CONTAINER_NAME:-ddns-openvpn-proxy}
     restart: unless-stopped
+    env_file:
+      - .env
     depends_on:
       ddns-init:
         condition: service_completed_successfully
@@ -57,6 +61,8 @@ services:
       - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
       - ${STATE_DIR:-./state}:/gluetun/state
       - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .env
     environment:
       TZ: ${TZ:-UTC}
       OPENVPN_SOURCE_CONFIG: ${OPENVPN_SOURCE_CONFIG:-}
