@@ -1,8 +1,9 @@
 # author : df
-# version: 1.1
-# date: 2025.8.15
-# description: open-webui
+# version: 1.2
+# date: 2026.05.01
+# description: open-webui + halowebui
 # doc: https://github.com/open-webui/open-webui
+# doc: https://github.com/ztx888/HaloWebUI
 # active host port index (sorted)
 # format: <host_port> | <service>
 # -  6333 | qdrant
@@ -14,6 +15,7 @@
 # - 43002 | open-webui
 # - 43003 | sillytavern
 # - 43004 | astrbot
+# - 43006 | halowebui
 # - 43020 | chatstack-postgres17-pgvector
 # - 43056 | claude-code-router
 # - 43057 | claude-relay-service
@@ -74,6 +76,32 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu, compute, video]
+
+  # author : df
+  # version: 1.0
+  # date: 2026.05.01
+  # description: HaloWebUI - Open WebUI fork with Chinese localization, billing & usage stats
+  # doc: https://github.com/ztx888/HaloWebUI
+  halowebui:
+    image: ghcr.io/ztx888/halowebui:main
+    container_name: halowebui
+    restart: unless-stopped
+    ports:
+      - "43006:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - OLLAMA_BASE_URL=http://open-webui:11434
+      - OPENAI_API_KEY=0
+      - WEBUI_SECRET_KEY=${HALOWEBUI_SECRET_KEY:-}
+      - SCARF_NO_ANALYTICS=true
+      - DO_NOT_TRACK=true
+      - TZ=Asia/Taipei
+    volumes:
+      - /mnt/appdata/ChatStack/halowebui:/app/backend/data
+    depends_on:
+      open-webui:
+        condition: service_started
 
   # https://docs.openwebui.com/tutorials/integrations/redis/
   # 統一的 Redis 服務，使用不同數據庫編號分離數據
