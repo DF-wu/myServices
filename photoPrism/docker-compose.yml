@@ -39,6 +39,27 @@ services:
       - TZ=Asia/Taipei
     env_file:
       - .env
+    # =========================================================================
+    # 跨 stack 連到 ChatStack 的 ollama / new-api (給 vision.yml 用)
+    # -------------------------------------------------------------------------
+    # 為什麼需要這行:
+    #   photoprism 在 photoprism_default 網路, ollama 在 chatstack_default 網路,
+    #   兩個 bridge 網路不互通, 容器名互相解析不到.
+    #
+    # 走法 (路線 A: 繞 host):
+    #   photoprism → host.docker.internal:43002 → host iptables NAT → ollama:11434
+    #                                              ↑
+    #               利用 ChatStack compose 已經把 ollama port 43002 expose 到 host
+    #
+    # 對應的 vision.yml 端點:
+    #   ChatStack ollama:  http://host.docker.internal:43002/api/generate
+    #   ChatStack new-api: http://host.docker.internal:43001/v1/chat/completions
+    #
+    # 替代方案 (路線 B, 沒採用): 把 photoprism 加進 chatstack_default external network
+    #   優點是直連不繞 host, 缺點是兩 stack 耦合, 啟動需 chatstack network 存在.
+    # =========================================================================
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "photoprism", "status"]
       interval: 60s
