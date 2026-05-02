@@ -230,6 +230,48 @@ services:
       timeout: 10s
       retries: 3
 
+  # ===========================================================================
+  # LiteLLM proxy: 把 OpenAI Responses API 轉成 Chat Completions API
+  # ---------------------------------------------------------------------------
+  # 為什麼存在:
+  #   PhotoPrism 的 Engine: openai 鎖死 /v1/responses (Responses API),
+  #   但 new-api 後台的 channel 多半只支援 /v1/chat/completions.
+  #   LiteLLM 在中間做格式轉換, 並用 wildcard 路由 → 換 model 不用動 compose,
+  #   只改 photoprism 的 vision.yml Name 欄位即可.
+  #
+  # 流程:
+  #   photoprism (Responses) → litellm:43003 (轉換) → new-api:3000 (Chat Completions) → upstream
+  #
+  # 零維護設計:
+  #   - 無 master_key (內網用, 不驗 auth)
+  #   - 無 DB, 無 logging, 無 cost tracking → stateless
+  #   - config 內嵌在 entrypoint heredoc → 沒有額外檔案
+  #   - wildcard model_name "*" → 換 model 只改 vision.yml
+  #   - api_key 走 env var → 換 key 只改 .env
+  # ===========================================================================
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: litellm
+    restart: always
+    ports:
+      - "43003:4000"
+    environment:
+      - NEWAPI_KEY=${NEWAPI_KEY}
+    entrypoint:
+      - sh
+      - -c
+      - |
+        cat > /tmp/config.yaml <<'EOF'
+        model_list:
+          - model_name: "*"
+            litellm_params:
+              model: "openai/*"
+              api_base: http://new-api:3000/v1
+              api_key: os.environ/NEWAPI_KEY
+              use_chat_completions_api: true
+        EOF
+        exec litellm --config /tmp/config.yaml --port 4000 --host 0.0.0.0
+
   # claude code router docker version.
   # doc: https://linux.do/t/topic/864277
   claude-code-router:
