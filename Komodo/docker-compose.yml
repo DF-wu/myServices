@@ -1,0 +1,141 @@
+# author: df
+# prepared: 2026-05-03
+# description: Komodo (mbecker20/komodo) — git-native Docker management UI to replace Portainer.
+# doc: https://komo.do/docs
+# upstream compose ref: https://github.com/moghtech/komodo/blob/main/compose/mongo.compose.yaml
+#
+# 設計原則（為什麼整份檔長這樣）:
+# - 鎖定 image tag（不用 latest / "2"），避免上游 minor bump 把 schema 換掉害你重啟壞掉。
+# - DB 後端走 MongoDB（Komodo 官方 *主推* 的 backend）。
+#   選 Mongo 而不是 FerretDB 的理由：
+#     1. Komodo 文件直接寫 "recommend MongoDB"，社群文章 / 教學 / debug 案例都是 Mongo 為主。
+#     2. 原生效能（find ~0.5-2ms vs FerretDB ~2-5ms），管理 70+ stack 採集間隔 15-sec 時差感得出來。
+#     3. wiredTiger 引擎成熟 10+ 年，replica set / point-in-time backup 工具齊全。
+#     4. 你 axolotl host 應該有 AVX（Mongo 5.0+ 必須），現代 x86_64 都有；無 AVX 才需要 FerretDB。
+#   代價：SSPL 授權（自架自用無影響，商用要評估）；container 比 FerretDB+Postgres 多吃一些 RAM。
+# - mongo 容器打 `komodo.skip` label：避免 Komodo 自己 UI 把自家 DB 也納入「stop all」之類的全域操作。
+# - core 與 periphery 拆開兩個容器（即使現在單機），未來新增主機只要在新主機跑 periphery，core 不動。
+# - periphery 跟 core 共用 named volume `keys/` 來交換 ed25519 公鑰，這樣 LAN 內就不用人工貼 key。
+# - 不開 host network、不掛 user repo（你選 /etc/komodo 隔離模式）。Portainer-style 全權限是反模式。
+# - ports 預設開在 0.0.0.0:55003 → core:9120，方便 LAN UI；之後上 NPM 再改 127.0.0.1 binding。
+# - 沒有 watchtower / auto-update：你已經明確說要手動更新（見 portainer-ce/docker-compose.yml 註解）。
+
+# Compose project name 顯式鎖定，否則目錄改名會讓 named volumes 換 prefix → 資料看似遺失。
+name: komodo
+
+services:
+
+  # ── MongoDB ──────────────────────────────────────────────────────────────
+  # Komodo 把所有 resource config / user / audit log / system state 存這裡。
+  # tag 鎖在 8.0.21：mongo:8 是現役 stable（LTS 支援到 2027+），8.0.21 是 2026-05 的 patch 版。
+  # 不選 7.0 因為 EOL 在 2026 中段，之後會被迫升級；不用 "8.0" rolling tag 因為你習慣手動控版本。
+  # 不選 "latest" 因為下個 major（9.x）出來時可能需要 FCV 升級流程，不能 docker compose pull 就升上去。
+  mongo:
+    image: mongo:8.0.21
+    container_name: komodo-mongo
+    # komodo.skip label：Komodo UI 看到這 label 就不會把它列入 batch action（避免誤關自家 DB）。
+    labels:
+      komodo.skip:
+    restart: unless-stopped
+    # command 兩個參數的理由：
+    # --quiet：mongo 預設 log 太雜（每筆 connection 都印），不關 Netdata / Loki 收會被淹。
+    # --wiredTigerCacheSizeGB 0.25：預設 cache size = max(0.5GB, 50% of (RAM-1GB))。
+    #   你這台跑 70+ container + GPU AI stack，把 cache 鎖在 256MB 避免 Mongo 跟 chatstack/photoprism 搶記憶體。
+    #   Komodo workload 是輕量 CRUD，256MB cache 完全夠用（官方範例就是這值）。
+    command: --quiet --wiredTigerCacheSizeGB 0.25
+    # 不對外開 27017 port：DB 只能由同 docker network 的 core 連到。
+    # 想用 mongosh / Compass 從 host 連 → docker exec -it komodo-mongo mongosh，或臨時加 ports。
+    volumes:
+      # /data/db = 實際資料；/data/configdb = sharding metadata（單機沒用，但 mongo image 預期它存在）。
+      # 用 named volume 而非 bind-mount：mongo 對 host fs 的 fsync / locking 行為很挑，bind-mount 在某些 fs 會出 corruption。
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    environment:
+      # ROOT 帳號。Mongo 會用這對帳密在 admin db 建一個 superuser；Komodo Core 用同一對帳密連，
+      # 由 Komodo 內部走 authSource=admin 認證後操作 komodo db（DB name 預設就叫 komodo）。
+      # 帳密走 env 不寫死在 yaml，方便 secret rotation；真值在 compose.env.local（gitignored）。
+      MONGO_INITDB_ROOT_USERNAME: ${KOMODO_DATABASE_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DATABASE_PASSWORD}
+    networks:
+      - komodo-internal
+
+  # ── Komodo Core (Web UI + API) ────────────────────────────────────────────
+  # 這是你要打開瀏覽器看的服務。port 9120（內）→ 55003（外）對齊你的 5500x 管理工具慣例。
+  core:
+    image: ghcr.io/moghtech/komodo-core:v2.1.2
+    container_name: komodo-core
+    # init: true → 用 tini 當 PID 1，正確處理 SIGTERM、避免 zombie process。
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      # 55003 是這個 stack 對外唯一的 port。你後續上 NPM 時建議改成 "127.0.0.1:55003:9120" 鎖回 loopback。
+      # 現在保留 0.0.0.0 是因為你選擇 LAN-only 直連階段。
+      - "55003:9120"
+    # env_file 用兩段：committed 模板 + 本地 secrets override。後者在 .gitignore，不會被 push。
+    # docker compose 多檔語意：後面的覆蓋前面的，所以 .local 一定贏。
+    env_file:
+      - ./compose.env
+      - ./compose.env.local
+    environment:
+      # 這條從 yaml 直接固定，不放到 env：因為 hostname 是 service name，不希望被誤改。
+      # 格式 hostname:port，Komodo 自己會用 KOMODO_DATABASE_USERNAME/PASSWORD 組 connection string，
+      # 並預設 authSource=admin、db=komodo（這兩個用上游預設值即可，不在這裡覆寫）。
+      KOMODO_DATABASE_ADDRESS: mongo:27017
+    volumes:
+      # keys 是 named volume，core 與 periphery 共享，用來交換 ed25519 公鑰（首次啟動 core 會生成）。
+      - keys:/config/keys
+      # backups bind-mount 到 host：要有 host 路徑才能跨容器災難恢復；走 /mnt/appdata/Komodo（你的 data 慣例）。
+      - ${COMPOSE_KOMODO_BACKUPS_PATH:-/mnt/appdata/Komodo/backups}:/backups
+    networks:
+      - komodo-internal
+
+  # ── Komodo Periphery (Agent on this host) ─────────────────────────────────
+  # Periphery 是真正去操作 docker 的 agent。即使單機也拆出來：未來新增主機只要在那台跑 periphery 即可。
+  # 它跟 core 透過 ws://core:9120 通訊，授權用 ed25519 公鑰（共享 keys volume）。
+  periphery:
+    image: ghcr.io/moghtech/komodo-periphery:v2.1.2
+    container_name: komodo-periphery
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - core
+    env_file:
+      - ./compose.env
+      - ./compose.env.local
+    volumes:
+      # 共享 keys：core 啟動時寫 periphery.pub，periphery 啟動時寫 core.pub，雙向 trust。
+      - keys:/config/keys
+      # docker socket：periphery 透過這條操作 docker。這是必要邪惡 — 任何 docker 管理工具都需要。
+      # ⚠️ 這個 mount 等同 host root：誰能進 periphery 容器 = 誰能 root 整台機器。
+      # 風險控管：compose.env 那邊有 PERIPHERY_DISABLE_TERMINALS 可關 shell。
+      - /var/run/docker.sock:/var/run/docker.sock
+      # /proc：Periphery 監控 host CPU / memory / disk 用，read-only 即可（官方 compose 沒 :ro，這裡也保持一致避免怪 bug）。
+      - /proc:/proc
+      # ROOT_DIRECTORY：你選了 /etc/komodo（官方建議路徑）。
+      # host:container 路徑必須相同（symmetric），這樣 Komodo 寫出的 compose 檔絕對路徑在容器內外都通。
+      # ⚠️ 這也代表你不能直接 adopt /home/df/workspace/myServices 下的舊 stack；要由 Komodo 重新從 git clone 進 /etc/komodo/stacks/。
+      - ${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}:${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}
+    networks:
+      - komodo-internal
+
+# ── Networks ────────────────────────────────────────────────────────────────
+# 顯式建立內部網路而非用 default，原因：
+# 1. 命名清楚（不會跟其他 stack 的 default network 撞）。
+# 2. 之後若要把外部的 Postgres / Redis 加進來監控，可以 attach 同一個 network。
+networks:
+  komodo-internal:
+    name: komodo-internal
+    driver: bridge
+
+# ── Volumes ─────────────────────────────────────────────────────────────────
+# 所有 named volume 都不指定 driver_opts，用 docker 預設（local driver）。
+# 想改 bind-mount 到 /mnt/appdata/Komodo/<name> 的話，記得處理 mongo uid/gid 問題（mongo image 是 uid 999）。
+volumes:
+  mongo-data:
+    name: komodo-mongo-data
+  mongo-config:
+    name: komodo-mongo-config
+  keys:
+    name: komodo-keys

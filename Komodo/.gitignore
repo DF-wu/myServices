@@ -1,0 +1,11 @@
+# 真正的 secrets — 永遠不要 push
+compose.env.local
+
+# Komodo 自家 backups 若不小心被 git 看到（例如手滑 mkdir 在這資料夾）
+backups/
+
+# 萬一誰改了 yaml 用 bind-mount 放本地，這些 host 路徑也別追蹤
+data/
+mongo-data/
+mongo-config/
+keys/
