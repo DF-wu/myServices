@@ -25,7 +25,7 @@ services:
       - "${CAPSWRITER_SERVER_PORT:-6016}:${CAPSWRITER_SERVER_PORT:-6016}"
       # Uncomment when you want the OpenAI-compatible HTTP API.
       # Make sure CAPSWRITER_HTTP_API_ENABLE=true and CAPSWRITER_HTTP_API_KEY is set.
-      # - "${CAPSWRITER_HTTP_API_PORT:-6017}:${CAPSWRITER_HTTP_API_PORT:-6017}"
+      - "${CAPSWRITER_HTTP_API_PORT:-6017}:${CAPSWRITER_HTTP_API_PORT:-6017}"
     volumes:
       - /mnt/appdata/capswriter-offline/models:/app/models
       - /mnt/appdata/capswriter-offline/hot-server.txt:/app/hot-server.txt
