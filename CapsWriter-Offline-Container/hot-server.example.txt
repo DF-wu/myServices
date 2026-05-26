@@ -1,0 +1,26 @@
+# Server hotword sample file
+# One hotword per line. Lines starting with # are ignored.
+# This file is mainly useful for Fun-ASR-Nano decoder context.
+
+# Product / project terms
+CapsWriter
+CapsWriter Offline
+Qwen-ASR
+Fun-ASR-Nano
+Paraformer
+SenseVoice
+
+# Technical terms
+WebSocket
+Docker
+Compose
+GPU
+CPU
+Vulkan
+CUDA
+llama.cpp
+
+# Personal / custom terms
+你的公司名稱
+你的產品名稱
+你的專案名稱

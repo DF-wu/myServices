@@ -1,0 +1,43 @@
+# doc:
+# - repo: https://github.com/DF-wu/CapsWriter-Offline-Container
+# - compose reference based on the upstream server-focused Docker deployment
+
+services:
+  capswriter-server:
+    image: ${CAPSWRITER_SERVER_IMAGE:-ghcr.io/df-wu/capswriter-offline-server:latest}
+    container_name: capswriter-server
+    restart: unless-stopped
+    pull_policy: always
+    env_file:
+      - .env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              # all = request visible GPUs; 0 = CPU-only startup
+              count: ${CAPSWRITER_GPU_DEVICE_COUNT:-all}
+              capabilities: [gpu]
+    environment:
+      - TZ=Asia/Taipei
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+    ports:
+      - "${CAPSWRITER_SERVER_PORT:-6016}:${CAPSWRITER_SERVER_PORT:-6016}"
+      # Uncomment when you want the OpenAI-compatible HTTP API.
+      # Make sure CAPSWRITER_HTTP_API_ENABLE=true and CAPSWRITER_HTTP_API_KEY is set.
+      # - "${CAPSWRITER_HTTP_API_PORT:-6017}:${CAPSWRITER_HTTP_API_PORT:-6017}"
+    volumes:
+      - /mnt/appdata/capswriter-offline/models:/app/models
+      - /mnt/appdata/capswriter-offline/hot-server.txt:/app/hot-server.txt
+      # Keep logs on a named volume by default; upstream explicitly recommends this
+      # to avoid bind-mount permission friction with the non-root container user.
+      - capswriter-server-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "docker/server/healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20m
+      retries: 5
+
+volumes:
+  capswriter-server-logs:
