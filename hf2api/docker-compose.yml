@@ -1,0 +1,59 @@
+# hf2api — production deploy on axolotl (myServices)
+# Uses existing gluetun-proxy for VPN; no standalone gluetun needed.
+# Source code lives in /home/df/workspace/hf2api
+
+services:
+  qwen3-hf2api:
+    image: python:3.13-alpine
+    container_name: qwen3-hf2api
+    network_mode: "container:gluetun-proxy"
+    volumes:
+      - /home/df/workspace/hf2api/qwen3-hf2api:/app
+    working_dir: /app
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        pip install --no-cache-dir -q . &&
+        exec python -m qwen3_hf2api
+    environment:
+      TTS_BASE_URL: https://qwen-qwen3-tts-demo.hf.space
+      ASR_BASE_URL: https://qwen-qwen3-asr.hf.space
+      PORT: "8820"
+      TZ: Asia/Taipei
+      API_KEY: ${API_KEY:-}
+      REQUEST_TIMEOUT: "300"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8820/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  vits-hf2api:
+    image: python:3.13-alpine
+    container_name: vits-hf2api
+    network_mode: "container:gluetun-proxy"
+    volumes:
+      - /home/df/workspace/hf2api/vits-hf2api:/app
+    working_dir: /app
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        pip install --no-cache-dir -q . &&
+        exec python -m vits_hf2api
+    environment:
+      BASE_URL: https://ikechan8370-vits-uma-genshin-honkai.hf.space
+      FALLBACK_BASE_URL: https://zomehwh-vits-uma-genshin-honkai.hf.space
+      PORT: "8830"
+      TZ: Asia/Taipei
+      API_KEY: ${API_KEY:-}
+      MAX_TEXT_LENGTH: "500"
+      REQUEST_TIMEOUT: "120"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8830/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
