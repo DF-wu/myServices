@@ -1,0 +1,280 @@
+version: "3.8"
+
+# Gluetun Multi-Region Proxy Farm
+# 透過 Surfshark WireGuard 連線，將各國 VPN 出口以 HTTP/SOCKS5/Shadowsocks Proxy 方式共享
+# 適用於需要多個地區 IP 的應用場景
+
+services:
+  # ═══════════════════════════════════════════════════════════
+  # 🇯🇵 日本 (Japan)
+  # ═══════════════════════════════════════════════════════════
+  gluetun-japan:
+    image: qmcgaw/gluetun
+    container_name: gluetun-japan
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 19200:8888/tcp   # HTTP Proxy
+      - 19201:8388/tcp   # Shadowsocks
+      - 19201:8388/udp   # Shadowsocks UDP
+      - 19202:1080/tcp   # SOCKS5
+    volumes:
+      - /mnt/appdata/gluetun-proxys/japan:/gluetun
+    environment:
+      # VPN Provider
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-10.14.0.2/16}
+      - SERVER_COUNTRIES=Japan
+      # Proxy 設定
+      - HTTPPROXY=on
+      - SOCKS5_ENABLED=on
+      - SHADOWSOCKS=on
+      - SHADOWSOCKS_PASSWORD=${SHADOWSOCKS_PASSWORD:-changeme}
+      - SHADOWSOCKS_CIPHER=${SHADOWSOCKS_CIPHER:-aes-256-gcm}
+      # 系統設定
+      - TZ=${TZ:-Asia/Taipei}
+      - UMASK=000
+      - UPDATER_PERIOD=24h
+      # 效能優化：關閉非必要功能以降低記憶體使用 (~55MB per instance)
+      - BLOCK_MALICIOUS=off
+      - BLOCK_SURVEILLANCE=off
+      - BLOCK_ADS=off
+      - DOT=off
+      # 允許區網存取 proxy（請依實際區網調整）
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_SUBNET:-192.168.0.0/24}
+
+  # ═══════════════════════════════════════════════════════════
+  # 🇺🇸 美國 (United States)
+  # ═══════════════════════════════════════════════════════════
+  gluetun-usa:
+    image: qmcgaw/gluetun
+    container_name: gluetun-usa
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 19210:8888/tcp   # HTTP Proxy
+      - 19211:8388/tcp   # Shadowsocks
+      - 19211:8388/udp   # Shadowsocks UDP
+      - 19212:1080/tcp   # SOCKS5
+    volumes:
+      - /mnt/appdata/gluetun-proxys/usa:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-10.14.0.2/16}
+      - SERVER_COUNTRIES=United States
+      - HTTPPROXY=on
+      - SOCKS5_ENABLED=on
+      - SHADOWSOCKS=on
+      - SHADOWSOCKS_PASSWORD=${SHADOWSOCKS_PASSWORD:-changeme}
+      - SHADOWSOCKS_CIPHER=${SHADOWSOCKS_CIPHER:-aes-256-gcm}
+      - TZ=${TZ:-Asia/Taipei}
+      - UMASK=000
+      - UPDATER_PERIOD=24h
+      - BLOCK_MALICIOUS=off
+      - BLOCK_SURVEILLANCE=off
+      - BLOCK_ADS=off
+      - DOT=off
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_SUBNET:-192.168.0.0/24}
+
+  # ═══════════════════════════════════════════════════════════
+  # 🇭🇰 香港 (Hong Kong)
+  # ═══════════════════════════════════════════════════════════
+  gluetun-hk:
+    image: qmcgaw/gluetun
+    container_name: gluetun-hk
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 19220:8888/tcp   # HTTP Proxy
+      - 19221:8388/tcp   # Shadowsocks
+      - 19221:8388/udp   # Shadowsocks UDP
+      - 19222:1080/tcp   # SOCKS5
+    volumes:
+      - /mnt/appdata/gluetun-proxys/hk:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-10.14.0.2/16}
+      - SERVER_COUNTRIES=Hong Kong
+      - HTTPPROXY=on
+      - SOCKS5_ENABLED=on
+      - SHADOWSOCKS=on
+      - SHADOWSOCKS_PASSWORD=${SHADOWSOCKS_PASSWORD:-changeme}
+      - SHADOWSOCKS_CIPHER=${SHADOWSOCKS_CIPHER:-aes-256-gcm}
+      - TZ=${TZ:-Asia/Taipei}
+      - UMASK=000
+      - UPDATER_PERIOD=24h
+      - BLOCK_MALICIOUS=off
+      - BLOCK_SURVEILLANCE=off
+      - BLOCK_ADS=off
+      - DOT=off
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_SUBNET:-192.168.0.0/24}
+
+  # ═══════════════════════════════════════════════════════════
+  # 🇰🇷 韓國 (South Korea)
+  # 註：若 gluetun 無法解析 "South Korea"，請嘗試 "Korea Republic of"
+  # ═══════════════════════════════════════════════════════════
+  gluetun-korea:
+    image: qmcgaw/gluetun
+    container_name: gluetun-korea
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 19230:8888/tcp   # HTTP Proxy
+      - 19231:8388/tcp   # Shadowsocks
+      - 19231:8388/udp   # Shadowsocks UDP
+      - 19232:1080/tcp   # SOCKS5
+    volumes:
+      - /mnt/appdata/gluetun-proxys/korea:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-10.14.0.2/16}
+      - SERVER_COUNTRIES=South Korea
+      - HTTPPROXY=on
+      - SOCKS5_ENABLED=on
+      - SHADOWSOCKS=on
+      - SHADOWSOCKS_PASSWORD=${SHADOWSOCKS_PASSWORD:-changeme}
+      - SHADOWSOCKS_CIPHER=${SHADOWSOCKS_CIPHER:-aes-256-gcm}
+      - TZ=${TZ:-Asia/Taipei}
+      - UMASK=000
+      - UPDATER_PERIOD=24h
+      - BLOCK_MALICIOUS=off
+      - BLOCK_SURVEILLANCE=off
+      - BLOCK_ADS=off
+      - DOT=off
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_SUBNET:-192.168.0.0/24}
+
+  # ═══════════════════════════════════════════════════════════
+  # 🇸🇬 新加坡 (Singapore)
+  # ═══════════════════════════════════════════════════════════
+  gluetun-singapore:
+    image: qmcgaw/gluetun
+    container_name: gluetun-singapore
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 19240:8888/tcp   # HTTP Proxy
+      - 19241:8388/tcp   # Shadowsocks
+      - 19241:8388/udp   # Shadowsocks UDP
+      - 19242:1080/tcp   # SOCKS5
+    volumes:
+      - /mnt/appdata/gluetun-proxys/singapore:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-10.14.0.2/16}
+      - SERVER_COUNTRIES=Singapore
+      - HTTPPROXY=on
+      - SOCKS5_ENABLED=on
+      - SHADOWSOCKS=on
+      - SHADOWSOCKS_PASSWORD=${SHADOWSOCKS_PASSWORD:-changeme}
+      - SHADOWSOCKS_CIPHER=${SHADOWSOCKS_CIPHER:-aes-256-gcm}
+      - TZ=${TZ:-Asia/Taipei}
+      - UMASK=000
+      - UPDATER_PERIOD=24h
+      - BLOCK_MALICIOUS=off
+      - BLOCK_SURVEILLANCE=off
+      - BLOCK_ADS=off
+      - DOT=off
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_SUBNET:-192.168.0.0/24}
+
+  # ═══════════════════════════════════════════════════════════
+  # 🇲🇴 澳門 (Macao)
+  # 註：若 gluetun 無法解析 "Macao"，請嘗試 "Macau"
+  # ═══════════════════════════════════════════════════════════
+  gluetun-macau:
+    image: qmcgaw/gluetun
+    container_name: gluetun-macau
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 19250:8888/tcp   # HTTP Proxy
+      - 19251:8388/tcp   # Shadowsocks
+      - 19251:8388/udp   # Shadowsocks UDP
+      - 19252:1080/tcp   # SOCKS5
+    volumes:
+      - /mnt/appdata/gluetun-proxys/macau:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-10.14.0.2/16}
+      - SERVER_COUNTRIES=Macau
+      - HTTPPROXY=on
+      - SOCKS5_ENABLED=on
+      - SHADOWSOCKS=on
+      - SHADOWSOCKS_PASSWORD=${SHADOWSOCKS_PASSWORD:-changeme}
+      - SHADOWSOCKS_CIPHER=${SHADOWSOCKS_CIPHER:-aes-256-gcm}
+      - TZ=${TZ:-Asia/Taipei}
+      - UMASK=000
+      - UPDATER_PERIOD=24h
+      - BLOCK_MALICIOUS=off
+      - BLOCK_SURVEILLANCE=off
+      - BLOCK_ADS=off
+      - DOT=off
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_SUBNET:-192.168.0.0/24}
+
+  # ═══════════════════════════════════════════════════════════
+  # 🇬🇧 倫敦 (United Kingdom - London)
+  # 註：若指定城市無法連線，可移除 SERVER_CITIES 改用全英國
+  # ═══════════════════════════════════════════════════════════
+  gluetun-london:
+    image: qmcgaw/gluetun
+    container_name: gluetun-london
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 19260:8888/tcp   # HTTP Proxy
+      - 19261:8388/tcp   # Shadowsocks
+      - 19261:8388/udp   # Shadowsocks UDP
+      - 19262:1080/tcp   # SOCKS5
+    volumes:
+      - /mnt/appdata/gluetun-proxys/london:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-10.14.0.2/16}
+      - SERVER_COUNTRIES=United Kingdom
+      - HTTPPROXY=on
+      - SOCKS5_ENABLED=on
+      - SHADOWSOCKS=on
+      - SHADOWSOCKS_PASSWORD=${SHADOWSOCKS_PASSWORD:-changeme}
+      - SHADOWSOCKS_CIPHER=${SHADOWSOCKS_CIPHER:-aes-256-gcm}
+      - TZ=${TZ:-Asia/Taipei}
+      - UMASK=000
+      - UPDATER_PERIOD=24h
+      - BLOCK_MALICIOUS=off
+      - BLOCK_SURVEILLANCE=off
+      - BLOCK_ADS=off
+      - DOT=off
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_SUBNET:-192.168.0.0/24}
