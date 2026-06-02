@@ -36,10 +36,10 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "${HTTP_PROXY_PORT:-8888}:8888/tcp"
+      - "${HTTP_PROXY_PORT:-28888}:8888/tcp"
       # SOCKS5 proxy 端口映射：vproxy sidecar 共享 gluetun 網路命名空間，
       # 因此端口必須在 gluetun 服務上宣告，才能從主機訪問。
-      - "${SOCKS5_PROXY_PORT:-1080}:1080/tcp"
+      - "${SOCKS5_PROXY_PORT:-21080}:1080/tcp"
     volumes:
       - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
       - ${STATE_DIR:-./state}:/gluetun/state
