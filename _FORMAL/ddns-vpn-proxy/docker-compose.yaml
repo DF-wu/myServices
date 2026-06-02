@@ -57,21 +57,50 @@ services:
   # vproxy sidecar：提供 SOCKS5 proxy，與 gluetun 共用網路命名空間
   # 所有 SOCKS5 流量會自動走 VPN tunnel 出去
   vproxy:
-    image: ${VPROXY_IMAGE:-ghcr.io/0x676e67/vproxy:latest}
-    network_mode: "service:gluetun"          # 共享 gluetun 的網路命名空間
+    # 建議固定版本，避免 upstream 改行為
+    image: ghcr.io/0x676e67/vproxy:v2.5.5
+    container_name: ddns-vpn-proxy-vproxy
+    restart: unless-stopped
+    init: true
+
+    # 共享 gluetun 網路命名空間，因此 SOCKS5 流量自動走 VPN tunnel
+    network_mode: "service:gluetun"
     depends_on:
       gluetun:
         condition: service_started
-    restart: unless-stopped
+
+    # 安全強化
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+
     entrypoint: ["/bin/sh", "-c"]
-    # 認證邏輯：vproxy 要求同時提供 username + password，或完全不提供。
-    # 只給一個會讓 vproxy 直接退出，因此用 if/else 判斷。
-    command: |
-      if [ -n "$${SOCKS5_USER}" ] && [ -n "$${SOCKS5_PASSWORD}" ]; then
-        exec vproxy run --bind 0.0.0.0:1080 socks5 -u "$${SOCKS5_USER}" -p "$${SOCKS5_PASSWORD}"
-      else
-        exec vproxy run --bind 0.0.0.0:1080 socks5
-      fi
+    # 認證邏輯：vproxy 要求 username + password 同時給或同時不給；
+    # 只給一個會導致 clap 報錯並立即退出。用 if/else 安全處理。
+    command:
+      - |
+        if [ -n "$${SOCKS5_USER}" ] && [ -n "$${SOCKS5_PASSWORD}" ]; then
+          exec vproxy run -b 0.0.0.0:1080 -c "$${VPROXY_CONCURRENT:-1024}" -t "$${VPROXY_CONNECT_TIMEOUT:-300}" socks5 -u "$${SOCKS5_USER}" -p "$${SOCKS5_PASSWORD}"
+        else
+          exec vproxy run -b 0.0.0.0:1080 -c "$${VPROXY_CONCURRENT:-1024}" -t "$${VPROXY_CONNECT_TIMEOUT:-300}" socks5
+        fi
+
+    # 簡單健康檢查：確認 1080 有在 listen
+    healthcheck:
+      test: ["CMD-SHELL", "ss -ltn | grep -q ':1080'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # 避免 json-file log 無限長大
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ddns-watcher:
     image: ${WATCHER_IMAGE:-ghcr.io/df-wu/ddns-openvpn-proxy-watcher:latest}
