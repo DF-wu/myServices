@@ -37,6 +37,9 @@ services:
       - no-new-privileges:true
     ports:
       - "${HTTP_PROXY_PORT:-8888}:8888/tcp"
+      # SOCKS5 proxy 端口映射：vproxy sidecar 共享 gluetun 網路命名空間，
+      # 因此端口必須在 gluetun 服務上宣告，才能從主機訪問。
+      - "${SOCKS5_PROXY_PORT:-1080}:1080/tcp"
     volumes:
       - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
       - ${STATE_DIR:-./state}:/gluetun/state
@@ -50,6 +53,25 @@ services:
       HTTPPROXY_USER: ${HTTPPROXY_USER:-}
       HTTPPROXY_PASSWORD: ${HTTPPROXY_PASSWORD:-}
       HTTPPROXY_STEALTH: on
+
+  # vproxy sidecar：提供 SOCKS5 proxy，與 gluetun 共用網路命名空間
+  # 所有 SOCKS5 流量會自動走 VPN tunnel 出去
+  vproxy:
+    image: ${VPROXY_IMAGE:-ghcr.io/0x676e67/vproxy:latest}
+    network_mode: "service:gluetun"          # 共享 gluetun 的網路命名空間
+    depends_on:
+      gluetun:
+        condition: service_started
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    # 認證邏輯：vproxy 要求同時提供 username + password，或完全不提供。
+    # 只給一個會讓 vproxy 直接退出，因此用 if/else 判斷。
+    command: |
+      if [ -n "$${SOCKS5_USER}" ] && [ -n "$${SOCKS5_PASSWORD}" ]; then
+        exec vproxy run --bind 0.0.0.0:1080 socks5 -u "$${SOCKS5_USER}" -p "$${SOCKS5_PASSWORD}"
+      else
+        exec vproxy run --bind 0.0.0.0:1080 socks5
+      fi
 
   ddns-watcher:
     image: ${WATCHER_IMAGE:-ghcr.io/df-wu/ddns-openvpn-proxy-watcher:latest}
