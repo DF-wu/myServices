@@ -19,6 +19,7 @@
 # - 43057 | claude-relay-service
 # - 43061 | api-conversion
 # - 43062 | sub2api
+# - 43063 | infinite-canvas
 # - 43080 | telegram-chatbot
 # - 59998 | tika
 
@@ -337,6 +338,43 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+
+  # AI creation infinite canvas workspace
+  # doc: https://github.com/basketikun/infinite-canvas
+  infinite-canvas:
+    image: ghcr.io/basketikun/infinite-canvas:latest
+    container_name: infinite-canvas
+    restart: unless-stopped
+    ports:
+      - "43063:3000"
+    volumes:
+      - /mnt/appdata/ChatStack/infinite-canvas/data:/app/data
+    environment:
+      - ADMIN_USERNAME=df
+      - ADMIN_PASSWORD=${DF_PASSWORD:-df}
+      - JWT_SECRET=${INFINITE_CANVAS_JWT_SECRET:-dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf}
+      - JWT_EXPIRE_HOURS=168
+      - STORAGE_DRIVER=postgres
+      - DATABASE_DSN=postgres://postgres:postgres@chatstack-postgres17-pgvector:5432/infinite_canvas?sslmode=disable
+      - PUBLIC_BASE_URL=${INFINITE_CANVAS_PUBLIC_BASE_URL:-http://axolotl.newhome:43063}
+      - NEXT_PUBLIC_DOC_URL=https://docs.canvas.best
+      - TZ=Asia/Taipei
+    depends_on:
+      chatstack-postgres17-pgvector:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
