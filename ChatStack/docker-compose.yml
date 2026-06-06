@@ -1,11 +1,10 @@
 # author : df
-# version: 1.1
-# date: 2025.8.15
-# description: open-webui
+# version: 1.2
+# date: 2026.6.6
+# description: ChatStack AI services
 # doc: https://github.com/open-webui/open-webui
 # active host port index (sorted)
 # format: <host_port> | <service>
-# -  6333 | qdrant
 # -  8317 | gluetun-proxy
 # -  8787 | lilac
 # - 19000 | gluetun-proxy
@@ -30,7 +29,7 @@ services:
     restart: unless-stopped
     ports:
       - "43000:8080"
-      # This is to expose the ollama port
+      # Expose Open WebUI's bundled Ollama API on the host.
       - "43002:11434"
     environment:
       # - OLLAMA_BASE_URL=ollama:11434
@@ -41,11 +40,11 @@ services:
       - OPENAI_API_KEY=0
       - GLOBAL_LOG_LEVEL="DEBUG"
 
-      # expost ollama host and port
+      # Listen on all container interfaces for the Ollama-compatible endpoint.
       - OLLAMA_HOST=0.0.0.0
       - TZ=Asia/Taipei
 
-      # replace default sqlite
+      # Store Open WebUI data in the shared PostgreSQL + pgvector database.
       - DATABASE_URL=postgresql://postgres:postgres@chatstack-postgres17-pgvector:5432/openwebui_db
       - VECTOR_DB=pgvector
 
@@ -54,7 +53,7 @@ services:
       # 使用統一 Redis 的 Database 1
       - WEBSOCKET_REDIS_URL="redis://chatstack-unified-redis:6379/1"
 
-      # Fix chunk issue
+      # Allow larger streaming chunks for long responses.
       - CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE=20971520
 
       - ENABLE_RAG_WEB_SEARCH=true
@@ -80,7 +79,7 @@ services:
   # 統一的 Redis 服務，使用不同數據庫編號分離數據
   # Database 分配：
   # - Database 1: open-webui (WebSocket 支援)
-  # - Database 2: new-api/veloera (API 分發器)
+  # - Database 2: new-api (API distributor; DB name kept as veloera_db)
   # - Database 3: searxng (搜尋引擎快取) - TODO: 需配置 searxng settings.yml
   # - Database 4: claude-relay-service (Claude 中繼服務)
   # - Database 5: lilac-mono
@@ -112,8 +111,8 @@ services:
         max-size: "1m"
         max-file: "1"
 
-  # ibm docling project. replace tika
-  # check release to determine which cuda version i can use
+  # IBM Docling candidate for replacing Tika.
+  # Check upstream releases before enabling, because CUDA image tags vary.
   # docling:
   #   image: quay.io/docling-project/docling-serve-cu128
   #   container_name: docling-serve
@@ -134,7 +133,7 @@ services:
   #             count: all # 這裡設定為 all，與你 docker run 指令的 --gpus all 相符
   #             capabilities: [gpu, compute] # 確保 GPU 運算能力能被正確識別和使用
 
-  # DEPRECATED.
+  # DEPRECATED: kept only for compatibility with existing RAG/document parsing flows.
   tika:
     image: apache/tika:latest-full
     container_name: tika
@@ -187,7 +186,7 @@ services:
   #       - DEBUG=true
   #       - GIN_MODE=debug
 
-  # migrate to veloera https://github.com/Veloera/Veloera
+  # API distributor. Previously evaluated Veloera; currently using upstream new-api.
   new-api:
     # newapi: calciumion/new-api:latest
     image: calciumion/new-api:latest
@@ -243,7 +242,7 @@ services:
     environment:
       - TZ=Asia/Taipei
 
-  # deploy claude relay service as converter
+  # Claude relay service used as an API-compatible converter.
   claude-relay-service:
     image: weishaw/claude-relay-service:latest
     container_name: claude-relay-service
@@ -275,7 +274,7 @@ services:
     expose:
       - 6379
     volumes:
-      # persistant.  IDK WTF why CRS need persist on redis.
+      # Persist Redis data because CRS stores operational state there.
       - /mnt/appdata/ChatStack/claudeRelayService/redis:/data
     command: redis-server --save 60 1 --appendonly yes --appendfsync everysec
     healthcheck:
@@ -379,7 +378,7 @@ services:
       retries: 3
       start_period: 30s
 
-  # chinrain api conversion proxy
+  # Chinrain API conversion proxy.
   api-conversion:
     image: ghcr.io/chinrain/api-conversion:0.2.4
     container_name: api-conversion
@@ -459,20 +458,6 @@ services:
     volumes:
       - /mnt/appdata/ChatStack/postgres:/var/lib/postgresql/data
 
-  # Qdrant vector database (per official Docker quick start)
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: chatstack-qdrant
-    restart: unless-stopped
-    ports:
-      - "6333:6333" # REST API as documented
-    environment:
-      - TZ=Asia/Taipei
-    volumes:
-      - /mnt/appdata/ChatStack/qdrant/storage:/qdrant/storage
-      - /mnt/appdata/ChatStack/qdrant/snapshots:/qdrant/snapshots
-      # Uncomment after creating a custom config file (see qdrant docs)
-      # - /mnt/appdata/ChatStack/qdrant/config/production.yaml:/qdrant/config/production.yaml:ro
 
   # 還在評估
 
@@ -483,7 +468,7 @@ services:
   #   volumes:
   #     - /mnt/appdata/ChatStack/chatgpt-telegram-bot:/app
 
-  # 好像有點不穩定 但是支援api站分發語法
+  # Telegram chatbot. Supports API distributor syntax, but upstream stability varies.
   # doc: https://github.com/yym68686/ChatGPT-Telegram-Bot
   # for telegram bot as chat service
   telegram-chatbot:
@@ -492,15 +477,15 @@ services:
     restart: unless-stopped
     environment:
       - TZ=Asia/Taipei
-      # secret setting in portainer
+      # Secrets are provided by the deployment environment.
       - BOT_TOKEN=${TGBOT_TOKEN}
       - API_KEY=${OPENAPI_KEY}
-      # 引用 new-api 服務（容器名稱為 veloera）
+      # Use the new-api service as the upstream API distributor.
       - BASE_URL=http://new-api:3000/v1/chat/completions
-      #wu family
+      # Telegram group allowlist.
       - GROUP_LIST=-418602979,-285458882,-4677795092,-1002386894523,-4677795092
       #- whitelist=878482503,631453957,858738425,1361740780
-      # me
+      # Telegram admin allowlist.
       - ADMIN_LIST=547663716
       # 上游程式碼實際行為：只有字串 `False` 會關閉自動抓模型。
       # 也就是說：True / true / 空值 / 未設定 都會被當成啟用。
@@ -555,11 +540,11 @@ services:
     ports:
       - 43080:8080
     depends_on:
-      # 依賴 new-api 服務（容器名稱為 veloera）
+      # Depend on the new-api service.
       new-api:
         condition: service_started
 
-  ## if my n8n work well, I will use n8n
+  # Disabled: replaced by n8n if that workflow remains stable.
   # discord-chatbot:
   #   container_name: discord-chatbot
   #   image: ghcr.io/df-wu/js-llmcord:latest
@@ -577,7 +562,7 @@ services:
   #     - /mnt/appdata/ChatStack/discord-chatbot/data:/app/data
   #     - /mnt/appdata/ChatStack/discord-chatbot/extensions:/app/extensions
   #   depends_on:
-  #     # 依賴 new-api 服務（容器名稱為 veloera）
+  #     # Depend on the new-api service.
   #     new-api:
   #       condition: service_started
 
@@ -597,7 +582,7 @@ services:
   #   depends_on:
   #     - chatstack-postgres17-pgvector
 
-  # currens
+  # SearXNG candidates and Redis integration notes.
   # another choice : https://searx.perennialte.ch/
   # another choice : https://searxng.ddaodan.cc/search?q=<query>&safesearch=0&language=auto&format=json
   #
@@ -861,14 +846,11 @@ services:
       - EXA_API_BASE_URL=${EXA_API_BASE_URL}
       - TAVILY_API_BASE_URL=${TAVILY_API_BASE_URL}
       - TAVILY_API_KEY=${TAVILY_API_KEY}
-      # weird empty string patch
+      # Wire debug controls; default disabled.
       - LILAC_LLM_WIRE_DEBUG=${LILAC_LLM_WIRE_DEBUG:-0}
       - LILAC_LLM_WIRE_DEBUG_DIR=/data/debug/llm-wire
       - LILAC_LLM_WIRE_DEBUG_MAX_BODY_BYTES=65536
       - LILAC_LLM_WIRE_DEBUG_MAX_EVENTS=400
-
-
-
 
     volumes:
       - /mnt/appdata/ChatStack/lilac-mono/data:/data
@@ -932,7 +914,7 @@ services:
       - EXA_API_BASE_URL=${EXA_API_BASE_URL}
       - TAVILY_API_BASE_URL=${TAVILY_API_BASE_URL}
       - TAVILY_API_KEY=${TAVILY_API_KEY}
-      # weird empty string patch
+      # Wire debug controls; default disabled.
       - LILAC_LLM_WIRE_DEBUG=${LILAC_LLM_WIRE_DEBUG:-0}
       - LILAC_LLM_WIRE_DEBUG_DIR=/data/debug/llm-wire
       - LILAC_LLM_WIRE_DEBUG_MAX_BODY_BYTES=65536
