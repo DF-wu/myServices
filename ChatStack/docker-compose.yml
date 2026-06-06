@@ -785,8 +785,8 @@ services:
   # GHCR latest/claudia images use /home/Catalinna and /home/Claudia, not upstream /home/lilac.
   # Runtime state now lives under /data, including XDG config, git config, gpg, and bun/npm state.
   # =============================================================================
-  lilac:
-    container_name: lilac-mono
+  lilac-Catalina:
+    container_name: lilac-mono-Catalina
     image: ghcr.io/df-wu/lilac-mono
     restart: unless-stopped
     environment:
@@ -810,7 +810,7 @@ services:
       - GITHUB_WEBHOOK_PATH=${GITHUB_WEBHOOK_PATH:-/github/webhook}
       # Provider: OpenAI 
       - OPENAI_BASE_URL=${OPENAI_BASE_URL}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY_CATALINA}
       - OPENAI_COMPATIBLE_BASE_URL=${OPENAI_COMPATIBLE_BASE_URL}
       - OPENAI_COMPATIBLE_API_KEY=${OPENAI_COMPATIBLE_API_KEY}
       - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
