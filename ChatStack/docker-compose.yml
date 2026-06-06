@@ -190,7 +190,6 @@ services:
   # migrate to veloera https://github.com/Veloera/Veloera
   new-api:
     # newapi: calciumion/new-api:latest
-    # image: ghcr.io/veloera/veloera:latest
     image: calciumion/new-api:latest
     container_name: new-api
     user: 3000:3000
@@ -361,7 +360,7 @@ services:
       - JWT_EXPIRE_HOURS=168
       - STORAGE_DRIVER=postgres
       - DATABASE_DSN=postgres://postgres:postgres@chatstack-postgres17-pgvector:5432/infinite_canvas?sslmode=disable
-      - PUBLIC_BASE_URL=${INFINITE_CANVAS_PUBLIC_BASE_URL:-http://axolotl.newhome:43063}
+      - PUBLIC_BASE_URL=${INFINITE_CANVAS_PUBLIC_BASE_URL:-http://example.com}
       - NEXT_PUBLIC_DOC_URL=https://docs.canvas.best
       - TZ=Asia/Taipei
     depends_on:
