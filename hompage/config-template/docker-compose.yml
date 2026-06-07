@@ -1,0 +1,48 @@
+services:
+  dockerproxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:latest
+    container_name: homepage-dockerproxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      SERVICES: 1
+      TASKS: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - homepage-internal
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    depends_on:
+      - dockerproxy
+    ports:
+      - "${HOMEPAGE_HOST_PORT:-33080}:3000"
+    env_file:
+      - .env
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS:?set HOMEPAGE_ALLOWED_HOSTS in .env}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_TARGETS: ${LOG_TARGETS:-both}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    volumes:
+      - ${HOMEPAGE_CONFIG_DIR:-/mnt/appdata/homepage/config}:/app/config
+      - ${HOMEPAGE_IMAGES_DIR:-/mnt/appdata/homepage/images}:/app/public/images
+      # Needed only if using resources widget for mounted disks / network interface stats.
+      - /sys:/sys:ro
+      - /mnt/appdata:/mnt/appdata:ro
+      - /mnt/mydata:/mnt/mydata:ro
+      - /mnt/fastpool:/mnt/fastpool:ro
+    networks:
+      - homepage-internal
+      - homepage-egress
+
+networks:
+  homepage-internal:
+    internal: true
+  homepage-egress:
+    driver: bridge

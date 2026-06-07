@@ -1,0 +1,10 @@
+---
+- External Links:
+    - GitHub:
+        - icon: si-github
+          href: https://github.com/
+          description: Source repositories
+    - Homepage Docs:
+        - icon: sh-homepage
+          href: https://gethomepage.dev/
+          description: Homepage official documentation

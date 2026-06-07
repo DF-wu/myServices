@@ -1,0 +1,85 @@
+---
+title: DF Homelab
+description: Service cockpit
+language: zh-Hant
+theme: dark
+color: gray
+headerStyle: underlined
+statusStyle: dot
+iconStyle: theme
+background:
+  image: /images/Dracula.png
+  blur: sm
+  saturate: 70
+  brightness: 45
+  opacity: 60
+target: _blank
+fullWidth: true
+maxGroupColumns: 6
+maxBookmarkGroupColumns: 6
+useEqualHeights: true
+disableIndexing: true
+hideVersion: false
+showStats: false
+quicklaunch:
+  searchDescriptions: true
+  hideInternetSearch: false
+  showSearchSuggestions: false
+  provider: duckduckgo
+  target: _blank
+layout:
+  Core Infrastructure:
+    tab: Core
+    style: row
+    columns: 4
+    icon: mdi-server-network
+  Network & Ingress:
+    tab: Core
+    style: row
+    columns: 4
+    icon: mdi-router-network
+  Observability:
+    tab: Core
+    style: row
+    columns: 4
+    icon: mdi-chart-line
+  AI & LLM:
+    tab: AI
+    style: row
+    columns: 4
+    icon: mdi-robot-outline
+  Automation:
+    tab: AI
+    style: row
+    columns: 4
+    icon: mdi-auto-fix
+  Media:
+    tab: Media
+    style: row
+    columns: 4
+    icon: mdi-play-box-multiple-outline
+  Downloads & Network:
+    tab: Media
+    style: row
+    columns: 4
+    icon: mdi-download-network-outline
+  Photos & Files:
+    tab: Data
+    style: row
+    columns: 4
+    icon: mdi-folder-image
+  Databases & Admin:
+    tab: Data
+    style: row
+    columns: 4
+    icon: mdi-database-cog-outline
+  Backup & Maintenance:
+    tab: Data
+    style: row
+    columns: 4
+    icon: mdi-shield-refresh-outline
+  External Links:
+    tab: External
+    style: row
+    columns: 4
+    icon: mdi-link-variant

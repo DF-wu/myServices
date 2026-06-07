@@ -1,0 +1,5 @@
+Dracula for Homepage
+- Repo: https://github.com/dracula/homepage-app
+- Theme site: https://draculatheme.com/homepage-app
+- Upstream snapshot used: f344a82
+- Notes: Homepage-adapted theme. Requires `color: gray` and custom.css under Homepage config directory.

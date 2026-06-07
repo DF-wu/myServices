@@ -1,0 +1,5 @@
+Upstream inspected during Phase 1:
+- Repository: https://github.com/gethomepage/homepage
+- Local shallow clone commit: bd4f809
+- package.json version: 1.13.1
+- Official docs: https://gethomepage.dev/

@@ -1,0 +1,41 @@
+---
+- datetime:
+    text_size: xl
+    locale: zh-Hant-TW
+    format:
+      dateStyle: medium
+      timeStyle: short
+      hourCycle: h23
+
+- search:
+    provider:
+      - duckduckgo
+      - google
+      - brave
+    target: _blank
+    showSearchSuggestions: false
+
+- openmeteo:
+    label: Taipei
+    latitude: 25.0330
+    longitude: 121.5654
+    timezone: Asia/Taipei
+    units: metric
+    cache: 10
+
+- resources:
+    label: Homepage Container
+    cpu: true
+    memory: true
+    disk: /
+    uptime: true
+    refresh: 5000
+
+- resources:
+    label: Mounted Storage
+    disk:
+      - /mnt/appdata
+      - /mnt/mydata
+      - /mnt/fastpool
+    expanded: false
+    refresh: 30000

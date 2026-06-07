@@ -1,0 +1,8 @@
+# Local/private runtime material. Do not commit secrets or generated private inventory.
+.env
+*.env
+config/*.env
+config-template/.env
+inventory/private/
+**/*.private.*
+docker-compose-ls.json

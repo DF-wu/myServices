@@ -1,0 +1,41 @@
+---
+# Phase 2 starts with a small curated baseline. Docker-discovered services will appear from labels.
+# Put secret-bearing widgets here using HOMEPAGE_VAR_* placeholders rather than Docker labels.
+
+- Core Infrastructure:
+    - Portainer:
+        icon: portainer.svg
+        href: "https://REPLACE_ME_PORTAINER_URL"
+        description: Docker management
+        server: local-docker
+        container: portainer
+        showStats: false
+        widget:
+          type: portainer
+          url: "https://REPLACE_ME_PORTAINER_INTERNAL_OR_PUBLIC_URL"
+          env: 1
+          key: "{{HOMEPAGE_VAR_PORTAINER_KEY}}"
+
+- Network & Ingress:
+    - Nginx Proxy Manager:
+        icon: nginx-proxy-manager.svg
+        href: "https://REPLACE_ME_NPM_URL"
+        description: Reverse proxy
+        server: local-docker
+        container: nginxproxymanager
+        widget:
+          type: npm
+          url: "http://REPLACE_ME_NPM_INTERNAL_URL"
+          username: "{{HOMEPAGE_VAR_NPM_USERNAME}}"
+          password: "{{HOMEPAGE_VAR_NPM_PASSWORD}}"
+
+- Observability:
+    - Netdata:
+        icon: netdata.svg
+        href: "https://REPLACE_ME_NETDATA_URL"
+        description: Host metrics and alerts
+        server: local-docker
+        container: netdata
+        widget:
+          type: netdata
+          url: "http://REPLACE_ME_NETDATA_INTERNAL_URL"
