@@ -151,7 +151,7 @@ npm run build:web
 npm run verify:web-build
 ```
 
-Run the ASR upload, TTS, workspace restore, custom prompt templates, model diagnostics, Chat Completions, Responses, streaming, and non-streaming integration checks:
+Run the ASR upload, ASR `verbose_json`/`text`/`srt`/`vtt` response formats, TTS, workspace restore, custom prompt templates, model diagnostics, Chat Completions, Responses, streaming, and non-streaming integration checks:
 
 ```bash
 npm run verify:mock:server

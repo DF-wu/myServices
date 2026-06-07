@@ -22,13 +22,13 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "test-artifacts"
 
 
-def settings() -> dict:
+def settings(response_format: str = "verbose_json") -> dict:
     return {
         "asr": {
             "baseUrl": MOCK_BASE_URL,
             "apiKey": "",
             "model": "whisper-1",
-            "responseFormat": "verbose_json",
+            "responseFormat": response_format,
             "language": "zh",
             "prompt": "mock vocabulary",
             "temperature": 0,
@@ -78,6 +78,36 @@ def write_wav(path: str) -> None:
         handle.writeframes(b"".join(frames))
 
 
+def seed_settings(page, response_format: str = "verbose_json") -> None:
+    page.evaluate(
+        """([key, value]) => localStorage.setItem(key, JSON.stringify(value))""",
+        [SETTINGS_KEY, settings(response_format)],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+
+
+def upload_audio(page, path: str, expected_text: str) -> None:
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Upload").click()
+    chooser.value.set_files(path)
+    expect(page.get_by_text(expected_text).first).to_be_visible(timeout=10000)
+    expect(page.get_by_text("Transcribed")).to_be_visible(timeout=10000)
+    page.wait_for_function(
+        """([key, expected]) => {
+            const stored = JSON.parse(localStorage.getItem(key) || "{}");
+            return typeof stored.transcript === "string" && stored.transcript.includes(expected);
+        }""",
+        arg=[WORKSPACE_KEY, expected_text],
+        timeout=10000,
+    )
+
+
+def verify_response_format(page, path: str, response_format: str, expected_text: str) -> None:
+    seed_settings(page, response_format)
+    upload_audio(page, path, expected_text)
+
+
 def main() -> int:
     ARTIFACTS.mkdir(exist_ok=True)
     with tempfile.NamedTemporaryFile(suffix=".wav") as audio:
@@ -86,17 +116,8 @@ def main() -> int:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page(viewport={"width": 1180, "height": 900})
             goto_with_retry(page, CLIENT_URL)
-            page.evaluate(
-                """([key, value]) => localStorage.setItem(key, JSON.stringify(value))""",
-                [SETTINGS_KEY, settings()],
-            )
-            page.reload(wait_until="domcontentloaded")
-            page.wait_for_selector("text=DF Voice App")
-            with page.expect_file_chooser() as chooser:
-                page.get_by_role("button", name="Upload").click()
-            chooser.value.set_files(audio.name)
-            expect(page.get_by_text("Mock ASR transcript.").first).to_be_visible(timeout=10000)
-            expect(page.get_by_text("Transcribed")).to_be_visible(timeout=10000)
+            seed_settings(page)
+            upload_audio(page, audio.name, "Mock ASR transcript.")
             page.wait_for_function(
                 """(key) => {
                     const stored = JSON.parse(localStorage.getItem(key) || "{}");
@@ -124,8 +145,11 @@ def main() -> int:
             page.get_by_role("button", name="範本").click()
             page.get_by_role("button", name="Run with transcript").first.click()
             expect(page.get_by_text("Mock chat stream.")).to_be_visible(timeout=10000)
+            verify_response_format(page, audio.name, "text", "Mock ASR transcript.")
+            verify_response_format(page, audio.name, "srt", "00:00:00,000 --> 00:00:01,000")
+            verify_response_format(page, audio.name, "vtt", "WEBVTT")
             browser.close()
-    print("mock ASR upload and TTS integration passed")
+    print("mock ASR upload, response formats, and TTS integration passed")
     return 0
 
 

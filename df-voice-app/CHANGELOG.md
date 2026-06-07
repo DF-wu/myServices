@@ -13,6 +13,7 @@
 - Added a Settings action and smoke coverage for clearing local workspace data.
 - Added inline validation for advanced JSON override fields.
 - Added custom provider template creation, restore, application, and deletion.
+- Added mock integration coverage for ASR text, SRT, and VTT response formats.
 
 ## 1.0.0
 
