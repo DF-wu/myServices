@@ -22,6 +22,7 @@ if (tsc.status !== 0) {
 const {
   REDACTED_SETTING_VALUE,
   importSettingsText,
+  redactedSettings,
   sanitizeSettings,
   settingsJsonExport,
 } = await import(`../${buildDir}/lib/settings-portability.js`);
@@ -80,6 +81,17 @@ assert.equal(exportedPayload.settings.asr.extraHeadersJson, REDACTED_SETTING_VAL
 assert.equal(exported.text.includes("asr-secret"), false);
 assert.equal(exported.text.includes("chat-secret"), false);
 assert.equal(exported.text.includes("tts-secret"), false);
+
+const redacted = redactedSettings(current);
+assert.equal(redacted.asr.apiKey, REDACTED_SETTING_VALUE);
+assert.equal(redacted.asr.extraHeadersJson, REDACTED_SETTING_VALUE);
+assert.equal(redacted.conversation.apiKey, REDACTED_SETTING_VALUE);
+assert.equal(redacted.conversation.extraHeadersJson, REDACTED_SETTING_VALUE);
+assert.equal(redacted.tts.apiKey, REDACTED_SETTING_VALUE);
+assert.equal(redacted.tts.extraHeadersJson, REDACTED_SETTING_VALUE);
+assert.equal(JSON.stringify(redacted).includes("asr-secret"), false);
+assert.equal(JSON.stringify(redacted).includes("chat-secret"), false);
+assert.equal(JSON.stringify(redacted).includes("tts-secret"), false);
 
 const imported = importSettingsText(
   current,

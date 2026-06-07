@@ -43,11 +43,11 @@ import {
 } from "react-native";
 
 import { promptTemplates } from "@/data/prompt-templates";
-import { templates } from "@/data/templates";
+import { defaultSettings, templates } from "@/data/templates";
 import { conversationMarkdownExport, exportTextFile, transcriptMarkdownExport } from "@/lib/export-text";
 import { documentAssetToAudio, probeModels, recordingUriToAudio, runConversation, synthesizeSpeech, transcribeAudio } from "@/lib/openai-compatible";
 import { isIOS } from "@/lib/platform";
-import { importSettingsText, settingsJsonExport } from "@/lib/settings-portability";
+import { REDACTED_SETTING_VALUE, importSettingsText, redactedSettings, sanitizeSettings, settingsJsonExport } from "@/lib/settings-portability";
 import { getWorkspaceJson, setWorkspaceJson } from "@/lib/workspace-storage";
 import { useSettings } from "@/state/settings";
 import { colors, radii, spacing } from "@/theme";
@@ -581,7 +581,7 @@ export function AppShell() {
     if (!template) {
       return;
     }
-    await saveSettings(template.settings);
+    await saveSettings(sanitizeSettings(settings, template.settings));
     setNotice(`Applied template: ${template.name}`);
   }
 
@@ -595,7 +595,7 @@ export function AppShell() {
       id: `custom-provider-${Date.now()}-${Math.random().toString(16).slice(2)}`,
       description: draft.description.trim() || "User-defined provider setup.",
       name,
-      settings: cloneSettings(settings),
+      settings: providerTemplateSettings(settings),
       tags: draft.tags
         .split(",")
         .map((tag) => tag.trim())
@@ -2225,11 +2225,33 @@ function promptWithTranscript(prompt: string, transcript: string) {
   return `${prompt.trim()}\n\nTranscript:\n${transcript.trim()}`;
 }
 
+function providerTemplateSettings(settings: ClientSettings) {
+  const sanitized = redactedSettings(sanitizeSettings(defaultSettings, settings));
+  return {
+    ...sanitized,
+    asr: redactedProviderCredentials(sanitized.asr),
+    conversation: redactedProviderCredentials(sanitized.conversation),
+    tts: redactedProviderCredentials(sanitized.tts),
+  };
+}
+
+function redactedProviderCredentials<T extends { apiKey: string; extraHeadersJson: string }>(value: T): T {
+  return {
+    ...value,
+    apiKey: REDACTED_SETTING_VALUE,
+    extraHeadersJson: REDACTED_SETTING_VALUE,
+  };
+}
+
 function normalizeWorkspaceSnapshot(snapshot: Partial<WorkspaceSnapshot>): WorkspaceSnapshot {
   return {
     chatDraft: typeof snapshot.chatDraft === "string" ? snapshot.chatDraft : "",
     customProviderTemplates: Array.isArray(snapshot.customProviderTemplates)
       ? snapshot.customProviderTemplates.filter(isClientTemplate).slice(0, 30)
+          .map((template) => ({
+            ...template,
+            settings: providerTemplateSettings(template.settings),
+          }))
       : [],
     customPromptTemplates: Array.isArray(snapshot.customPromptTemplates)
       ? snapshot.customPromptTemplates.filter(isPromptTemplate).slice(0, 40)
@@ -2240,10 +2262,6 @@ function normalizeWorkspaceSnapshot(snapshot: Partial<WorkspaceSnapshot>): Works
     rawResult: typeof snapshot.rawResult === "string" ? snapshot.rawResult : "",
     transcript: typeof snapshot.transcript === "string" ? snapshot.transcript : "",
   };
-}
-
-function cloneSettings(settings: ClientSettings): ClientSettings {
-  return JSON.parse(JSON.stringify(settings)) as ClientSettings;
 }
 
 function isClientTemplate(value: unknown): value is ClientTemplate {

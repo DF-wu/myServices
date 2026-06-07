@@ -13,6 +13,7 @@
 - Added a Settings action and smoke coverage for clearing local workspace data.
 - Added inline validation for advanced JSON override fields.
 - Added custom provider template creation, restore, application, and deletion.
+- Redacted API keys and extra headers from custom provider templates stored in local workspace data.
 - Added mock integration coverage for ASR text, SRT, and VTT response formats.
 - Added numeric range validation for provider settings and stored/imported settings files.
 - Added cancellation support for in-flight ASR, conversation, TTS, and provider diagnostic requests.

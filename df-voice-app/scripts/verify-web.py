@@ -212,6 +212,18 @@ def main() -> int:
         saved_asr_base = page.evaluate(
             """() => JSON.parse(localStorage.getItem("df-voice-app.settings.v1")).asr.baseUrl"""
         )
+        page.get_by_role("button", name="設定").click()
+        page.get_by_label("API key").nth(0).fill("asr-provider-template-secret")
+        page.get_by_label("Extra headers JSON").nth(0).fill('{"x-secret-route":"asr-provider-template-secret"}')
+        page.wait_for_function(
+            """() => {
+                const stored = JSON.parse(localStorage.getItem("df-voice-app.settings.v1"));
+                return stored.asr.apiKey === "asr-provider-template-secret"
+                    && stored.asr.extraHeadersJson.includes("asr-provider-template-secret");
+            }""",
+            timeout=10000,
+        )
+        page.get_by_role("button", name="範本").click()
         page.get_by_label("Provider template name").fill("Lab provider setup")
         page.get_by_label("Provider template tags").fill("lab, local")
         page.get_by_label("Provider template description").fill("Reusable provider setup for smoke testing.")
@@ -226,8 +238,26 @@ def main() -> int:
             }""",
             timeout=10000,
         )
+        workspace_payload = page.evaluate(
+            """() => localStorage.getItem("df-voice-app.workspace.v1") || "" """
+        )
+        assert "asr-provider-template-secret" not in workspace_payload
+        page.wait_for_function(
+            """() => {
+                const stored = JSON.parse(localStorage.getItem("df-voice-app.workspace.v1") || "{}");
+                const template = stored.customProviderTemplates.find((item) => item.name === "Lab provider setup");
+                return template
+                    && template.settings.asr.apiKey === "__DF_VOICE_REDACTED__"
+                    && template.settings.asr.extraHeadersJson === "__DF_VOICE_REDACTED__";
+            }""",
+            timeout=10000,
+        )
         page.reload(wait_until="domcontentloaded")
         page.wait_for_selector("text=DF Voice App")
+        workspace_payload = page.evaluate(
+            """() => localStorage.getItem("df-voice-app.workspace.v1") || "" """
+        )
+        assert "asr-provider-template-secret" not in workspace_payload
         page.get_by_role("button", name="範本").click()
         expect(page.get_by_text("Lab provider setup", exact=True)).to_be_visible()
         page.get_by_role("button", name="設定").click()
@@ -244,6 +274,11 @@ def main() -> int:
             arg=saved_asr_base,
             timeout=10000,
         )
+        applied_settings = page.evaluate(
+            """() => JSON.parse(localStorage.getItem("df-voice-app.settings.v1"))"""
+        )
+        assert applied_settings["asr"]["apiKey"] == "asr-provider-template-secret"
+        assert "asr-provider-template-secret" in applied_settings["asr"]["extraHeadersJson"]
         page.get_by_label("Delete Lab provider setup").click()
         expect(page.get_by_text("Custom provider template deleted.")).to_be_visible()
         expect(page.get_by_text("Lab provider setup", exact=True)).not_to_be_visible()

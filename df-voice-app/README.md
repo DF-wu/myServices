@@ -120,6 +120,7 @@ Build-time provider defaults:
 
 Settings can be exported and imported from the Settings tab. Exports redact API keys and extra headers by default; importing a redacted file preserves the credentials already stored on the current device.
 Unknown fields and invalid enum/type values in imported settings are ignored, so older or malformed exports cannot overwrite the current device with unsupported values.
+Custom provider templates stored in the local workspace also redact API keys and extra headers. Applying a custom provider template keeps the current device credentials for those sensitive fields.
 
 ## Verification
 
@@ -170,7 +171,7 @@ npm run verify:ci
 
 ## Security
 
-On Android and iOS, settings are stored with `expo-secure-store` when available, and the active workspace is stored as an app-private document JSON file. On web, both are stored in browser `localStorage`; avoid saving production cloud API keys or sensitive transcripts on shared machines. Use Settings -> Clear workspace to remove the current transcript, raw ASR response, draft, conversation, custom prompt templates, and custom provider templates from local workspace storage.
+On Android and iOS, settings are stored with `expo-secure-store` when available, and the active workspace is stored as an app-private document JSON file. On web, both are stored in browser `localStorage`; avoid saving production cloud API keys or sensitive transcripts on shared machines. Custom provider templates in workspace storage redact API keys and extra headers, but still keep non-sensitive provider URLs, model names, prompts, and parameters. Use Settings -> Clear workspace to remove the current transcript, raw ASR response, draft, conversation, custom prompt templates, and custom provider templates from local workspace storage.
 
 The Android native config enables cleartext HTTP so local providers, `10.0.2.2`, and LAN IP endpoints work in release builds. It also pins the generated Gradle wrapper to 8.14.3 for React Native Gradle plugin compatibility. Background audio recording/playback services are disabled in the `expo-audio` config plugin.
 

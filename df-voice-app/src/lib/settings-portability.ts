@@ -24,7 +24,7 @@ export function settingsJsonExport(settings: ClientSettings) {
     app: "df-voice-app",
     exportedAt,
     redacted: true,
-    settings: redactSettings(settings),
+    settings: redactedSettings(settings),
     version: 1,
   };
   return {
@@ -54,7 +54,7 @@ export function sanitizeSettings(
   return mergeImportedSettings(current, incoming);
 }
 
-function redactSettings(settings: ClientSettings): ClientSettings {
+export function redactedSettings(settings: ClientSettings): ClientSettings {
   return {
     ...settings,
     asr: redactCredentials(settings.asr),
