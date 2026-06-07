@@ -15,6 +15,7 @@ Standalone voice workbench for web, Android, and optional iOS. It records or upl
 - Persist provider settings and API keys locally
 - Apply templates for local CapsWriter, cloud-compatible, Android emulator, and LM Studio/Ollama-style setups
 - Use prompt workflow templates for transcript cleanup, meeting summaries, action extraction, reply drafts, and English briefs
+- Restore the current transcript, draft, and conversation after a browser refresh or app restart
 - Add provider-specific headers, ASR multipart fields, and JSON body overrides for OpenAI-compatible variants
 
 ## Run
@@ -148,7 +149,7 @@ npm run build:web
 npm run verify:web-build
 ```
 
-Run the ASR upload, TTS, prompt templates, model diagnostics, Chat Completions, Responses, streaming, and non-streaming integration checks:
+Run the ASR upload, TTS, workspace restore, prompt templates, model diagnostics, Chat Completions, Responses, streaming, and non-streaming integration checks:
 
 ```bash
 npm run verify:mock:server
@@ -162,7 +163,7 @@ npm run verify:ci
 
 ## Security
 
-On Android and iOS, settings are stored with `expo-secure-store` when available. On web, settings are stored in browser `localStorage`; avoid saving production cloud API keys on shared machines.
+On Android and iOS, settings are stored with `expo-secure-store` when available, and the active workspace is stored as an app-private document JSON file. On web, both are stored in browser `localStorage`; avoid saving production cloud API keys or sensitive transcripts on shared machines.
 
 The Android native config enables cleartext HTTP so local providers, `10.0.2.2`, and LAN IP endpoints work in release builds. It also pins the generated Gradle wrapper to 8.14.3 for React Native Gradle plugin compatibility. Background audio recording/playback services are disabled in the `expo-audio` config plugin.
 

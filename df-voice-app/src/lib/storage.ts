@@ -44,7 +44,11 @@ export async function getJson<T>(key: string): Promise<T | null> {
   if (!raw) {
     return null;
   }
-  return JSON.parse(raw) as T;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
 }
 
 export async function setJson<T>(key: string, value: T): Promise<void> {

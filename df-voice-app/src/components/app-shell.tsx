@@ -46,6 +46,7 @@ import { conversationMarkdownExport, exportTextFile, transcriptMarkdownExport } 
 import { documentAssetToAudio, probeModels, recordingUriToAudio, runConversation, synthesizeSpeech, transcribeAudio } from "@/lib/openai-compatible";
 import { isIOS } from "@/lib/platform";
 import { importSettingsText, settingsJsonExport } from "@/lib/settings-portability";
+import { getWorkspaceJson, setWorkspaceJson } from "@/lib/workspace-storage";
 import { useSettings } from "@/state/settings";
 import { colors, radii, spacing } from "@/theme";
 import type {
@@ -66,6 +67,12 @@ type BusyState = "record" | "transcribe" | "chat" | "tts" | "probe" | null;
 type Icon = ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
 type ProviderKey = "asr" | "conversation" | "tts";
 type ProviderDiagnostic = ApiProbe & { checkedAt: number };
+type WorkspaceSnapshot = {
+  chatDraft: string;
+  messages: ChatMessage[];
+  rawResult: string;
+  transcript: string;
+};
 
 const tabs: Array<{ id: TabId; label: string; icon: Icon }> = [
   { id: "capture", label: "語音", icon: Mic },
@@ -91,6 +98,7 @@ export function AppShell() {
   const [rawResult, setRawResult] = useState("");
   const [chatDraft, setChatDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [workspaceLoaded, setWorkspaceLoaded] = useState(false);
   const [providerDiagnostics, setProviderDiagnostics] = useState<
     Partial<Record<ProviderKey, ProviderDiagnostic>>
   >({});
@@ -103,6 +111,44 @@ export function AppShell() {
       playerRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    getWorkspaceJson<Partial<WorkspaceSnapshot>>()
+      .then((snapshot) => {
+        if (!mounted || !snapshot) {
+          return;
+        }
+        const next = normalizeWorkspaceSnapshot(snapshot);
+        setTranscript(next.transcript);
+        setRawResult(next.rawResult);
+        setChatDraft(next.chatDraft);
+        setMessages(next.messages);
+      })
+      .finally(() => {
+        if (mounted) {
+          setWorkspaceLoaded(true);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!workspaceLoaded) {
+      return undefined;
+    }
+    const handle = setTimeout(() => {
+      void setWorkspaceJson({
+        chatDraft,
+        messages: messages.slice(-80),
+        rawResult,
+        transcript,
+      }).catch(() => undefined);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [chatDraft, messages, rawResult, transcript, workspaceLoaded]);
 
   const statusLine = useMemo(() => {
     const base = trimUrl(settings.asr.baseUrl);
@@ -282,6 +328,12 @@ export function AppShell() {
     }
   }
 
+  function clearTranscript() {
+    setTranscript("");
+    setRawResult("");
+    setNotice("Transcript cleared.");
+  }
+
   async function exportConversation() {
     if (!messages.length) {
       setNotice("No conversation to export.");
@@ -401,11 +453,11 @@ export function AppShell() {
     await sendChat(promptWithTranscript(template.prompt, transcript));
   }
 
-  if (!loaded) {
+  if (!loaded || !workspaceLoaded) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md }}>
         <ActivityIndicator color={colors.green} />
-        <Text style={{ color: colors.muted }}>Loading settings</Text>
+        <Text style={{ color: colors.muted }}>Loading workspace</Text>
       </View>
     );
   }
@@ -474,6 +526,7 @@ export function AppShell() {
           }}
           transcript={transcript}
           rawResult={rawResult}
+          onClearTranscript={clearTranscript}
           onCopy={async () => {
             await Clipboard.setStringAsync(transcript);
             setNotice("Transcript copied.");
@@ -784,6 +837,7 @@ function StatusPill({ diagnostic, label }: { diagnostic?: ProviderDiagnostic; la
 
 function CaptureView({
   busy,
+  onClearTranscript,
   onCopy,
   onExport,
   onPickAudio,
@@ -796,6 +850,7 @@ function CaptureView({
   transcript,
 }: {
   busy: BusyState;
+  onClearTranscript: () => void;
   onCopy: () => void;
   onExport: () => void;
   onPickAudio: () => void;
@@ -860,6 +915,7 @@ function CaptureView({
               <IconOnly disabled={!transcript} icon={Download} label="Export transcript" onPress={onExport} />
               <IconOnly disabled={!transcript} icon={Send} label="Send to chat" onPress={onSendToChat} />
               <IconOnly disabled={!transcript} icon={Volume2} label="Speak" onPress={onSpeak} />
+              <IconOnly disabled={!transcript && !rawResult} icon={RotateCcw} label="Clear transcript" onPress={onClearTranscript} />
             </View>
           </View>
           <Text selectable style={{ color: transcript ? colors.ink : colors.faint, fontSize: 17, lineHeight: 26 }}>
@@ -1675,4 +1731,28 @@ function statusSummary(settings: ClientSettings) {
 
 function promptWithTranscript(prompt: string, transcript: string) {
   return `${prompt.trim()}\n\nTranscript:\n${transcript.trim()}`;
+}
+
+function normalizeWorkspaceSnapshot(snapshot: Partial<WorkspaceSnapshot>): WorkspaceSnapshot {
+  return {
+    chatDraft: typeof snapshot.chatDraft === "string" ? snapshot.chatDraft : "",
+    messages: Array.isArray(snapshot.messages)
+      ? snapshot.messages.filter(isChatMessage).slice(-80)
+      : [],
+    rawResult: typeof snapshot.rawResult === "string" ? snapshot.rawResult : "",
+    transcript: typeof snapshot.transcript === "string" ? snapshot.transcript : "",
+  };
+}
+
+function isChatMessage(value: unknown): value is ChatMessage {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const item = value as Partial<ChatMessage>;
+  return (
+    typeof item.id === "string" &&
+    typeof item.content === "string" &&
+    typeof item.createdAt === "number" &&
+    (item.role === "user" || item.role === "assistant" || item.role === "system")
+  );
 }

@@ -8,6 +8,7 @@
 - Added a fast settings portability logic verifier to the static gate.
 - Added static web export verification to catch production web build regressions.
 - Added transcript workflow prompt templates and non-streaming conversation verification.
+- Added local workspace restore for transcripts, drafts, and conversations.
 
 ## 1.0.0
 

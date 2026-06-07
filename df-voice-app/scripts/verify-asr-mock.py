@@ -17,6 +17,7 @@ from browser_utils import goto_with_retry
 CLIENT_URL = os.environ.get("CLIENT_URL", "http://localhost:8081")
 MOCK_BASE_URL = os.environ.get("MOCK_BASE_URL", "http://127.0.0.1:8099/v1")
 SETTINGS_KEY = "df-voice-app.settings.v1"
+WORKSPACE_KEY = "df-voice-app.workspace.v1"
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "test-artifacts"
 
@@ -96,6 +97,16 @@ def main() -> int:
             chooser.value.set_files(audio.name)
             expect(page.get_by_text("Mock ASR transcript.").first).to_be_visible(timeout=10000)
             expect(page.get_by_text("Transcribed")).to_be_visible(timeout=10000)
+            page.wait_for_function(
+                """(key) => {
+                    const stored = JSON.parse(localStorage.getItem(key) || "{}");
+                    return stored.transcript === "Mock ASR transcript.";
+                }""",
+                arg=WORKSPACE_KEY,
+                timeout=10000,
+            )
+            page.reload(wait_until="domcontentloaded")
+            expect(page.get_by_text("Mock ASR transcript.").first).to_be_visible(timeout=10000)
             with page.expect_response(
                 lambda response: "/v1/audio/speech" in response.url and response.status == 200
             ):

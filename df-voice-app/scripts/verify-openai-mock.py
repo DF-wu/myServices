@@ -15,6 +15,7 @@ from browser_utils import goto_with_retry
 CLIENT_URL = os.environ.get("CLIENT_URL", "http://localhost:8081")
 MOCK_BASE_URL = os.environ.get("MOCK_BASE_URL", "http://127.0.0.1:8099/v1")
 SETTINGS_KEY = "df-voice-app.settings.v1"
+WORKSPACE_KEY = "df-voice-app.workspace.v1"
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "test-artifacts"
 
@@ -84,6 +85,15 @@ def run_case(
     page.get_by_placeholder("Type a message, or send the latest transcript.").fill("hello")
     page.get_by_role("button", name="Send").click()
     expect(page.get_by_text(expected)).to_be_visible(timeout=10000)
+    page.wait_for_function(
+        """([key, expected]) => {
+            const stored = JSON.parse(localStorage.getItem(key) || "{}");
+            return Array.isArray(stored.messages)
+                && stored.messages.some((message) => message.content === expected);
+        }""",
+        arg=[WORKSPACE_KEY, expected],
+        timeout=10000,
+    )
     body_text = page.locator("body").inner_text()
     assert body_text.count(expected) == 1, body_text
     if verify_export:
