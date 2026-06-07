@@ -83,6 +83,42 @@ def main() -> int:
         expect(page.get_by_text("Must be a JSON object.")).to_be_visible()
         page.get_by_label("Extra form fields JSON").fill('{"timestamp_granularities":["word"]}')
         expect(page.get_by_text("Valid JSON object.")).to_be_visible()
+        original_asr_temperature = page.evaluate(
+            """(key) => JSON.parse(localStorage.getItem(key)).asr.temperature""",
+            "df-voice-app.settings.v1",
+        )
+        asr_temperature = page.get_by_label("Temperature").nth(0)
+        asr_temperature.fill("2")
+        expect(page.get_by_text("Enter a number from 0 to 1.")).to_be_visible()
+        page.wait_for_function(
+            """([key, original]) => JSON.parse(localStorage.getItem(key)).asr.temperature === original""",
+            arg=["df-voice-app.settings.v1", original_asr_temperature],
+            timeout=10000,
+        )
+        asr_temperature.fill("0.5")
+        page.wait_for_function(
+            """(key) => JSON.parse(localStorage.getItem(key)).asr.temperature === 0.5""",
+            arg="df-voice-app.settings.v1",
+            timeout=10000,
+        )
+        max_output_tokens = page.get_by_label("Max output tokens")
+        max_output_tokens.fill("1.5")
+        expect(page.get_by_text("Enter a whole number of at least 1.")).to_be_visible()
+        max_output_tokens.fill("256")
+        page.wait_for_function(
+            """(key) => JSON.parse(localStorage.getItem(key)).conversation.maxOutputTokens === 256""",
+            arg="df-voice-app.settings.v1",
+            timeout=10000,
+        )
+        tts_speed = page.get_by_label("Speed")
+        tts_speed.fill("5")
+        expect(page.get_by_text("Enter a number from 0.25 to 4.")).to_be_visible()
+        tts_speed.fill("1.25")
+        page.wait_for_function(
+            """(key) => JSON.parse(localStorage.getItem(key)).tts.speed === 1.25""",
+            arg="df-voice-app.settings.v1",
+            timeout=10000,
+        )
         assert_layout(page, "desktop settings")
         page.screenshot(path=str(ARTIFACTS / "web-settings.png"), full_page=True)
         page.set_viewport_size({"width": 390, "height": 844})

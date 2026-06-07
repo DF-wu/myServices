@@ -1260,8 +1260,8 @@ function SettingsView({
             />
             <Field label="Language" value={settings.asr.language} onChangeText={(value) => updateAsr("language", value)} />
             <Field label="Prompt / vocabulary hint" value={settings.asr.prompt} multiline onChangeText={(value) => updateAsr("prompt", value)} />
-            <NumericField label="Temperature" value={settings.asr.temperature} onChange={(value) => updateAsr("temperature", value)} />
-            <NumericField label="Timeout seconds" value={settings.asr.timeoutSec} onChange={(value) => updateAsr("timeoutSec", value)} />
+            <NumericField label="Temperature" min={0} max={1} value={settings.asr.temperature} onChange={(value) => updateAsr("temperature", value)} />
+            <NumericField label="Timeout seconds" min={1} integer value={settings.asr.timeoutSec} onChange={(value) => updateAsr("timeoutSec", value)} />
             <JsonField label="Extra headers JSON" mode="headers" value={settings.asr.extraHeadersJson} onChangeText={(value) => updateAsr("extraHeadersJson", value)} />
             <JsonField label="Extra form fields JSON" mode="object" value={settings.asr.extraFormFieldsJson} onChangeText={(value) => updateAsr("extraFormFieldsJson", value)} />
           </View>
@@ -1284,14 +1284,14 @@ function SettingsView({
             <Field label="Model" value={settings.conversation.model} onChangeText={(value) => updateConversation("model", value)} />
             <Field label="System prompt" value={settings.conversation.systemPrompt} multiline onChangeText={(value) => updateConversation("systemPrompt", value)} />
             <View style={{ flexDirection: wide ? "row" : "column", gap: spacing.md }}>
-              <NumericField label="Temperature" value={settings.conversation.temperature} onChange={(value) => updateConversation("temperature", value)} style={{ flex: 1 }} />
-              <NumericField label="Top P" value={settings.conversation.topP} onChange={(value) => updateConversation("topP", value)} style={{ flex: 1 }} />
-              <NumericField label="Max output tokens" value={settings.conversation.maxOutputTokens} onChange={(value) => updateConversation("maxOutputTokens", value)} style={{ flex: 1 }} />
+              <NumericField label="Temperature" min={0} max={2} value={settings.conversation.temperature} onChange={(value) => updateConversation("temperature", value)} style={{ flex: 1 }} />
+              <NumericField label="Top P" min={0} max={1} value={settings.conversation.topP} onChange={(value) => updateConversation("topP", value)} style={{ flex: 1 }} />
+              <NumericField label="Max output tokens" min={1} integer value={settings.conversation.maxOutputTokens} onChange={(value) => updateConversation("maxOutputTokens", value)} style={{ flex: 1 }} />
             </View>
             <View style={{ flexDirection: wide ? "row" : "column", gap: spacing.md }}>
-              <NumericField label="Frequency penalty" value={settings.conversation.frequencyPenalty} onChange={(value) => updateConversation("frequencyPenalty", value)} style={{ flex: 1 }} />
-              <NumericField label="Presence penalty" value={settings.conversation.presencePenalty} onChange={(value) => updateConversation("presencePenalty", value)} style={{ flex: 1 }} />
-              <NumericField label="Timeout seconds" value={settings.conversation.timeoutSec} onChange={(value) => updateConversation("timeoutSec", value)} style={{ flex: 1 }} />
+              <NumericField label="Frequency penalty" min={-2} max={2} value={settings.conversation.frequencyPenalty} onChange={(value) => updateConversation("frequencyPenalty", value)} style={{ flex: 1 }} />
+              <NumericField label="Presence penalty" min={-2} max={2} value={settings.conversation.presencePenalty} onChange={(value) => updateConversation("presencePenalty", value)} style={{ flex: 1 }} />
+              <NumericField label="Timeout seconds" min={1} integer value={settings.conversation.timeoutSec} onChange={(value) => updateConversation("timeoutSec", value)} style={{ flex: 1 }} />
             </View>
             <SwitchRow label="Keep history" value={settings.keepConversationHistory} onValueChange={(value) => onUpdate({ ...settings, keepConversationHistory: value })} />
             <SwitchRow label="Auto speak replies" value={settings.autoSpeak} onValueChange={(value) => onUpdate({ ...settings, autoSpeak: value })} />
@@ -1312,8 +1312,8 @@ function SettingsView({
           <View style={{ flexDirection: wide ? "row" : "column", gap: spacing.md }}>
             <Field label="Model" value={settings.tts.model} onChangeText={(value) => updateTts("model", value)} style={{ flex: 1 }} />
             <Field label="Voice" value={settings.tts.voice} onChangeText={(value) => updateTts("voice", value)} style={{ flex: 1 }} />
-            <NumericField label="Speed" value={settings.tts.speed} onChange={(value) => updateTts("speed", value)} style={{ flex: 1 }} />
-            <NumericField label="Timeout seconds" value={settings.tts.timeoutSec} onChange={(value) => updateTts("timeoutSec", value)} style={{ flex: 1 }} />
+            <NumericField label="Speed" min={0.25} max={4} value={settings.tts.speed} onChange={(value) => updateTts("speed", value)} style={{ flex: 1 }} />
+            <NumericField label="Timeout seconds" min={1} integer value={settings.tts.timeoutSec} onChange={(value) => updateTts("timeoutSec", value)} style={{ flex: 1 }} />
           </View>
           <Segmented<SpeechFormat>
             label="Speech format"
@@ -1833,24 +1833,125 @@ function JsonField({
   );
 }
 
-function NumericField({ label, onChange, style, value }: { label: string; onChange: (value: number) => void; style?: object; value: number }) {
+function NumericField({
+  integer,
+  label,
+  max,
+  min,
+  onChange,
+  style,
+  value,
+}: {
+  integer?: boolean;
+  label: string;
+  max?: number;
+  min?: number;
+  onChange: (value: number) => void;
+  style?: object;
+  value: number;
+}) {
+  const [draft, setDraft] = useState(String(value));
+  const parsed = parseNumericDraft(draft);
+  const draftIsBlank = !draft.trim();
+  const valid = parsed !== null && isValidNumericValue(parsed, { integer, max, min });
+  const hint = !draftIsBlank && !valid ? numericValidationMessage({ integer, max, min }) : undefined;
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
+  function commit(text: string) {
+    const next = parseNumericDraft(text);
+    if (next !== null && isValidNumericValue(next, { integer, max, min })) {
+      onChange(next);
+      return;
+    }
+    setDraft(String(value));
+  }
+
   return (
     <View style={[{ gap: spacing.xs }, style]}>
       <Text style={labelStyle}>{label}</Text>
       <TextInput
         accessibilityLabel={label}
-        value={String(value)}
-        keyboardType="numeric"
+        value={draft}
+        keyboardType={min !== undefined && min < 0 ? "numbers-and-punctuation" : "numeric"}
         onChangeText={(text) => {
-          const parsed = Number(text);
-          if (!Number.isNaN(parsed)) {
-            onChange(parsed);
+          setDraft(text);
+          const next = parseNumericDraft(text);
+          if (next !== null && isValidNumericValue(next, { integer, max, min })) {
+            onChange(next);
           }
         }}
+        onBlur={() => commit(draft)}
+        onSubmitEditing={() => commit(draft)}
         style={inputStyle({ minHeight: 44 })}
       />
+      {hint ? (
+        <Text selectable style={{ color: colors.danger, fontSize: 12, fontWeight: "700", lineHeight: 18 }}>
+          {hint}
+        </Text>
+      ) : null}
     </View>
   );
+}
+
+function parseNumericDraft(text: string) {
+  const normalized = text.trim();
+  if (!normalized || normalized === "-" || normalized === "." || normalized === "-.") {
+    return null;
+  }
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isValidNumericValue(
+  value: number,
+  {
+    integer,
+    max,
+    min,
+  }: {
+    integer?: boolean;
+    max?: number;
+    min?: number;
+  },
+) {
+  if (!Number.isFinite(value)) {
+    return false;
+  }
+  if (integer && !Number.isInteger(value)) {
+    return false;
+  }
+  if (min !== undefined && value < min) {
+    return false;
+  }
+  if (max !== undefined && value > max) {
+    return false;
+  }
+  return true;
+}
+
+function numericValidationMessage({
+  integer,
+  max,
+  min,
+}: {
+  integer?: boolean;
+  max?: number;
+  min?: number;
+}) {
+  const noun = integer ? "whole number" : "number";
+  if (min !== undefined && max !== undefined) {
+    return `Enter a ${noun} from ${min} to ${max}.`;
+  }
+  if (min !== undefined) {
+    return `Enter a ${noun} of at least ${min}.`;
+  }
+  if (max !== undefined) {
+    return `Enter a ${noun} of ${max} or less.`;
+  }
+  return `Enter a valid ${noun}.`;
 }
 
 function Segmented<T extends string>({

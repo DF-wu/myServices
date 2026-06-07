@@ -35,6 +35,7 @@ The active transcript, raw ASR response, chat draft, custom prompt templates, cu
 Settings export/import is intentionally redacted. API keys and extra headers are exported as `__DF_VOICE_REDACTED__`; importing that sentinel preserves the credential values already present on the target device.
 The importer applies a field allowlist with enum, number, string, and boolean checks. Unsupported keys and invalid values are ignored rather than persisted.
 Advanced JSON override fields are validated in the Settings UI before they are used by the provider client. The provider client still validates again at request time so direct state imports cannot bypass the JSON object and header-value constraints.
+Numeric provider settings are validated in the Settings UI before they are persisted. Stored settings, provider templates, and settings imports also reject out-of-range numbers, non-finite values, and fractional values for integer-only fields so persisted data cannot silently push invalid provider parameters into runtime requests.
 
 ## Native Strategy
 
@@ -43,7 +44,7 @@ The app works in Expo Go for normal development. Android native builds are neede
 ## Verification
 
 - `npm run verify:static`: TypeScript, Expo doctor, Python script compile.
-- `npm run verify:web:server`: desktop/mobile web smoke, JSON override validation, workspace clearing, custom prompt/provider templates, and layout checks.
+- `npm run verify:web:server`: desktop/mobile web smoke, JSON override and numeric setting validation, workspace clearing, custom prompt/provider templates, and layout checks.
 - `npm run verify:web-build`: static web export build plus the same desktop/mobile smoke checks against `dist/`.
 - `npm run verify:mock:server`: ASR upload and response formats, TTS, workspace restore, prompt templates, Chat Completions/Responses streaming and non-streaming, provider diagnostics, and export checks.
 - `npm run verify:android-config`: Expo prebuild plus Android manifest/Gradle checks.

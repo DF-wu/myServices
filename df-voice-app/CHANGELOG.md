@@ -14,6 +14,7 @@
 - Added inline validation for advanced JSON override fields.
 - Added custom provider template creation, restore, application, and deletion.
 - Added mock integration coverage for ASR text, SRT, and VTT response formats.
+- Added numeric range validation for provider settings and stored/imported settings files.
 
 ## 1.0.0
 

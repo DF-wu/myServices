@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, use, useCallback, useEffect, useMemo, useState } from "react";
 
 import { defaultSettings } from "@/data/templates";
+import { sanitizeSettings } from "@/lib/settings-portability";
 import { getJson, setJson } from "@/lib/storage";
 import type { ClientSettings } from "@/types/client";
 
@@ -24,7 +25,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     getJson<ClientSettings>(SETTINGS_KEY)
       .then((stored) => {
         if (mounted && stored) {
-          setSettings(mergeSettings(defaultSettings, stored));
+          setSettings(sanitizeSettings(defaultSettings, stored));
         }
       })
       .finally(() => {
@@ -38,8 +39,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const saveSettings = useCallback(async (next: ClientSettings) => {
-    setSettings(next);
-    await setJson(SETTINGS_KEY, next);
+    const sanitized = sanitizeSettings(defaultSettings, next);
+    setSettings(sanitized);
+    await setJson(SETTINGS_KEY, sanitized);
   }, []);
 
   const resetSettings = useCallback(async () => {
@@ -61,14 +63,4 @@ export function useSettings() {
     throw new Error("useSettings must be used inside SettingsProvider");
   }
   return context;
-}
-
-function mergeSettings(base: ClientSettings, stored: Partial<ClientSettings>): ClientSettings {
-  return {
-    ...base,
-    ...stored,
-    asr: { ...base.asr, ...stored.asr },
-    conversation: { ...base.conversation, ...stored.conversation },
-    tts: { ...base.tts, ...stored.tts },
-  };
 }

@@ -22,6 +22,7 @@ if (tsc.status !== 0) {
 const {
   REDACTED_SETTING_VALUE,
   importSettingsText,
+  sanitizeSettings,
   settingsJsonExport,
 } = await import(`../${buildDir}/lib/settings-portability.js`);
 
@@ -118,18 +119,24 @@ const sanitized = importSettingsText(
       autoSpeak: "yes",
       asr: {
         responseFormat: "docx",
-        temperature: "hot",
-        timeoutSec: -10,
+        temperature: 1.5,
+        timeoutSec: 1.5,
         unknown: "ignored",
       },
       conversation: {
-        maxOutputTokens: 0,
+        frequencyPenalty: -3,
+        maxOutputTokens: 1.5,
         mode: "legacy_completions",
+        presencePenalty: 3,
         stream: "true",
+        temperature: 3,
+        timeoutSec: 0,
+        topP: 1.4,
       },
       tts: {
         responseFormat: "ogg",
-        speed: -2,
+        speed: 5,
+        timeoutSec: 0.5,
       },
     },
   }),
@@ -139,11 +146,43 @@ assert.equal(sanitized.asr.responseFormat, current.asr.responseFormat);
 assert.equal(sanitized.asr.temperature, current.asr.temperature);
 assert.equal(sanitized.asr.timeoutSec, current.asr.timeoutSec);
 assert.equal(sanitized.asr.unknown, undefined);
+assert.equal(sanitized.conversation.frequencyPenalty, current.conversation.frequencyPenalty);
 assert.equal(sanitized.conversation.maxOutputTokens, current.conversation.maxOutputTokens);
 assert.equal(sanitized.conversation.mode, current.conversation.mode);
+assert.equal(sanitized.conversation.presencePenalty, current.conversation.presencePenalty);
 assert.equal(sanitized.conversation.stream, current.conversation.stream);
+assert.equal(sanitized.conversation.temperature, current.conversation.temperature);
+assert.equal(sanitized.conversation.timeoutSec, current.conversation.timeoutSec);
+assert.equal(sanitized.conversation.topP, current.conversation.topP);
 assert.equal(sanitized.tts.responseFormat, current.tts.responseFormat);
 assert.equal(sanitized.tts.speed, current.tts.speed);
+assert.equal(sanitized.tts.timeoutSec, current.tts.timeoutSec);
+
+const stored = sanitizeSettings(current, {
+  asr: {
+    apiKey: "stored-asr-secret",
+    extraHeadersJson: '{"x-stored":"asr"}',
+    temperature: 0.75,
+    timeoutSec: 0,
+  },
+  conversation: { maxOutputTokens: 512, topP: 1.25 },
+  tts: {
+    apiKey: "stored-tts-secret",
+    extraHeadersJson: '{"x-stored":"tts"}',
+    speed: 0.5,
+    timeoutSec: 1.5,
+  },
+});
+assert.equal(stored.asr.apiKey, "stored-asr-secret");
+assert.equal(stored.asr.extraHeadersJson, '{"x-stored":"asr"}');
+assert.equal(stored.asr.temperature, 0.75);
+assert.equal(stored.asr.timeoutSec, current.asr.timeoutSec);
+assert.equal(stored.conversation.maxOutputTokens, 512);
+assert.equal(stored.conversation.topP, current.conversation.topP);
+assert.equal(stored.tts.apiKey, "stored-tts-secret");
+assert.equal(stored.tts.extraHeadersJson, '{"x-stored":"tts"}');
+assert.equal(stored.tts.speed, 0.5);
+assert.equal(stored.tts.timeoutSec, current.tts.timeoutSec);
 
 assert.throws(
   () => importSettingsText(current, "{bad json"),

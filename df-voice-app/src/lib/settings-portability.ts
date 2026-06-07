@@ -44,6 +44,13 @@ export function importSettingsText(current: ClientSettings, text: string): Clien
   }
 
   const incoming = unwrapSettingsPayload(parsed);
+  return sanitizeSettings(current, incoming);
+}
+
+export function sanitizeSettings(
+  current: ClientSettings,
+  incoming: Partial<ClientSettings>,
+): ClientSettings {
   return mergeImportedSettings(current, incoming);
 }
 
@@ -98,8 +105,10 @@ function mergeAsrSettings(
   }
   return mergeCredentials(current, {
     ...current,
+    apiKey: stringValue(incoming.apiKey, current.apiKey),
     baseUrl: stringValue(incoming.baseUrl, current.baseUrl),
     extraFormFieldsJson: stringValue(incoming.extraFormFieldsJson, current.extraFormFieldsJson),
+    extraHeadersJson: stringValue(incoming.extraHeadersJson, current.extraHeadersJson),
     language: stringValue(incoming.language, current.language),
     model: stringValue(incoming.model, current.model),
     prompt: stringValue(incoming.prompt, current.prompt),
@@ -108,8 +117,8 @@ function mergeAsrSettings(
       current.responseFormat,
       ["json", "text", "verbose_json", "srt", "vtt"],
     ),
-    temperature: numberValue(incoming.temperature, current.temperature),
-    timeoutSec: positiveNumberValue(incoming.timeoutSec, current.timeoutSec),
+    temperature: rangedNumberValue(incoming.temperature, current.temperature, { max: 1, min: 0 }),
+    timeoutSec: rangedNumberValue(incoming.timeoutSec, current.timeoutSec, { integer: true, min: 1 }),
   });
 }
 
@@ -122,22 +131,33 @@ function mergeConversationSettings(
   }
   return mergeCredentials(current, {
     ...current,
+    apiKey: stringValue(incoming.apiKey, current.apiKey),
     baseUrl: stringValue(incoming.baseUrl, current.baseUrl),
     extraBodyJson: stringValue(incoming.extraBodyJson, current.extraBodyJson),
-    frequencyPenalty: numberValue(incoming.frequencyPenalty, current.frequencyPenalty),
-    maxOutputTokens: positiveNumberValue(incoming.maxOutputTokens, current.maxOutputTokens),
+    extraHeadersJson: stringValue(incoming.extraHeadersJson, current.extraHeadersJson),
+    frequencyPenalty: rangedNumberValue(incoming.frequencyPenalty, current.frequencyPenalty, {
+      max: 2,
+      min: -2,
+    }),
+    maxOutputTokens: rangedNumberValue(incoming.maxOutputTokens, current.maxOutputTokens, {
+      integer: true,
+      min: 1,
+    }),
     mode: enumValue<ConversationMode>(
       incoming.mode,
       current.mode,
       ["responses", "chat_completions"],
     ),
     model: stringValue(incoming.model, current.model),
-    presencePenalty: numberValue(incoming.presencePenalty, current.presencePenalty),
+    presencePenalty: rangedNumberValue(incoming.presencePenalty, current.presencePenalty, {
+      max: 2,
+      min: -2,
+    }),
     stream: booleanValue(incoming.stream, current.stream),
     systemPrompt: stringValue(incoming.systemPrompt, current.systemPrompt),
-    temperature: numberValue(incoming.temperature, current.temperature),
-    timeoutSec: positiveNumberValue(incoming.timeoutSec, current.timeoutSec),
-    topP: numberValue(incoming.topP, current.topP),
+    temperature: rangedNumberValue(incoming.temperature, current.temperature, { max: 2, min: 0 }),
+    timeoutSec: rangedNumberValue(incoming.timeoutSec, current.timeoutSec, { integer: true, min: 1 }),
+    topP: rangedNumberValue(incoming.topP, current.topP, { max: 1, min: 0 }),
   });
 }
 
@@ -150,8 +170,10 @@ function mergeTtsSettings(
   }
   return mergeCredentials(current, {
     ...current,
+    apiKey: stringValue(incoming.apiKey, current.apiKey),
     baseUrl: stringValue(incoming.baseUrl, current.baseUrl),
     extraBodyJson: stringValue(incoming.extraBodyJson, current.extraBodyJson),
+    extraHeadersJson: stringValue(incoming.extraHeadersJson, current.extraHeadersJson),
     instructions: stringValue(incoming.instructions, current.instructions),
     model: stringValue(incoming.model, current.model),
     responseFormat: enumValue<SpeechFormat>(
@@ -159,8 +181,8 @@ function mergeTtsSettings(
       current.responseFormat,
       ["mp3", "opus", "aac", "flac", "wav", "pcm"],
     ),
-    speed: positiveNumberValue(incoming.speed, current.speed),
-    timeoutSec: positiveNumberValue(incoming.timeoutSec, current.timeoutSec),
+    speed: rangedNumberValue(incoming.speed, current.speed, { max: 4, min: 0.25 }),
+    timeoutSec: rangedNumberValue(incoming.timeoutSec, current.timeoutSec, { integer: true, min: 1 }),
     voice: stringValue(incoming.voice, current.voice),
   });
 }
@@ -185,9 +207,30 @@ function numberValue(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
-function positiveNumberValue(value: unknown, fallback: number) {
+function rangedNumberValue(
+  value: unknown,
+  fallback: number,
+  {
+    integer,
+    max,
+    min,
+  }: {
+    integer?: boolean;
+    max?: number;
+    min?: number;
+  },
+) {
   const parsed = numberValue(value, fallback);
-  return parsed > 0 ? parsed : fallback;
+  if (integer && !Number.isInteger(parsed)) {
+    return fallback;
+  }
+  if (min !== undefined && parsed < min) {
+    return fallback;
+  }
+  if (max !== undefined && parsed > max) {
+    return fallback;
+  }
+  return parsed;
 }
 
 function booleanValue(value: unknown, fallback: boolean) {
