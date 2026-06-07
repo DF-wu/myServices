@@ -60,7 +60,7 @@ Homepage has no built-in authentication. If exposed outside LAN/Tailscale, it mu
 Before any commit or deployment handoff, run:
 
 ```bash
-cd ~/workspace/myServices/hompage
+cd ~/workspace/myServices/homepage
 ./scripts/scan-secrets.sh
 ```
 

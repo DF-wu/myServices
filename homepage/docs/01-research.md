@@ -191,7 +191,7 @@ For this project, Phase 2 should add a deterministic smoke test script that chec
 
 ```bash
 docker compose config
-cd ~/workspace/myServices/hompage && docker compose up -d
+cd ~/workspace/myServices/homepage && docker compose up -d
 sleep 10
 docker logs --tail 200 homepage
 curl -fsS http://127.0.0.1:3000/ >/dev/null

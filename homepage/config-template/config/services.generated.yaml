@@ -26,7 +26,7 @@
         id: core-infrastructure-homepage
         icon: mdi-docker
         href: "http://axolotl.newhome:33080"
-        description: "Docker: hompage/homepage (ghcr.io/gethomepage/homepage:latest)"
+        description: "Docker: homepage/homepage (ghcr.io/gethomepage/homepage:latest)"
         siteMonitor: "http://axolotl.newhome:33080"
         server: local-docker
         container: "homepage"
@@ -223,7 +223,7 @@
     - homepage-dockerproxy:
         id: network-ingress-homepage-dockerproxy
         icon: /images/dracula-icons/nginx-proxy-manager.png
-        description: "Docker: hompage/dockerproxy (ghcr.io/tecnativa/docker-socket-proxy:latest)"
+        description: "Docker: homepage/dockerproxy (ghcr.io/tecnativa/docker-socket-proxy:latest)"
         server: local-docker
         container: "homepage-dockerproxy"
         showStats: true

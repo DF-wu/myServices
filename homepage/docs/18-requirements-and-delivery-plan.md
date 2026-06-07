@@ -23,7 +23,7 @@ DF requested the following:
 | Area | Decision |
 |---|---|
 | Deployment platform | Docker Compose on axolotl. |
-| Working directory | `~/workspace/myServices/hompage` — spelling kept as originally requested. |
+| Working directory | `~/workspace/myServices/homepage` |
 | Runtime config | `/mnt/appdata/homepage/config` |
 | Runtime image assets | `/mnt/appdata/homepage/images` |
 | Local port | `33080 -> 3000` |
@@ -207,7 +207,7 @@ Rules:
 Before commit or handoff:
 
 ```bash
-cd ~/workspace/myServices/hompage
+cd ~/workspace/myServices/homepage
 ./scripts/scan-secrets.sh
 ./scripts/check-homepage-labels.sh
 python - <<'PY'
@@ -225,12 +225,12 @@ curl -fsS http://127.0.0.1:33080/ >/dev/null
 ## Files intentionally excluded from git
 
 ```text
-hompage/.env
-hompage/inventory/private/
+homepage/.env
+homepage/inventory/private/
 ```
 
 These contain runtime/private inventory or secret placeholders and must remain local.
 
 ## Commit scope
 
-The commit should include only `hompage/` deliverables and must not include unrelated dirty files already present elsewhere in the repository.
+The commit should include only `homepage/` deliverables and must not include unrelated dirty files already present elsewhere in the repository.

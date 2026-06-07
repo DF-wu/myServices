@@ -1,3 +1,4 @@
+name: homepage
 services:
   dockerproxy:
     image: ghcr.io/tecnativa/docker-socket-proxy:latest

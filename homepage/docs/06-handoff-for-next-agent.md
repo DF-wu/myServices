@@ -21,7 +21,7 @@ You are implementing Stage 2 only: bring Homepage online beside Heimdall. Do not
 ## Suggested implementation sequence
 
 ```bash
-cd ~/workspace/myServices/hompage
+cd ~/workspace/myServices/homepage
 cp config-template/.env.example .env
 mkdir -p /mnt/appdata/homepage/config
 rsync -av config-template/config/ /mnt/appdata/homepage/config/

@@ -38,7 +38,7 @@ The validation script renders the Compose template and parses all YAML files und
 A Phase 2 agent can begin from:
 
 ```bash
-cd ~/workspace/myServices/hompage
+cd ~/workspace/myServices/homepage
 ./scripts/prepare-runtime-config.sh
 ```
 

@@ -33,8 +33,8 @@ mkdir -p /mnt/appdata/homepage/config
 2. Copy templates:
 
 ```bash
-rsync -av ~/workspace/myServices/hompage/config-template/config/ /mnt/appdata/homepage/config/
-cp ~/workspace/myServices/hompage/config-template/.env.example ~/workspace/myServices/hompage/.env
+rsync -av ~/workspace/myServices/homepage/config-template/config/ /mnt/appdata/homepage/config/
+cp ~/workspace/myServices/homepage/config-template/.env.example ~/workspace/myServices/homepage/.env
 ```
 
 3. Fill `.env` with allowed hosts and widget secrets. Do not commit it.
@@ -44,7 +44,7 @@ cp ~/workspace/myServices/hompage/config-template/.env.example ~/workspace/mySer
 Use a non-conflicting port such as `33080:3000` during testing. Heimdall currently uses its own ports and must remain untouched.
 
 ```bash
-cd ~/workspace/myServices/hompage
+cd ~/workspace/myServices/homepage
 docker compose config
 docker compose up -d
 docker logs --tail 200 homepage

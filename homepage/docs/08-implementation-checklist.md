@@ -15,7 +15,7 @@ This is the condensed execution checklist for the next agent.
 ## Runtime config preparation
 
 ```bash
-cd ~/workspace/myServices/hompage
+cd ~/workspace/myServices/homepage
 ./scripts/prepare-runtime-config.sh
 ```
 
@@ -31,7 +31,7 @@ $EDITOR /mnt/appdata/homepage/config/widgets.yaml
 ## Local deploy
 
 ```bash
-cd ~/workspace/myServices/hompage
+cd ~/workspace/myServices/homepage
 docker compose config
 docker compose up -d
 ./scripts/smoke-test-homepage.sh

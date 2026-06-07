@@ -30,6 +30,6 @@ Before implementation, DF should answer `docs/05-decision-questions.md`, especia
 The package is ready for Phase 2 after DF answers the decision questions. The next agent should first run:
 
 ```bash
-cd ~/workspace/myServices/hompage
+cd ~/workspace/myServices/homepage
 ./scripts/all-checks.sh
 ```

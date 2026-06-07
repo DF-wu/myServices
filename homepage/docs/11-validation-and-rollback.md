@@ -3,7 +3,7 @@
 ## Static validation
 
 ```bash
-cd ~/workspace/myServices/hompage
+cd ~/workspace/myServices/homepage
 ./scripts/validate-homepage-template.sh
 ./scripts/scan-secrets.sh
 ```
@@ -50,7 +50,7 @@ For every failing widget:
 Homepage is side-by-side with Heimdall, so rollback is simply:
 
 ```bash
-cd ~/workspace/myServices/hompage
+cd ~/workspace/myServices/homepage
 docker compose down
 ```
 

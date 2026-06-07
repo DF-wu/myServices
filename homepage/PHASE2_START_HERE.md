@@ -15,4 +15,4 @@ The complete implementation checklist is `docs/08-implementation-checklist.md`; 
 
 ## Current recovery note
 
-After the 2026-06-07 interruption, read `docs/17-stage2-current-status-2026-06-07.md` before continuing. Homepage is locally running on `33080`; public ingress for `hp.dfder.tw` remains unfinished.
+After the 2026-06-07 interruption, read `docs/17-stage2-current-status-2026-06-07.md` before continuing. The project directory typo has since been corrected; read `docs/19-rename-hompage-to-homepage.md`. Homepage is locally running on `33080`; public ingress for `hp.dfder.tw` remains unfinished.

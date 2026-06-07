@@ -21,7 +21,7 @@ Homepage Stage 2 is **partially implemented and locally running**.
 
 Review time on axolotl: `2026-06-07T22:51:18+08:00`.
 
-Docker Compose status under `~/workspace/myServices/hompage`:
+Docker Compose status under `~/workspace/myServices/homepage`:
 
 ```text
 homepage               ghcr.io/gethomepage/homepage:latest            Up 20 hours (healthy)   0.0.0.0:33080->3000/tcp
@@ -249,7 +249,7 @@ The generated catalog is complete but rough. It needs human polish:
 To refresh inventory and regenerate full catalog:
 
 ```bash
-cd ~/workspace/myServices/hompage
+cd ~/workspace/myServices/homepage
 ./scripts/generate-private-inventory.sh
 ./scripts/generate-services-from-inventory.py
 docker compose restart homepage

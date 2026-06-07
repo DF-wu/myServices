@@ -23,7 +23,7 @@ Browser
       -> internal service APIs for widgets
 ```
 
-Homepage should run as its own stack under `~/workspace/myServices/hompage`, with runtime config under `/mnt/appdata/homepage/config` or `./config` depending DF's preference. For Portainer-style long-term persistence, `/mnt/appdata/homepage/config` is recommended.
+Homepage should run as its own stack under `~/workspace/myServices/homepage`, with runtime config under `/mnt/appdata/homepage/config` or `./config` depending DF's preference. For Portainer-style long-term persistence, `/mnt/appdata/homepage/config` is recommended.
 
 ## Security model
 

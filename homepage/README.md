@@ -32,14 +32,15 @@ A future agent should treat these files as the canonical handoff package and beg
 | `docs/15-visual-style-options.md` | Visual style options and recommended default. |
 | `docs/17-stage2-current-status-2026-06-07.md` | Current post-interruption Stage 2 state review and continuation checklist. |
 | `docs/18-requirements-and-delivery-plan.md` | Consolidated owner requirements, delivery plan, implemented state, and remaining work. |
+| `docs/19-rename-hompage-to-homepage.md` | Rename report for correcting the original `hompage` directory typo. |
 | `docs/14-df-decisions.md` | DF decisions already applied to Phase 2 planning. |
 | `config-template/` | Homepage compose and config templates; intentionally placeholder-based. |
 | `scripts/` | Read-only audit/export helpers. They avoid exporting secrets by default. |
 | `inventory/private/` | Generated local inventory. Private; ignored by git. |
 
-## Important spelling note
+## Path note
 
-DF requested the work path as `~/workspace/myServices/hompage`; this directory keeps that exact spelling for compatibility with the request and existing workspace. The deployed service/container should still be named `homepage`.
+The working directory is now `~/workspace/myServices/homepage`. An earlier typo used `hompage`; it has been corrected in the repository, runtime docs, and Docker Compose project naming.
 
 ## Safety rules for later phases
 
