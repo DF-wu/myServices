@@ -16,6 +16,7 @@
 - Added mock integration coverage for ASR text, SRT, and VTT response formats.
 - Added numeric range validation for provider settings and stored/imported settings files.
 - Added cancellation support for in-flight ASR, conversation, TTS, and provider diagnostic requests.
+- Added explicit timeout errors for provider requests and model diagnostics.
 
 ## 1.0.0
 

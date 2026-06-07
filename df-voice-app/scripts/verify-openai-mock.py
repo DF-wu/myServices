@@ -67,11 +67,16 @@ def settings(mode: str, *, stream: bool = True) -> dict:
     }
 
 
-def delayed_settings(mode: str, *, stream: bool = False) -> dict:
+def delayed_settings(mode: str, *, delay_ms: int = 900, stream: bool = False, timeout_sec: int = 30) -> dict:
     value = settings(mode, stream=stream)
-    value["conversation"]["extraHeadersJson"] = (
-        '{"x-df-voice-test":"conversation","x-df-voice-delay-ms":"900"}'
+    value["conversation"]["extraHeadersJson"] = json.dumps(
+        {
+            "x-df-voice-test": "conversation",
+            "x-df-voice-delay-ms": str(delay_ms),
+        },
+        separators=(",", ":"),
     )
+    value["conversation"]["timeoutSec"] = timeout_sec
     return value
 
 
@@ -147,6 +152,39 @@ def run_cancel_case(page) -> None:
     contents = [message.get("content") for message in stored.get("messages", [])]
     assert "cancel me" in contents, stored
     assert "Request cancelled." in contents, stored
+    assert "Mock chat response." not in contents, stored
+
+
+def run_timeout_case(page) -> None:
+    page.evaluate(
+        """([settingsKey, workspaceKey, value]) => {
+            localStorage.setItem(settingsKey, JSON.stringify(value));
+            localStorage.setItem(workspaceKey, JSON.stringify({
+                transcript: "",
+                rawResult: "",
+                chatDraft: "",
+                messages: [],
+                customPromptTemplates: [],
+                customProviderTemplates: []
+            }));
+        }""",
+        [SETTINGS_KEY, WORKSPACE_KEY, delayed_settings("chat_completions", delay_ms=1500, timeout_sec=1)],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    page.get_by_role("button", name="對話").click()
+    page.get_by_placeholder("Type a message, or send the latest transcript.").fill("time out")
+    page.get_by_role("button", name="Send").click()
+    expect(page.get_by_text("Request timed out after 1 seconds.").first).to_be_visible(
+        timeout=10000
+    )
+    stored = page.evaluate(
+        """(key) => JSON.parse(localStorage.getItem(key) || "{}")""",
+        WORKSPACE_KEY,
+    )
+    contents = [message.get("content") for message in stored.get("messages", [])]
+    assert "time out" in contents, stored
+    assert "Request failed: Request timed out after 1 seconds." in contents, stored
     assert "Mock chat response." not in contents, stored
 
 
@@ -291,6 +329,7 @@ def main() -> int:
         run_diagnostics(page)
         run_settings_portability(page)
         run_cancel_case(page)
+        run_timeout_case(page)
         run_case(page, "chat_completions", "Mock chat stream.", verify_export=True)
         run_case(page, "responses", "Mock responses stream.")
         run_case(page, "chat_completions", "Mock chat response.", stream=False)

@@ -23,7 +23,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "test-artifacts"
 
 
-def settings(response_format: str = "verbose_json", *, delay_ms: int = 0) -> dict:
+def settings(response_format: str = "verbose_json", *, delay_ms: int = 0, timeout_sec: int = 30) -> dict:
     asr_headers = {"x-df-voice-test": "asr"}
     if delay_ms:
         asr_headers["x-df-voice-delay-ms"] = str(delay_ms)
@@ -36,7 +36,7 @@ def settings(response_format: str = "verbose_json", *, delay_ms: int = 0) -> dic
             "language": "zh",
             "prompt": "mock vocabulary",
             "temperature": 0,
-            "timeoutSec": 30,
+            "timeoutSec": timeout_sec,
             "extraHeadersJson": json_dumps(asr_headers),
             "extraFormFieldsJson": '{"provider_hint":"asr-extra"}',
         },
@@ -148,6 +148,34 @@ def verify_cancel_transcription(page, path: str) -> None:
     assert stored.get("rawResult") == "", stored
 
 
+def verify_timeout_transcription(page, path: str) -> None:
+    page.evaluate(
+        """([settingsKey, workspaceKey, value]) => {
+            localStorage.setItem(settingsKey, JSON.stringify(value));
+            localStorage.setItem(workspaceKey, JSON.stringify({
+                transcript: "",
+                rawResult: "",
+                chatDraft: "",
+                messages: [],
+                customPromptTemplates: [],
+                customProviderTemplates: []
+            }));
+        }""",
+        [SETTINGS_KEY, WORKSPACE_KEY, settings(delay_ms=1500, timeout_sec=1)],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Upload").click()
+    chooser.value.set_files(path)
+    expect(page.get_by_text("Request timed out after 1 seconds.")).to_be_visible(timeout=10000)
+    stored = page.evaluate(
+        """(key) => JSON.parse(localStorage.getItem(key) || "{}")""",
+        WORKSPACE_KEY,
+    )
+    assert stored.get("transcript") == "", stored
+
+
 def main() -> int:
     ARTIFACTS.mkdir(exist_ok=True)
     with tempfile.NamedTemporaryFile(suffix=".wav") as audio:
@@ -189,6 +217,7 @@ def main() -> int:
             verify_response_format(page, audio.name, "srt", "00:00:00,000 --> 00:00:01,000")
             verify_response_format(page, audio.name, "vtt", "WEBVTT")
             verify_cancel_transcription(page, audio.name)
+            verify_timeout_transcription(page, audio.name)
             browser.close()
     print("mock ASR upload, response formats, and TTS integration passed")
     return 0

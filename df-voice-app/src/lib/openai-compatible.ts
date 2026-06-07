@@ -25,6 +25,13 @@ class ApiError extends Error {
   }
 }
 
+class TimeoutError extends Error {
+  constructor(timeoutSec: number) {
+    super(`Request timed out after ${timeoutSec} seconds.`);
+    this.name = "TimeoutError";
+  }
+}
+
 function endpoint(baseUrl: string, path: string) {
   const cleanBase = baseUrl.trim().replace(/\/+$/, "");
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
@@ -48,18 +55,24 @@ function authHeaders(
 
 function timeoutSignal(timeoutSec: number, externalSignal?: AbortSignal) {
   const controller = new AbortController();
-  const abort = () => controller.abort();
-  const timeout = setTimeout(abort, Math.max(1, timeoutSec) * 1000);
+  let timedOut = false;
+  const abortForTimeout = () => {
+    timedOut = true;
+    controller.abort();
+  };
+  const abortForExternal = () => controller.abort();
+  const timeout = setTimeout(abortForTimeout, Math.max(1, timeoutSec) * 1000);
   if (externalSignal?.aborted) {
-    abort();
+    abortForExternal();
   } else {
-    externalSignal?.addEventListener("abort", abort, { once: true });
+    externalSignal?.addEventListener("abort", abortForExternal, { once: true });
   }
   return {
     signal: controller.signal,
+    timedOut: () => timedOut,
     cancel: () => {
       clearTimeout(timeout);
-      externalSignal?.removeEventListener("abort", abort);
+      externalSignal?.removeEventListener("abort", abortForExternal);
     },
   };
 }
@@ -137,7 +150,7 @@ export async function transcribeAudio(
   }
   appendExtraFormFields(form, settings.extraFormFieldsJson);
 
-  const { signal, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
+  const { signal, timedOut, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
   try {
     const response = await fetch(endpoint(settings.baseUrl, "/audio/transcriptions"), {
       method: "POST",
@@ -154,6 +167,11 @@ export async function transcribeAudio(
 
     const raw = (await response.json()) as unknown;
     return { text: extractTranscriptionText(raw), raw, contentType };
+  } catch (error) {
+    if (isAbortError(error) && timedOut()) {
+      throw new TimeoutError(settings.timeoutSec);
+    }
+    throw error;
   } finally {
     cancel();
   }
@@ -170,7 +188,7 @@ export async function runConversation(
       : chatCompletionsPayload(settings, messages);
   const extraBody = jsonObjectFromText(settings.extraBodyJson, "Conversation extra body JSON");
   const path = settings.mode === "responses" ? "/responses" : "/chat/completions";
-  const { signal, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
+  const { signal, timedOut, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
   try {
     const response = await fetch(endpoint(settings.baseUrl, path), {
       method: "POST",
@@ -188,6 +206,11 @@ export async function runConversation(
     }
     const json = (await response.json()) as unknown;
     return settings.mode === "responses" ? extractResponseText(json) : extractChatText(json);
+  } catch (error) {
+    if (isAbortError(error) && timedOut()) {
+      throw new TimeoutError(settings.timeoutSec);
+    }
+    throw error;
   } finally {
     cancel();
   }
@@ -198,7 +221,7 @@ export async function synthesizeSpeech(
   input: string,
   options: RequestOptions = {},
 ): Promise<string> {
-  const { signal, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
+  const { signal, timedOut, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
   const extraBody = jsonObjectFromText(settings.extraBodyJson, "TTS extra body JSON");
   try {
     const response = await fetch(endpoint(settings.baseUrl, "/audio/speech"), {
@@ -229,6 +252,11 @@ export async function synthesizeSpeech(
     const file = new File(Paths.cache, `df-voice-tts-${Date.now()}.${settings.responseFormat}`);
     file.write(bytes);
     return file.uri;
+  } catch (error) {
+    if (isAbortError(error) && timedOut()) {
+      throw new TimeoutError(settings.timeoutSec);
+    }
+    throw error;
   } finally {
     cancel();
   }
@@ -238,13 +266,15 @@ export async function probeModels(
   baseUrl: string,
   apiKey: string,
   extraHeadersJson = "",
-  options: RequestOptions = {},
+  options: RequestOptions & { timeoutSec?: number } = {},
 ): Promise<ApiProbe> {
   const modelsEndpoint = endpoint(baseUrl, "/models");
+  const timeout = options.timeoutSec ?? 30;
+  const { signal, timedOut, cancel } = timeoutSignal(timeout, options.signal);
   try {
     const response = await fetch(modelsEndpoint, {
       headers: authHeaders(apiKey, undefined, extraHeadersJson),
-      signal: options.signal,
+      signal,
     });
     if (!response.ok) {
       return {
@@ -267,6 +297,14 @@ export async function probeModels(
       modelIds,
     };
   } catch (error) {
+    if (isAbortError(error) && timedOut()) {
+      return {
+        ok: false,
+        endpoint: modelsEndpoint,
+        message: `Request timed out after ${timeout} seconds.`,
+        modelIds: [],
+      };
+    }
     if (isAbortError(error)) {
       throw error;
     }
@@ -276,6 +314,8 @@ export async function probeModels(
       message: error instanceof Error ? error.message : "Network request failed",
       modelIds: [],
     };
+  } finally {
+    cancel();
   }
 }
 

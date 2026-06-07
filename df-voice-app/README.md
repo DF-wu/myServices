@@ -21,6 +21,7 @@ Standalone voice workbench for web, Android, and optional iOS. It records or upl
 - Validate advanced JSON override fields inline before provider requests are sent
 - Validate provider numeric settings inline and ignore invalid stored/imported numeric values
 - Cancel in-flight ASR, conversation, TTS, and provider diagnostic requests from the app shell
+- Report provider timeout errors separately from user-cancelled requests
 
 ## Run
 
@@ -104,7 +105,7 @@ Provider checks run independently for the ASR, conversation, and TTS base URLs. 
 
 Advanced JSON fields are validated inline in Settings and merged into the outgoing request after the built-in settings. They are intended for compatible providers that require custom headers, ASR fields such as timestamp options, or body fields such as `response_format`, `metadata`, `seed`, or vendor-specific flags.
 Numeric provider settings are range-checked in the Settings tab. Stored settings, provider templates, and imported settings files keep the current device value when an incoming number is out of range, non-finite, or fractional where an integer is required.
-Long-running ASR, conversation, TTS, and model diagnostic requests expose a Cancel request control. Cancelled provider responses are ignored if they arrive later, so stale results cannot overwrite the current transcript or conversation.
+Long-running ASR, conversation, TTS, and model diagnostic requests expose a Cancel request control. Cancelled provider responses are ignored if they arrive later, so stale results cannot overwrite the current transcript or conversation. Provider timeouts report the configured timeout duration instead of being treated as user cancellations.
 
 Build-time provider defaults:
 

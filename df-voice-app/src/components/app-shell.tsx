@@ -502,7 +502,10 @@ export function AppShell() {
 
   async function fetchProviderProbe(provider: ProviderKey, signal?: AbortSignal) {
     const config = providerConfig(settings, provider);
-    const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson, { signal });
+    const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson, {
+      signal,
+      timeoutSec: config.timeoutSec,
+    });
     return { ...result, checkedAt: Date.now() };
   }
 
@@ -536,6 +539,7 @@ export function AppShell() {
           const config = providerConfig(settings, provider);
           const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson, {
             signal: controller.signal,
+            timeoutSec: config.timeoutSec,
           });
           return [provider, { ...result, checkedAt: Date.now() }] as const;
         }),
@@ -2148,6 +2152,7 @@ function providerConfig(settings: ClientSettings, provider: ProviderKey) {
       baseUrl: settings.asr.baseUrl,
       apiKey: settings.asr.apiKey,
       extraHeadersJson: settings.asr.extraHeadersJson,
+      timeoutSec: settings.asr.timeoutSec,
     };
   }
   if (provider === "tts") {
@@ -2156,6 +2161,7 @@ function providerConfig(settings: ClientSettings, provider: ProviderKey) {
       baseUrl: settings.tts.baseUrl,
       apiKey: settings.tts.apiKey,
       extraHeadersJson: settings.tts.extraHeadersJson,
+      timeoutSec: settings.tts.timeoutSec,
     };
   }
   return {
@@ -2163,6 +2169,7 @@ function providerConfig(settings: ClientSettings, provider: ProviderKey) {
     baseUrl: settings.conversation.baseUrl,
     apiKey: settings.conversation.apiKey,
     extraHeadersJson: settings.conversation.extraHeadersJson,
+    timeoutSec: settings.conversation.timeoutSec,
   };
 }
 
