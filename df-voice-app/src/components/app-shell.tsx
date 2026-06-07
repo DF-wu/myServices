@@ -404,6 +404,16 @@ export function AppShell() {
         </View>
       </View>
 
+      <WorkflowOverview
+        activeTab={activeTab}
+        diagnostics={providerDiagnostics}
+        messageCount={messages.length}
+        onSelectTab={setActiveTab}
+        settings={settings}
+        transcriptLength={transcript.length}
+        wide={wide}
+      />
+
       {notice ? <Notice text={notice} onClear={() => setNotice("")} /> : null}
 
       {activeTab === "capture" ? (
@@ -462,6 +472,246 @@ export function AppShell() {
         <TemplatesView current={settings} onApply={applyTemplate} />
       ) : null}
     </ScrollView>
+  );
+}
+
+function WorkflowOverview({
+  activeTab,
+  diagnostics,
+  messageCount,
+  onSelectTab,
+  settings,
+  transcriptLength,
+  wide,
+}: {
+  activeTab: TabId;
+  diagnostics: Partial<Record<ProviderKey, ProviderDiagnostic>>;
+  messageCount: number;
+  onSelectTab: (tab: TabId) => void;
+  settings: ClientSettings;
+  transcriptLength: number;
+  wide: boolean;
+}) {
+  const steps: Array<{
+    detail: string;
+    icon: Icon;
+    key: ProviderKey;
+    metric: string;
+    tab: TabId;
+    title: string;
+  }> = [
+    {
+      detail: `${trimUrl(settings.asr.baseUrl)} · ${settings.asr.model}`,
+      icon: Mic,
+      key: "asr",
+      metric: transcriptLength ? `${transcriptLength} chars` : settings.asr.responseFormat,
+      tab: "capture",
+      title: "Capture",
+    },
+    {
+      detail: `${settings.conversation.mode === "responses" ? "Responses" : "Chat Completions"} · ${settings.conversation.model}`,
+      icon: MessageSquare,
+      key: "conversation",
+      metric: `${messageCount} messages`,
+      tab: "chat",
+      title: "Reason",
+    },
+    {
+      detail: `${trimUrl(settings.tts.baseUrl)} · ${settings.tts.voice}`,
+      icon: Volume2,
+      key: "tts",
+      metric: settings.tts.responseFormat.toUpperCase(),
+      tab: "settings",
+      title: "Speak",
+    },
+  ];
+
+  return (
+    <View
+      style={{
+        backgroundColor: colors.black,
+        borderColor: colors.black,
+        borderRadius: radii.large,
+        borderWidth: 1,
+        overflow: "hidden",
+      }}
+    >
+      <View
+        style={{
+          gap: spacing.lg,
+          padding: wide ? spacing.xl : spacing.lg,
+        }}
+      >
+        <View
+          style={{
+            alignItems: wide ? "center" : "flex-start",
+            flexDirection: wide ? "row" : "column",
+            gap: spacing.lg,
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flex: 1, gap: spacing.sm, minWidth: 240 }}>
+            <Text style={{ color: colors.cyanSoft, fontSize: 12, fontWeight: "900", textTransform: "uppercase" }}>
+              Voice pipeline
+            </Text>
+            <Text style={{ color: colors.white, fontSize: wide ? 28 : 23, fontWeight: "900", lineHeight: wide ? 34 : 29 }}>
+              Local ASR, model reasoning, and speech output in one workbench.
+            </Text>
+            <Text selectable style={{ color: "#b8c6cf", fontSize: 15, lineHeight: 22 }}>
+              {statusSummary(settings)}
+            </Text>
+          </View>
+
+          <View
+            style={{
+              alignItems: wide ? "flex-end" : "stretch",
+              gap: spacing.sm,
+              minWidth: wide ? 260 : "100%",
+            }}
+          >
+            <StatusPill diagnostic={diagnostics.asr} label="ASR" />
+            <StatusPill diagnostic={diagnostics.conversation} label="Conversation" />
+            <StatusPill diagnostic={diagnostics.tts} label="TTS" />
+          </View>
+        </View>
+
+        <View style={{ flexDirection: wide ? "row" : "column", gap: spacing.md }}>
+          {steps.map((step, index) => (
+            <WorkflowStepCard
+              key={step.key}
+              active={activeTab === step.tab}
+              detail={step.detail}
+              diagnostic={diagnostics[step.key]}
+              icon={step.icon}
+              index={index + 1}
+              metric={step.metric}
+              onPress={() => onSelectTab(step.tab)}
+              title={step.title}
+            />
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function WorkflowStepCard({
+  active,
+  detail,
+  diagnostic,
+  icon: IconComponent,
+  index,
+  metric,
+  onPress,
+  title,
+}: {
+  active: boolean;
+  detail: string;
+  diagnostic?: ProviderDiagnostic;
+  icon: Icon;
+  index: number;
+  metric: string;
+  onPress: () => void;
+  title: string;
+}) {
+  const reachable = diagnostic?.ok === true;
+  const failed = diagnostic?.ok === false;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        backgroundColor: active ? colors.white : colors.blackSoft,
+        borderColor: active ? colors.white : "rgba(255,255,255,0.15)",
+        borderRadius: radii.medium,
+        borderWidth: 1,
+        flex: 1,
+        gap: spacing.md,
+        minHeight: 154,
+        minWidth: 0,
+        opacity: pressed ? 0.78 : 1,
+        padding: spacing.md,
+      })}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm }}>
+        <View
+          style={{
+            alignItems: "center",
+            backgroundColor: active ? colors.black : "rgba(255,255,255,0.1)",
+            borderRadius: radii.small,
+            height: 40,
+            justifyContent: "center",
+            width: 40,
+          }}
+        >
+          <IconComponent color={active ? colors.white : colors.cyanSoft} size={19} strokeWidth={2.5} />
+        </View>
+        <Text style={{ color: active ? colors.muted : "#9fb0ba", fontSize: 12, fontWeight: "900" }}>
+          {String(index).padStart(2, "0")}
+        </Text>
+      </View>
+
+      <View style={{ gap: spacing.xs }}>
+        <Text style={{ color: active ? colors.ink : colors.white, fontSize: 20, fontWeight: "900" }}>
+          {title}
+        </Text>
+        <Text selectable numberOfLines={2} style={{ color: active ? colors.muted : "#b8c6cf", lineHeight: 20 }}>
+          {detail}
+        </Text>
+      </View>
+
+      <View style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.sm, alignItems: "center" }}>
+        <Text
+          style={{
+            color: active ? colors.ink : colors.white,
+            fontSize: 13,
+            fontWeight: "900",
+          }}
+        >
+          {metric}
+        </Text>
+        <View
+          style={{
+            backgroundColor: failed ? colors.coralSoft : reachable ? colors.greenSoft : colors.steelSoft,
+            borderRadius: 999,
+            paddingHorizontal: spacing.sm,
+            paddingVertical: spacing.xs,
+          }}
+        >
+          <Text style={{ color: failed ? colors.coral : reachable ? colors.green : colors.steel, fontSize: 12, fontWeight: "900" }}>
+            {failed ? "Issue" : reachable ? "Ready" : "Check"}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+function StatusPill({ diagnostic, label }: { diagnostic?: ProviderDiagnostic; label: string }) {
+  const failed = diagnostic?.ok === false;
+  const reachable = diagnostic?.ok === true;
+  return (
+    <View
+      style={{
+        alignItems: "center",
+        alignSelf: "stretch",
+        backgroundColor: failed ? "rgba(188,79,61,0.18)" : reachable ? "rgba(24,118,90,0.2)" : "rgba(255,255,255,0.1)",
+        borderColor: failed ? colors.coral : reachable ? colors.green : "rgba(255,255,255,0.2)",
+        borderRadius: 999,
+        borderWidth: 1,
+        flexDirection: "row",
+        gap: spacing.sm,
+        justifyContent: "space-between",
+        minHeight: 36,
+        paddingHorizontal: spacing.md,
+      }}
+    >
+      <Text style={{ color: colors.white, fontWeight: "900" }}>{label}</Text>
+      <Text style={{ color: failed ? colors.coralSoft : reachable ? colors.greenSoft : "#b8c6cf", fontWeight: "800" }}>
+        {failed ? "Failed" : reachable ? "Reachable" : "Not checked"}
+      </Text>
+    </View>
   );
 }
 
@@ -1250,4 +1500,14 @@ function providerConfig(settings: ClientSettings, provider: ProviderKey) {
     apiKey: settings.conversation.apiKey,
     extraHeadersJson: settings.conversation.extraHeadersJson,
   };
+}
+
+function statusSummary(settings: ClientSettings) {
+  const chatMode =
+    settings.conversation.mode === "responses" ? "Responses API" : "Chat Completions";
+  return [
+    `ASR ${trimUrl(settings.asr.baseUrl)}`,
+    `${chatMode} ${settings.conversation.model}`,
+    `TTS ${settings.tts.voice}/${settings.tts.responseFormat}`,
+  ].join(" · ");
 }

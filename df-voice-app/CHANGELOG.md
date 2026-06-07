@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added the voice pipeline overview for desktop and mobile home screens.
+
 ## 1.0.0
 
 - Added standalone Expo voice workbench for web, Android, and optional iOS.

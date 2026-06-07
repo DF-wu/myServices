@@ -61,6 +61,7 @@ def main() -> int:
         page.wait_for_selector("text=DF Voice App")
 
         expect(page.get_by_role("heading", name="DF Voice App")).to_be_visible()
+        expect(page.get_by_text("Voice pipeline")).to_be_visible()
         expect(page.get_by_text("Record or upload audio")).to_be_visible()
         assert_layout(page, "desktop capture")
         page.screenshot(path=str(ARTIFACTS / "web-home.png"), full_page=True)
@@ -87,6 +88,7 @@ def main() -> int:
         page.set_viewport_size({"width": 390, "height": 844})
         page.get_by_role("button", name="語音").click()
         expect(page.get_by_role("heading", name="DF Voice App")).to_be_visible()
+        expect(page.get_by_text("Voice pipeline")).to_be_visible()
         assert_layout(page, "mobile capture")
         page.screenshot(path=str(ARTIFACTS / "web-mobile.png"), full_page=True)
 

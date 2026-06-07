@@ -7,6 +7,7 @@ export const colors = {
   panel: "#ffffff",
   panelAlt: "#e9f4ef",
   black: "#101418",
+  blackSoft: "#1d242b",
   green: "#18765a",
   greenSoft: "#dff1e9",
   cyan: "#006a87",
@@ -16,6 +17,8 @@ export const colors = {
   gold: "#8e6a10",
   goldSoft: "#f0e4bf",
   danger: "#a3322d",
+  steel: "#41515f",
+  steelSoft: "#e7edf1",
   white: "#ffffff",
 } as const;
 
