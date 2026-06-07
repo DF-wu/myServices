@@ -57,6 +57,7 @@ import type {
   AsrSettings,
   ChatMessage,
   ClientSettings,
+  ClientTemplate,
   ConversationMode,
   ConversationSettings,
   PromptTemplate,
@@ -71,10 +72,16 @@ type ProviderKey = "asr" | "conversation" | "tts";
 type ProviderDiagnostic = ApiProbe & { checkedAt: number };
 type WorkspaceSnapshot = {
   chatDraft: string;
+  customProviderTemplates: ClientTemplate[];
   customPromptTemplates: PromptTemplate[];
   messages: ChatMessage[];
   rawResult: string;
   transcript: string;
+};
+type ProviderTemplateDraft = {
+  description: string;
+  name: string;
+  tags: string;
 };
 type PromptTemplateDraft = {
   category: string;
@@ -91,6 +98,11 @@ const tabs: Array<{ id: TabId; label: string; icon: Icon }> = [
   { id: "templates", label: "範本", icon: Sparkles },
 ];
 const providerKeys: ProviderKey[] = ["asr", "conversation", "tts"];
+const emptyProviderTemplateDraft: ProviderTemplateDraft = {
+  description: "",
+  name: "",
+  tags: "",
+};
 const emptyPromptTemplateDraft: PromptTemplateDraft = {
   category: "Custom",
   description: "",
@@ -100,6 +112,7 @@ const emptyPromptTemplateDraft: PromptTemplateDraft = {
 };
 const emptyWorkspaceSnapshot: WorkspaceSnapshot = {
   chatDraft: "",
+  customProviderTemplates: [],
   customPromptTemplates: [],
   messages: [],
   rawResult: "",
@@ -121,6 +134,7 @@ export function AppShell() {
   const [transcript, setTranscript] = useState("");
   const [rawResult, setRawResult] = useState("");
   const [chatDraft, setChatDraft] = useState("");
+  const [customProviderTemplates, setCustomProviderTemplates] = useState<ClientTemplate[]>([]);
   const [customPromptTemplates, setCustomPromptTemplates] = useState<PromptTemplate[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [workspaceLoaded, setWorkspaceLoaded] = useState(false);
@@ -148,6 +162,7 @@ export function AppShell() {
         setTranscript(next.transcript);
         setRawResult(next.rawResult);
         setChatDraft(next.chatDraft);
+        setCustomProviderTemplates(next.customProviderTemplates);
         setCustomPromptTemplates(next.customPromptTemplates);
         setMessages(next.messages);
       })
@@ -168,6 +183,7 @@ export function AppShell() {
     const handle = setTimeout(() => {
       void setWorkspaceJson({
         chatDraft,
+        customProviderTemplates,
         customPromptTemplates,
         messages: messages.slice(-80),
         rawResult,
@@ -175,7 +191,7 @@ export function AppShell() {
       }).catch(() => undefined);
     }, 250);
     return () => clearTimeout(handle);
-  }, [chatDraft, customPromptTemplates, messages, rawResult, transcript, workspaceLoaded]);
+  }, [chatDraft, customProviderTemplates, customPromptTemplates, messages, rawResult, transcript, workspaceLoaded]);
 
   const statusLine = useMemo(() => {
     const base = trimUrl(settings.asr.baseUrl);
@@ -367,6 +383,7 @@ export function AppShell() {
       setTranscript("");
       setRawResult("");
       setChatDraft("");
+      setCustomProviderTemplates([]);
       setCustomPromptTemplates([]);
       setMessages([]);
       setNotice("Workspace cleared.");
@@ -472,12 +489,39 @@ export function AppShell() {
   }
 
   async function applyTemplate(templateId: string) {
-    const template = templates.find((item) => item.id === templateId);
+    const template = [...customProviderTemplates, ...templates].find((item) => item.id === templateId);
     if (!template) {
       return;
     }
     await saveSettings(template.settings);
     setNotice(`Applied template: ${template.name}`);
+  }
+
+  function saveCustomProviderTemplate(draft: ProviderTemplateDraft) {
+    const name = draft.name.trim();
+    if (!name) {
+      setNotice("Custom provider templates need a name.");
+      return false;
+    }
+    const template: ClientTemplate = {
+      id: `custom-provider-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      description: draft.description.trim() || "User-defined provider setup.",
+      name,
+      settings: cloneSettings(settings),
+      tags: draft.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .slice(0, 8),
+    };
+    setCustomProviderTemplates((current) => [template, ...current].slice(0, 30));
+    setNotice(`Saved custom provider template: ${template.name}`);
+    return true;
+  }
+
+  function deleteCustomProviderTemplate(templateId: string) {
+    setCustomProviderTemplates((current) => current.filter((template) => template.id !== templateId));
+    setNotice("Custom provider template deleted.");
   }
 
   function loadPromptTemplate(template: PromptTemplate) {
@@ -645,13 +689,16 @@ export function AppShell() {
       {activeTab === "templates" ? (
         <TemplatesView
           busy={busy}
+          customProviderTemplates={customProviderTemplates}
           customPromptTemplates={customPromptTemplates}
           current={settings}
           transcript={transcript}
           onApply={applyTemplate}
+          onDeleteProvider={deleteCustomProviderTemplate}
           onDeletePrompt={deleteCustomPromptTemplate}
           onLoadPrompt={loadPromptTemplate}
           onRunPrompt={runPromptTemplate}
+          onSaveProvider={saveCustomProviderTemplate}
           onSavePrompt={saveCustomPromptTemplate}
         />
       ) : null}
@@ -1377,27 +1424,42 @@ function ProviderProbeCard({
 
 function TemplatesView({
   busy,
+  customProviderTemplates,
   customPromptTemplates,
   current,
   onApply,
+  onDeleteProvider,
   onDeletePrompt,
   onLoadPrompt,
   onRunPrompt,
+  onSaveProvider,
   onSavePrompt,
   transcript,
 }: {
   busy: BusyState;
+  customProviderTemplates: ClientTemplate[];
   customPromptTemplates: PromptTemplate[];
   current: ClientSettings;
   onApply: (templateId: string) => void;
+  onDeleteProvider: (templateId: string) => void;
   onDeletePrompt: (templateId: string) => void;
   onLoadPrompt: (template: PromptTemplate) => void;
   onRunPrompt: (template: PromptTemplate) => void;
+  onSaveProvider: (draft: ProviderTemplateDraft) => boolean;
   onSavePrompt: (draft: PromptTemplateDraft) => boolean;
   transcript: string;
 }) {
+  const [providerDraft, setProviderDraft] = useState<ProviderTemplateDraft>(emptyProviderTemplateDraft);
   const [draft, setDraft] = useState<PromptTemplateDraft>(emptyPromptTemplateDraft);
   const promptLibrary = [...customPromptTemplates, ...promptTemplates];
+  const providerLibrary = [...customProviderTemplates, ...templates];
+  const updateProviderDraft = (key: keyof ProviderTemplateDraft, value: string) =>
+    setProviderDraft((currentDraft) => ({ ...currentDraft, [key]: value }));
+  const saveProviderDraft = () => {
+    if (onSaveProvider(providerDraft)) {
+      setProviderDraft(emptyProviderTemplateDraft);
+    }
+  };
   const updateDraft = (key: keyof PromptTemplateDraft, value: string) =>
     setDraft((currentDraft) => ({ ...currentDraft, [key]: value }));
   const saveDraft = () => {
@@ -1466,7 +1528,30 @@ function TemplatesView({
 
       <View style={{ gap: spacing.md }}>
         <PanelTitle icon={Settings2} eyebrow="Providers" title="Provider templates" />
-        {templates.map((template) => {
+
+        <Surface subtle>
+          <View style={{ gap: spacing.md }}>
+            <PanelTitle icon={Plus} eyebrow="Custom" title="Save current provider setup" />
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md }}>
+              <Field label="Provider template name" value={providerDraft.name} onChangeText={(value) => updateProviderDraft("name", value)} style={{ flex: 1, minWidth: 220 }} />
+              <Field label="Provider template tags" value={providerDraft.tags} onChangeText={(value) => updateProviderDraft("tags", value)} style={{ flex: 1, minWidth: 220 }} />
+            </View>
+            <Field label="Provider template description" value={providerDraft.description} onChangeText={(value) => updateProviderDraft("description", value)} />
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+              <CommandButton
+                label="Save provider template"
+                tone="primary"
+                icon={Save}
+                disabled={!providerDraft.name.trim()}
+                onPress={saveProviderDraft}
+              />
+              <CommandButton label="Reset provider form" tone="plain" icon={RotateCcw} onPress={() => setProviderDraft(emptyProviderTemplateDraft)} />
+            </View>
+          </View>
+        </Surface>
+
+        {providerLibrary.map((template) => {
+          const custom = template.id.startsWith("custom-provider-");
           const selected =
             current.asr.baseUrl === template.settings.asr.baseUrl &&
             current.conversation.baseUrl === template.settings.conversation.baseUrl &&
@@ -1476,16 +1561,21 @@ function TemplatesView({
               key={template.id}
               title={template.name}
               description={template.description}
-              eyebrow={selected ? "Applied" : "Setup"}
+              eyebrow={selected ? "Applied" : custom ? "Custom setup" : "Setup"}
               tags={template.tags}
               selected={selected}
               actions={
-                <CommandButton
-                  label={selected ? "Applied" : "Apply"}
-                  tone={selected ? "secondary" : "primary"}
-                  icon={selected ? Check : Save}
-                  onPress={() => onApply(template.id)}
-                />
+                <>
+                  <CommandButton
+                    label={selected ? "Applied" : "Apply"}
+                    tone={selected ? "secondary" : "primary"}
+                    icon={selected ? Check : Save}
+                    onPress={() => onApply(template.id)}
+                  />
+                  {custom ? (
+                    <IconOnly icon={Trash2} label={`Delete ${template.name}`} onPress={() => onDeleteProvider(template.id)} />
+                  ) : null}
+                </>
               }
             />
           );
@@ -1938,6 +2028,9 @@ function promptWithTranscript(prompt: string, transcript: string) {
 function normalizeWorkspaceSnapshot(snapshot: Partial<WorkspaceSnapshot>): WorkspaceSnapshot {
   return {
     chatDraft: typeof snapshot.chatDraft === "string" ? snapshot.chatDraft : "",
+    customProviderTemplates: Array.isArray(snapshot.customProviderTemplates)
+      ? snapshot.customProviderTemplates.filter(isClientTemplate).slice(0, 30)
+      : [],
     customPromptTemplates: Array.isArray(snapshot.customPromptTemplates)
       ? snapshot.customPromptTemplates.filter(isPromptTemplate).slice(0, 40)
       : [],
@@ -1949,32 +2042,135 @@ function normalizeWorkspaceSnapshot(snapshot: Partial<WorkspaceSnapshot>): Works
   };
 }
 
-function isPromptTemplate(value: unknown): value is PromptTemplate {
-  if (!value || typeof value !== "object") {
+function cloneSettings(settings: ClientSettings): ClientSettings {
+  return JSON.parse(JSON.stringify(settings)) as ClientSettings;
+}
+
+function isClientTemplate(value: unknown): value is ClientTemplate {
+  if (!isRecord(value)) {
     return false;
   }
-  const item = value as Partial<PromptTemplate>;
   return (
-    typeof item.id === "string" &&
-    item.id.startsWith("custom-") &&
-    typeof item.name === "string" &&
-    typeof item.category === "string" &&
-    typeof item.description === "string" &&
-    typeof item.prompt === "string" &&
-    Array.isArray(item.tags) &&
-    item.tags.every((tag) => typeof tag === "string")
+    typeof value.id === "string" &&
+    value.id.startsWith("custom-provider-") &&
+    typeof value.name === "string" &&
+    typeof value.description === "string" &&
+    isStringArray(value.tags) &&
+    isClientSettings(value.settings)
+  );
+}
+
+function isPromptTemplate(value: unknown): value is PromptTemplate {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    typeof value.id === "string" &&
+    value.id.startsWith("custom-") &&
+    typeof value.name === "string" &&
+    typeof value.category === "string" &&
+    typeof value.description === "string" &&
+    typeof value.prompt === "string" &&
+    isStringArray(value.tags)
   );
 }
 
 function isChatMessage(value: unknown): value is ChatMessage {
-  if (!value || typeof value !== "object") {
+  if (!isRecord(value)) {
     return false;
   }
-  const item = value as Partial<ChatMessage>;
   return (
-    typeof item.id === "string" &&
-    typeof item.content === "string" &&
-    typeof item.createdAt === "number" &&
-    (item.role === "user" || item.role === "assistant" || item.role === "system")
+    typeof value.id === "string" &&
+    typeof value.content === "string" &&
+    typeof value.createdAt === "number" &&
+    (value.role === "user" || value.role === "assistant" || value.role === "system")
   );
+}
+
+function isClientSettings(value: unknown): value is ClientSettings {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    isAsrSettings(value.asr) &&
+    isConversationSettings(value.conversation) &&
+    isTtsSettings(value.tts) &&
+    typeof value.autoSpeak === "boolean" &&
+    typeof value.keepConversationHistory === "boolean"
+  );
+}
+
+function isAsrSettings(value: unknown): value is AsrSettings {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    typeof value.baseUrl === "string" &&
+    typeof value.apiKey === "string" &&
+    typeof value.model === "string" &&
+    (value.responseFormat === "json" ||
+      value.responseFormat === "text" ||
+      value.responseFormat === "verbose_json" ||
+      value.responseFormat === "srt" ||
+      value.responseFormat === "vtt") &&
+    typeof value.language === "string" &&
+    typeof value.prompt === "string" &&
+    typeof value.temperature === "number" &&
+    typeof value.timeoutSec === "number" &&
+    typeof value.extraHeadersJson === "string" &&
+    typeof value.extraFormFieldsJson === "string"
+  );
+}
+
+function isConversationSettings(value: unknown): value is ConversationSettings {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    typeof value.baseUrl === "string" &&
+    typeof value.apiKey === "string" &&
+    (value.mode === "responses" || value.mode === "chat_completions") &&
+    typeof value.model === "string" &&
+    typeof value.systemPrompt === "string" &&
+    typeof value.temperature === "number" &&
+    typeof value.topP === "number" &&
+    typeof value.frequencyPenalty === "number" &&
+    typeof value.presencePenalty === "number" &&
+    typeof value.maxOutputTokens === "number" &&
+    typeof value.stream === "boolean" &&
+    typeof value.timeoutSec === "number" &&
+    typeof value.extraHeadersJson === "string" &&
+    typeof value.extraBodyJson === "string"
+  );
+}
+
+function isTtsSettings(value: unknown): value is TtsSettings {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    typeof value.baseUrl === "string" &&
+    typeof value.apiKey === "string" &&
+    typeof value.model === "string" &&
+    typeof value.voice === "string" &&
+    (value.responseFormat === "mp3" ||
+      value.responseFormat === "opus" ||
+      value.responseFormat === "aac" ||
+      value.responseFormat === "flac" ||
+      value.responseFormat === "wav" ||
+      value.responseFormat === "pcm") &&
+    typeof value.speed === "number" &&
+    typeof value.instructions === "string" &&
+    typeof value.timeoutSec === "number" &&
+    typeof value.extraHeadersJson === "string" &&
+    typeof value.extraBodyJson === "string"
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
 }

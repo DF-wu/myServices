@@ -13,7 +13,7 @@ Standalone voice workbench for web, Android, and optional iOS. It records or upl
 - Export transcripts, raw ASR payloads, and conversations as Markdown
 - Check ASR, chat, and TTS providers with `GET /v1/models`
 - Persist provider settings and API keys locally
-- Apply templates for local CapsWriter, cloud-compatible, Android emulator, and LM Studio/Ollama-style setups
+- Apply built-in and custom provider templates for local CapsWriter, cloud-compatible, Android emulator, and LM Studio/Ollama-style setups
 - Use built-in and custom prompt workflow templates for transcript cleanup, meeting summaries, action extraction, reply drafts, and English briefs
 - Restore the current transcript, draft, and conversation after a browser refresh or app restart
 - Clear the local workspace from the Settings tab when transcripts or prompts should be removed from the device
@@ -165,7 +165,7 @@ npm run verify:ci
 
 ## Security
 
-On Android and iOS, settings are stored with `expo-secure-store` when available, and the active workspace is stored as an app-private document JSON file. On web, both are stored in browser `localStorage`; avoid saving production cloud API keys or sensitive transcripts on shared machines. Use Settings -> Clear workspace to remove the current transcript, raw ASR response, draft, conversation, and custom prompt templates from local workspace storage.
+On Android and iOS, settings are stored with `expo-secure-store` when available, and the active workspace is stored as an app-private document JSON file. On web, both are stored in browser `localStorage`; avoid saving production cloud API keys or sensitive transcripts on shared machines. Use Settings -> Clear workspace to remove the current transcript, raw ASR response, draft, conversation, custom prompt templates, and custom provider templates from local workspace storage.
 
 The Android native config enables cleartext HTTP so local providers, `10.0.2.2`, and LAN IP endpoints work in release builds. It also pins the generated Gradle wrapper to 8.14.3 for React Native Gradle plugin compatibility. Background audio recording/playback services are disabled in the `expo-audio` config plugin.
 

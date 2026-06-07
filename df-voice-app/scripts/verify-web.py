@@ -109,6 +109,15 @@ def main() -> int:
                         tags: ["sensitive"],
                         prompt: "Sensitive prompt body."
                     }
+                ],
+                customProviderTemplates: [
+                    {
+                        id: "custom-provider-seeded",
+                        name: "Sensitive provider setup",
+                        description: "Temporary sensitive provider setup.",
+                        tags: ["sensitive"],
+                        settings: JSON.parse(localStorage.getItem("df-voice-app.settings.v1"))
+                    }
                 ]
             }))""",
         )
@@ -127,7 +136,9 @@ def main() -> int:
                     && Array.isArray(stored.messages)
                     && stored.messages.length === 0
                     && Array.isArray(stored.customPromptTemplates)
-                    && stored.customPromptTemplates.length === 0;
+                    && stored.customPromptTemplates.length === 0
+                    && Array.isArray(stored.customProviderTemplates)
+                    && stored.customProviderTemplates.length === 0;
             }""",
             timeout=10000,
         )
@@ -139,11 +150,11 @@ def main() -> int:
         page.get_by_role("button", name="範本").click()
         expect(page.get_by_text("Prompt templates")).to_be_visible()
         expect(page.get_by_text("Create prompt template")).to_be_visible()
-        page.get_by_label("Name").fill("Custom voice brief")
-        page.get_by_label("Category").fill("Custom")
-        page.get_by_label("Tags").fill("brief, personal")
-        page.get_by_label("Description").fill("Reusable custom prompt for smoke testing.")
-        page.get_by_label("Prompt").fill("Turn this transcript into a direct project brief.")
+        page.get_by_role("textbox", name="Name", exact=True).fill("Custom voice brief")
+        page.get_by_role("textbox", name="Category", exact=True).fill("Custom")
+        page.get_by_role("textbox", name="Tags", exact=True).fill("brief, personal")
+        page.get_by_role("textbox", name="Description", exact=True).fill("Reusable custom prompt for smoke testing.")
+        page.get_by_role("textbox", name="Prompt", exact=True).fill("Turn this transcript into a direct project brief.")
         page.get_by_role("button", name="Save custom prompt").click()
         expect(page.get_by_text("Saved custom prompt template: Custom voice brief")).to_be_visible()
         expect(page.get_by_text("Custom voice brief", exact=True)).to_be_visible()
@@ -162,6 +173,44 @@ def main() -> int:
         page.get_by_label("Delete Custom voice brief").click()
         expect(page.get_by_text("Custom prompt template deleted.")).to_be_visible()
         expect(page.get_by_text("Custom voice brief", exact=True)).not_to_be_visible()
+        saved_asr_base = page.evaluate(
+            """() => JSON.parse(localStorage.getItem("df-voice-app.settings.v1")).asr.baseUrl"""
+        )
+        page.get_by_label("Provider template name").fill("Lab provider setup")
+        page.get_by_label("Provider template tags").fill("lab, local")
+        page.get_by_label("Provider template description").fill("Reusable provider setup for smoke testing.")
+        page.get_by_role("button", name="Save provider template").click()
+        expect(page.get_by_text("Saved custom provider template: Lab provider setup")).to_be_visible()
+        expect(page.get_by_text("Lab provider setup", exact=True)).to_be_visible()
+        page.wait_for_function(
+            """() => {
+                const stored = JSON.parse(localStorage.getItem("df-voice-app.workspace.v1") || "{}");
+                return Array.isArray(stored.customProviderTemplates)
+                    && stored.customProviderTemplates.some((template) => template.name === "Lab provider setup");
+            }""",
+            timeout=10000,
+        )
+        page.reload(wait_until="domcontentloaded")
+        page.wait_for_selector("text=DF Voice App")
+        page.get_by_role("button", name="範本").click()
+        expect(page.get_by_text("Lab provider setup", exact=True)).to_be_visible()
+        page.get_by_role("button", name="設定").click()
+        page.get_by_label("Base URL").nth(0).fill("http://changed.local/v1")
+        page.wait_for_function(
+            """() => JSON.parse(localStorage.getItem("df-voice-app.settings.v1")).asr.baseUrl === "http://changed.local/v1" """,
+            timeout=10000,
+        )
+        page.get_by_role("button", name="範本").click()
+        page.get_by_role("button", name="Apply").first.click()
+        expect(page.get_by_text("Applied template: Lab provider setup")).to_be_visible()
+        page.wait_for_function(
+            """(expected) => JSON.parse(localStorage.getItem("df-voice-app.settings.v1")).asr.baseUrl === expected""",
+            arg=saved_asr_base,
+            timeout=10000,
+        )
+        page.get_by_label("Delete Lab provider setup").click()
+        expect(page.get_by_text("Custom provider template deleted.")).to_be_visible()
+        expect(page.get_by_text("Lab provider setup", exact=True)).not_to_be_visible()
         expect(page.get_by_text("逐字稿整理")).to_be_visible()
         expect(page.get_by_text("會議摘要")).to_be_visible()
         expect(page.get_by_text("CapsWriter 本機 ASR")).to_be_visible()

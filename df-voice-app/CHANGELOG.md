@@ -12,6 +12,7 @@
 - Added custom prompt template creation, restore, and deletion.
 - Added a Settings action and smoke coverage for clearing local workspace data.
 - Added inline validation for advanced JSON override fields.
+- Added custom provider template creation, restore, application, and deletion.
 
 ## 1.0.0
 
