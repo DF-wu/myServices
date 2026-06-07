@@ -110,6 +110,9 @@ def main() -> int:
             export_text = export_path.read_text(encoding="utf-8")
             assert "Mock ASR transcript." in export_text
             assert "Raw ASR Response" in export_text
+            page.get_by_role("button", name="範本").click()
+            page.get_by_role("button", name="Run with transcript").first.click()
+            expect(page.get_by_text("Mock chat stream.")).to_be_visible(timeout=10000)
             browser.close()
     print("mock ASR upload and TTS integration passed")
     return 0

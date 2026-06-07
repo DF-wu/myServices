@@ -80,6 +80,15 @@ export type ClientTemplate = {
   settings: ClientSettings;
 };
 
+export type PromptTemplate = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  tags: string[];
+  prompt: string;
+};
+
 export type ApiProbe = {
   ok: boolean;
   status?: number;

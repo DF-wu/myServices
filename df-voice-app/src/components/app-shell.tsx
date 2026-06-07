@@ -40,6 +40,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 
+import { promptTemplates } from "@/data/prompt-templates";
 import { templates } from "@/data/templates";
 import { conversationMarkdownExport, exportTextFile, transcriptMarkdownExport } from "@/lib/export-text";
 import { documentAssetToAudio, probeModels, recordingUriToAudio, runConversation, synthesizeSpeech, transcribeAudio } from "@/lib/openai-compatible";
@@ -55,6 +56,7 @@ import type {
   ClientSettings,
   ConversationMode,
   ConversationSettings,
+  PromptTemplate,
   SpeechFormat,
   TtsSettings,
 } from "@/types/client";
@@ -385,6 +387,20 @@ export function AppShell() {
     setNotice(`Applied template: ${template.name}`);
   }
 
+  function loadPromptTemplate(template: PromptTemplate) {
+    setChatDraft(template.prompt);
+    setActiveTab("chat");
+    setNotice(`Loaded prompt template: ${template.name}`);
+  }
+
+  async function runPromptTemplate(template: PromptTemplate) {
+    if (!transcript.trim()) {
+      setNotice("No transcript available for this prompt template.");
+      return;
+    }
+    await sendChat(promptWithTranscript(template.prompt, transcript));
+  }
+
   if (!loaded) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md }}>
@@ -503,7 +519,14 @@ export function AppShell() {
       ) : null}
 
       {activeTab === "templates" ? (
-        <TemplatesView current={settings} onApply={applyTemplate} />
+        <TemplatesView
+          busy={busy}
+          current={settings}
+          transcript={transcript}
+          onApply={applyTemplate}
+          onLoadPrompt={loadPromptTemplate}
+          onRunPrompt={runPromptTemplate}
+        />
       ) : null}
     </ScrollView>
   );
@@ -1213,43 +1236,121 @@ function ProviderProbeCard({
   );
 }
 
-function TemplatesView({ current, onApply }: { current: ClientSettings; onApply: (templateId: string) => void }) {
+function TemplatesView({
+  busy,
+  current,
+  onApply,
+  onLoadPrompt,
+  onRunPrompt,
+  transcript,
+}: {
+  busy: BusyState;
+  current: ClientSettings;
+  onApply: (templateId: string) => void;
+  onLoadPrompt: (template: PromptTemplate) => void;
+  onRunPrompt: (template: PromptTemplate) => void;
+  transcript: string;
+}) {
   return (
-    <View style={{ gap: spacing.md }}>
-      {templates.map((template) => {
-        const selected =
-          current.asr.baseUrl === template.settings.asr.baseUrl &&
-          current.conversation.baseUrl === template.settings.conversation.baseUrl &&
-          current.conversation.mode === template.settings.conversation.mode;
-        return (
-          <View
+    <View style={{ gap: spacing.lg }}>
+      <View style={{ gap: spacing.md }}>
+        <PanelTitle icon={Sparkles} eyebrow="Workflows" title="Prompt templates" />
+        {promptTemplates.map((template) => (
+          <TemplateCard
             key={template.id}
-            style={{
-              borderWidth: 1,
-              borderColor: selected ? colors.green : colors.line,
-              backgroundColor: selected ? colors.greenSoft : colors.panel,
-              borderRadius: radii.medium,
-              padding: spacing.lg,
-              gap: spacing.md,
-            }}
-          >
-            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.md, flexWrap: "wrap" }}>
-              <View style={{ gap: spacing.xs, flex: 1, minWidth: 220 }}>
-                <Text style={{ color: colors.ink, fontSize: 20, fontWeight: "800" }}>{template.name}</Text>
-                <Text selectable style={{ color: colors.muted, lineHeight: 21 }}>{template.description}</Text>
-              </View>
-              <CommandButton label={selected ? "Applied" : "Apply"} tone={selected ? "secondary" : "primary"} icon={selected ? Check : Save} onPress={() => onApply(template.id)} />
-            </View>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-              {template.tags.map((tag) => (
-                <Text key={tag} style={{ backgroundColor: colors.cyanSoft, color: colors.cyan, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.small, fontWeight: "700" }}>
-                  {tag}
-                </Text>
-              ))}
-            </View>
-          </View>
-        );
-      })}
+            title={template.name}
+            description={template.description}
+            eyebrow={template.category}
+            tags={template.tags}
+            actions={
+              <>
+                <CommandButton label="Use prompt" tone="secondary" icon={MessageSquare} onPress={() => onLoadPrompt(template)} />
+                <CommandButton
+                  label="Run with transcript"
+                  tone="primary"
+                  icon={Send}
+                  disabled={!transcript.trim()}
+                  loading={busy === "chat"}
+                  onPress={() => onRunPrompt(template)}
+                />
+              </>
+            }
+          />
+        ))}
+      </View>
+
+      <View style={{ gap: spacing.md }}>
+        <PanelTitle icon={Settings2} eyebrow="Providers" title="Provider templates" />
+        {templates.map((template) => {
+          const selected =
+            current.asr.baseUrl === template.settings.asr.baseUrl &&
+            current.conversation.baseUrl === template.settings.conversation.baseUrl &&
+            current.conversation.mode === template.settings.conversation.mode;
+          return (
+            <TemplateCard
+              key={template.id}
+              title={template.name}
+              description={template.description}
+              eyebrow={selected ? "Applied" : "Setup"}
+              tags={template.tags}
+              selected={selected}
+              actions={
+                <CommandButton
+                  label={selected ? "Applied" : "Apply"}
+                  tone={selected ? "secondary" : "primary"}
+                  icon={selected ? Check : Save}
+                  onPress={() => onApply(template.id)}
+                />
+              }
+            />
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function TemplateCard({
+  actions,
+  description,
+  eyebrow,
+  selected,
+  tags,
+  title,
+}: {
+  actions: React.ReactNode;
+  description: string;
+  eyebrow: string;
+  selected?: boolean;
+  tags: string[];
+  title: string;
+}) {
+  return (
+    <View
+      style={{
+        borderWidth: 1,
+        borderColor: selected ? colors.green : colors.line,
+        backgroundColor: selected ? colors.greenSoft : colors.panel,
+        borderRadius: radii.medium,
+        padding: spacing.lg,
+        gap: spacing.md,
+      }}
+    >
+      <View style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.md, flexWrap: "wrap" }}>
+        <View style={{ gap: spacing.xs, flex: 1, minWidth: 220 }}>
+          <Text style={eyebrowStyle}>{eyebrow}</Text>
+          <Text style={{ color: colors.ink, fontSize: 20, fontWeight: "800" }}>{title}</Text>
+          <Text selectable style={{ color: colors.muted, lineHeight: 21 }}>{description}</Text>
+        </View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>{actions}</View>
+      </View>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+        {tags.map((tag) => (
+          <Text key={tag} style={{ backgroundColor: colors.cyanSoft, color: colors.cyan, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.small, fontWeight: "700" }}>
+            {tag}
+          </Text>
+        ))}
+      </View>
     </View>
   );
 }
@@ -1570,4 +1671,8 @@ function statusSummary(settings: ClientSettings) {
     `${chatMode} ${settings.conversation.model}`,
     `TTS ${settings.tts.voice}/${settings.tts.responseFormat}`,
   ].join(" · ");
+}
+
+function promptWithTranscript(prompt: string, transcript: string) {
+  return `${prompt.trim()}\n\nTranscript:\n${transcript.trim()}`;
 }
