@@ -26,6 +26,14 @@ npm install
 npm run web
 ```
 
+Optional public build-time defaults can be copied from `.env.example`:
+
+```bash
+cp .env.example .env.local
+```
+
+Do not put API keys in `EXPO_PUBLIC_*` variables. Those values are bundled into web and native clients.
+
 Android with Expo Go:
 
 ```bash
@@ -90,14 +98,23 @@ Provider checks run independently for the ASR, conversation, and TTS base URLs. 
 
 Advanced JSON fields are merged into the outgoing request after the built-in settings. They are intended for compatible providers that require custom headers, ASR fields such as timestamp options, or body fields such as `response_format`, `metadata`, `seed`, or vendor-specific flags.
 
+Build-time provider defaults:
+
+- `EXPO_PUBLIC_DF_VOICE_ASR_BASE_URL`
+- `EXPO_PUBLIC_DF_VOICE_ASR_MODEL`
+- `EXPO_PUBLIC_DF_VOICE_CONVERSATION_BASE_URL`
+- `EXPO_PUBLIC_DF_VOICE_CONVERSATION_MODEL`
+- `EXPO_PUBLIC_DF_VOICE_CONVERSATION_MODE`
+- `EXPO_PUBLIC_DF_VOICE_TTS_BASE_URL`
+- `EXPO_PUBLIC_DF_VOICE_TTS_MODEL`
+- `EXPO_PUBLIC_DF_VOICE_TTS_VOICE`
+
 ## Verification
 
 Run static checks:
 
 ```bash
-npm run typecheck
-npx expo-doctor
-python -m py_compile scripts/*.py
+npm run verify:static
 ```
 
 Run Android native checks:
@@ -117,30 +134,19 @@ npm run verify:android-runtime
 Run the browser smoke test:
 
 ```bash
-python scripts/with-servers.py \
-  --server "BROWSER=none npx expo start --web --port 8081 --host localhost" --port 8081 \
-  --timeout 120 \
-  -- python scripts/verify-web.py
+npm run verify:web:server
 ```
 
-Run the ASR upload and TTS integration check:
+Run the ASR upload, TTS, model diagnostics, Chat Completions streaming, and Responses streaming integration checks:
 
 ```bash
-python scripts/with-servers.py \
-  --server "BROWSER=none npx expo start --web --port 8081 --host localhost" --port 8081 \
-  --server "python scripts/mock-openai-compatible.py --port 8099" --port 8099 \
-  --timeout 120 \
-  -- python scripts/verify-asr-mock.py
+npm run verify:mock:server
 ```
 
-Run the streaming provider integration check:
+Run the CI-equivalent local gate:
 
 ```bash
-python scripts/with-servers.py \
-  --server "BROWSER=none npx expo start --web --port 8081 --host localhost" --port 8081 \
-  --server "python scripts/mock-openai-compatible.py --port 8099" --port 8099 \
-  --timeout 120 \
-  -- python scripts/verify-openai-mock.py
+npm run verify:ci
 ```
 
 ## Security
@@ -148,3 +154,10 @@ python scripts/with-servers.py \
 On Android and iOS, settings are stored with `expo-secure-store` when available. On web, settings are stored in browser `localStorage`; avoid saving production cloud API keys on shared machines.
 
 The Android native config enables cleartext HTTP so local providers, `10.0.2.2`, and LAN IP endpoints work in release builds. It also pins the generated Gradle wrapper to 8.14.3 for React Native Gradle plugin compatibility. Background audio recording/playback services are disabled in the `expo-audio` config plugin.
+
+## Project Docs
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Provider compatibility](docs/PROVIDER_COMPATIBILITY.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)

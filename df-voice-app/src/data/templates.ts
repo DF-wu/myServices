@@ -1,10 +1,11 @@
+import { providerDefaults } from "@/config/provider-defaults";
 import type { ClientSettings, ClientTemplate } from "@/types/client";
 
 export const defaultSettings: ClientSettings = {
   asr: {
-    baseUrl: "http://localhost:6017/v1",
+    baseUrl: providerDefaults.asrBaseUrl,
     apiKey: "",
-    model: "whisper-1",
+    model: providerDefaults.asrModel,
     responseFormat: "verbose_json",
     language: "zh",
     prompt: "專有名詞、產品名、人名請優先保留原文。",
@@ -14,10 +15,10 @@ export const defaultSettings: ClientSettings = {
     extraFormFieldsJson: "",
   },
   conversation: {
-    baseUrl: "http://localhost:1234/v1",
+    baseUrl: providerDefaults.conversationBaseUrl,
     apiKey: "",
-    mode: "chat_completions",
-    model: "local-model",
+    mode: providerDefaults.conversationMode,
+    model: providerDefaults.conversationModel,
     systemPrompt:
       "你是精準、直接的語音工作助理。先理解使用者口述內容，再用繁體中文給出可直接使用的回覆。",
     temperature: 0.4,
@@ -31,10 +32,10 @@ export const defaultSettings: ClientSettings = {
     extraBodyJson: "",
   },
   tts: {
-    baseUrl: "http://localhost:8880/v1",
+    baseUrl: providerDefaults.ttsBaseUrl,
     apiKey: "",
-    model: "tts-1",
-    voice: "alloy",
+    model: providerDefaults.ttsModel,
+    voice: providerDefaults.ttsVoice,
     responseFormat: "mp3",
     speed: 1,
     instructions: "語氣自然清楚，適合工作場景。",
