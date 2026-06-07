@@ -1,0 +1,1253 @@
+import * as Clipboard from "expo-clipboard";
+import * as DocumentPicker from "expo-document-picker";
+import * as Haptics from "expo-haptics";
+import {
+  createAudioPlayer,
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+  type AudioPlayer,
+} from "expo-audio";
+import {
+  Check,
+  Copy,
+  Download,
+  FileAudio,
+  MessageSquare,
+  Mic,
+  RotateCcw,
+  Save,
+  Send,
+  Settings2,
+  Sparkles,
+  Square,
+  Upload,
+  Volume2,
+  Wifi,
+} from "lucide-react-native";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from "react-native";
+
+import { templates } from "@/data/templates";
+import { conversationMarkdownExport, exportTextFile, transcriptMarkdownExport } from "@/lib/export-text";
+import { documentAssetToAudio, probeModels, recordingUriToAudio, runConversation, synthesizeSpeech, transcribeAudio } from "@/lib/openai-compatible";
+import { isIOS } from "@/lib/platform";
+import { useSettings } from "@/state/settings";
+import { colors, radii, spacing } from "@/theme";
+import type {
+  ApiProbe,
+  AsrResponseFormat,
+  AsrSettings,
+  ChatMessage,
+  ClientSettings,
+  ConversationMode,
+  ConversationSettings,
+  SpeechFormat,
+  TtsSettings,
+} from "@/types/client";
+
+type TabId = "capture" | "chat" | "settings" | "templates";
+type BusyState = "record" | "transcribe" | "chat" | "tts" | "probe" | null;
+type Icon = ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
+type ProviderKey = "asr" | "conversation" | "tts";
+type ProviderDiagnostic = ApiProbe & { checkedAt: number };
+
+const tabs: Array<{ id: TabId; label: string; icon: Icon }> = [
+  { id: "capture", label: "語音", icon: Mic },
+  { id: "chat", label: "對話", icon: MessageSquare },
+  { id: "settings", label: "設定", icon: Settings2 },
+  { id: "templates", label: "範本", icon: Sparkles },
+];
+const providerKeys: ProviderKey[] = ["asr", "conversation", "tts"];
+
+function id() {
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+export function AppShell() {
+  const { loaded, resetSettings, saveSettings, settings } = useSettings();
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
+  const recorderState = useAudioRecorderState(recorder, 250);
+  const playerRef = useRef<AudioPlayer | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>("capture");
+  const [busy, setBusy] = useState<BusyState>(null);
+  const [notice, setNotice] = useState<string>("");
+  const [transcript, setTranscript] = useState("");
+  const [rawResult, setRawResult] = useState("");
+  const [chatDraft, setChatDraft] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [providerDiagnostics, setProviderDiagnostics] = useState<
+    Partial<Record<ProviderKey, ProviderDiagnostic>>
+  >({});
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
+
+  useEffect(() => {
+    return () => {
+      playerRef.current?.remove();
+      playerRef.current = null;
+    };
+  }, []);
+
+  const statusLine = useMemo(() => {
+    const base = trimUrl(settings.asr.baseUrl);
+    const format = settings.asr.responseFormat;
+    return `${base} · ${settings.asr.model} · ${format}`;
+  }, [settings.asr.baseUrl, settings.asr.model, settings.asr.responseFormat]);
+
+  async function haptic() {
+    if (isIOS()) {
+      await Haptics.selectionAsync().catch(() => undefined);
+    }
+  }
+
+  async function updateSettings(next: ClientSettings) {
+    await saveSettings(next);
+  }
+
+  async function startRecording() {
+    setNotice("");
+    setBusy("record");
+    const permission = await requestRecordingPermissionsAsync();
+    if (!permission.granted) {
+      setBusy(null);
+      setNotice("Microphone permission was not granted.");
+      return;
+    }
+
+    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+    await recorder.prepareToRecordAsync();
+    recorder.record();
+    await haptic();
+  }
+
+  async function stopRecording() {
+    setBusy("transcribe");
+    await recorder.stop();
+    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+    const uri = recorderState.url ?? recorder.uri;
+    if (!uri) {
+      setBusy(null);
+      setNotice("Recording stopped, but no audio file URI was returned.");
+      return;
+    }
+    await transcribe(recordingUriToAudio(uri));
+  }
+
+  async function pickAudio() {
+    setNotice("");
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ["audio/*", "video/*"],
+      copyToCacheDirectory: true,
+      multiple: false,
+      base64: false,
+    });
+    if (result.canceled || !result.assets?.[0]) {
+      return;
+    }
+    setBusy("transcribe");
+    await transcribe(documentAssetToAudio(result.assets[0]));
+  }
+
+  async function transcribe(audio: Parameters<typeof transcribeAudio>[1]) {
+    try {
+      const result = await transcribeAudio(settings.asr, audio);
+      setTranscript(result.text);
+      setRawResult(typeof result.raw === "string" ? result.raw : JSON.stringify(result.raw, null, 2));
+      setNotice(`Transcribed ${audio.name}.`);
+      setActiveTab("capture");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Transcription failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function sendChat(sourceText = chatDraft) {
+    const content = sourceText.trim();
+    if (!content) {
+      setNotice("No text to send.");
+      return;
+    }
+
+    const userMessage: ChatMessage = { id: id(), role: "user", content, createdAt: Date.now() };
+    const inputMessages = settings.keepConversationHistory ? [...messages, userMessage] : [userMessage];
+    const assistantId = id();
+    const pendingAssistant: ChatMessage = {
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      createdAt: Date.now(),
+    };
+    setMessages((current) =>
+      settings.keepConversationHistory
+        ? [...current, userMessage, pendingAssistant]
+        : [userMessage, pendingAssistant],
+    );
+    setChatDraft("");
+    setBusy("chat");
+    setActiveTab("chat");
+
+    try {
+      let streamed = "";
+      const answer = await runConversation(settings.conversation, inputMessages, {
+        onDelta: (delta) => {
+          streamed += delta;
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === assistantId
+                ? { ...message, content: `${message.content}${delta}` }
+                : message,
+            ),
+          );
+        },
+      });
+      if (!streamed || streamed !== answer) {
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === assistantId ? { ...message, content: answer } : message,
+          ),
+        );
+      }
+      setNotice("Conversation response received.");
+      if (settings.autoSpeak) {
+        await speak(answer);
+      }
+    } catch (error) {
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === assistantId
+            ? {
+                ...message,
+                content:
+                  error instanceof Error
+                    ? `Request failed: ${error.message}`
+                    : "Conversation request failed.",
+              }
+            : message,
+        ),
+      );
+      setNotice(error instanceof Error ? error.message : "Conversation request failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function speak(text: string) {
+    const input = text.trim();
+    if (!input) {
+      setNotice("No text to speak.");
+      return;
+    }
+    setBusy("tts");
+    try {
+      const uri = await synthesizeSpeech(settings.tts, input);
+      playerRef.current?.remove();
+      const player = createAudioPlayer(uri, { updateInterval: 250 });
+      playerRef.current = player;
+      player.play();
+      setNotice("TTS audio is playing.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "TTS request failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function exportTranscript() {
+    if (!transcript.trim()) {
+      setNotice("No transcript to export.");
+      return;
+    }
+    try {
+      await exportTextFile(transcriptMarkdownExport(transcript, rawResult));
+      setNotice("Transcript export started.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Transcript export failed.");
+    }
+  }
+
+  async function exportConversation() {
+    if (!messages.length) {
+      setNotice("No conversation to export.");
+      return;
+    }
+    try {
+      await exportTextFile(conversationMarkdownExport(messages));
+      setNotice("Conversation export started.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Conversation export failed.");
+    }
+  }
+
+  async function runProviderProbe(provider: ProviderKey) {
+    const config = providerConfig(settings, provider);
+    const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson);
+    const diagnostic = { ...result, checkedAt: Date.now() };
+    setProviderDiagnostics((current) => ({ ...current, [provider]: diagnostic }));
+    return diagnostic;
+  }
+
+  async function probeProvider(provider: ProviderKey) {
+    setBusy("probe");
+    const label = providerConfig(settings, provider).label;
+    try {
+      const result = await runProviderProbe(provider);
+      setNotice(result.ok ? `${label} provider is reachable.` : `${label}: ${result.message}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function probeAllProviders() {
+    setBusy("probe");
+    try {
+      const results = await Promise.all(
+        providerKeys.map(async (provider) => {
+          const config = providerConfig(settings, provider);
+          const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson);
+          return [provider, { ...result, checkedAt: Date.now() }] as const;
+        }),
+      );
+      setProviderDiagnostics(Object.fromEntries(results));
+      const failed = results.filter(([, result]) => !result.ok);
+      setNotice(
+        failed.length
+          ? `${failed.length} provider check${failed.length === 1 ? "" : "s"} failed.`
+          : "All provider model endpoints are reachable.",
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function useProviderModel(provider: ProviderKey, modelId: string) {
+    const label = providerConfig(settings, provider).label;
+    const next =
+      provider === "asr"
+        ? { ...settings, asr: { ...settings.asr, model: modelId } }
+        : provider === "tts"
+          ? { ...settings, tts: { ...settings.tts, model: modelId } }
+          : { ...settings, conversation: { ...settings.conversation, model: modelId } };
+    await saveSettings(next);
+    setNotice(`${label} model set to ${modelId}.`);
+  }
+
+  async function applyTemplate(templateId: string) {
+    const template = templates.find((item) => item.id === templateId);
+    if (!template) {
+      return;
+    }
+    await saveSettings(template.settings);
+    setNotice(`Applied template: ${template.name}`);
+  }
+
+  if (!loaded) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md }}>
+        <ActivityIndicator color={colors.green} />
+        <Text style={{ color: colors.muted }}>Loading settings</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      style={{ flex: 1, backgroundColor: colors.canvas }}
+      contentContainerStyle={{
+        padding: width < 520 ? spacing.md : spacing.xl,
+        gap: spacing.lg,
+        maxWidth: 1160,
+        width: "100%",
+        alignSelf: "center",
+      }}
+    >
+      <View
+        style={{
+          borderBottomWidth: 1,
+          borderColor: colors.line,
+          paddingBottom: spacing.lg,
+          gap: spacing.md,
+        }}
+      >
+        <View style={{ gap: spacing.xs }}>
+          <Text style={{ color: colors.ink, fontSize: width < 520 ? 28 : 38, fontWeight: "900" }}>
+            DF Voice App
+          </Text>
+          <Text selectable style={{ color: colors.muted, fontSize: 15, lineHeight: 22 }}>
+            {statusLine}
+          </Text>
+        </View>
+
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+          {tabs.map((tab) => (
+            <TabButton
+              key={tab.id}
+              active={activeTab === tab.id}
+              icon={tab.icon}
+              label={tab.label}
+              onPress={() => setActiveTab(tab.id)}
+            />
+          ))}
+        </View>
+      </View>
+
+      {notice ? <Notice text={notice} onClear={() => setNotice("")} /> : null}
+
+      {activeTab === "capture" ? (
+        <CaptureView
+          busy={busy}
+          recorderState={{
+            isRecording: recorderState.isRecording,
+            durationMillis: recorderState.durationMillis,
+            metering: recorderState.metering,
+          }}
+          transcript={transcript}
+          rawResult={rawResult}
+          onCopy={async () => {
+            await Clipboard.setStringAsync(transcript);
+            setNotice("Transcript copied.");
+          }}
+          onExport={exportTranscript}
+          onPickAudio={pickAudio}
+          onSendToChat={() => sendChat(transcript)}
+          onSpeak={() => speak(transcript)}
+          onStartRecording={startRecording}
+          onStopRecording={stopRecording}
+        />
+      ) : null}
+
+      {activeTab === "chat" ? (
+        <ChatView
+          busy={busy}
+          draft={chatDraft}
+          messages={messages}
+          transcript={transcript}
+          onChangeDraft={setChatDraft}
+          onClear={() => setMessages([])}
+          onExport={exportConversation}
+          onSend={() => sendChat()}
+          onSendTranscript={() => sendChat(transcript)}
+          onSpeak={speak}
+        />
+      ) : null}
+
+      {activeTab === "settings" ? (
+        <SettingsView
+          busy={busy}
+          diagnostics={providerDiagnostics}
+          settings={settings}
+          wide={wide}
+          onProbeAll={probeAllProviders}
+          onProbeProvider={probeProvider}
+          onReset={resetSettings}
+          onUpdate={updateSettings}
+          onUseModel={useProviderModel}
+        />
+      ) : null}
+
+      {activeTab === "templates" ? (
+        <TemplatesView current={settings} onApply={applyTemplate} />
+      ) : null}
+    </ScrollView>
+  );
+}
+
+function CaptureView({
+  busy,
+  onCopy,
+  onExport,
+  onPickAudio,
+  onSendToChat,
+  onSpeak,
+  onStartRecording,
+  onStopRecording,
+  rawResult,
+  recorderState,
+  transcript,
+}: {
+  busy: BusyState;
+  onCopy: () => void;
+  onExport: () => void;
+  onPickAudio: () => void;
+  onSendToChat: () => void;
+  onSpeak: () => void;
+  onStartRecording: () => void;
+  onStopRecording: () => void;
+  rawResult: string;
+  recorderState: { isRecording: boolean; durationMillis: number; metering?: number };
+  transcript: string;
+}) {
+  const seconds = Math.round(recorderState.durationMillis / 1000);
+  const level = Math.max(0, Math.min(1, ((recorderState.metering ?? -60) + 60) / 60));
+  return (
+    <View style={{ gap: spacing.lg }}>
+      <Surface>
+        <View style={{ gap: spacing.lg }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.md, flexWrap: "wrap" }}>
+            <View style={{ gap: spacing.xs, flex: 1, minWidth: 240 }}>
+              <Text style={eyebrowStyle}>Live capture</Text>
+              <Text style={{ color: colors.ink, fontSize: 22, fontWeight: "800" }}>
+                {recorderState.isRecording ? "Recording microphone audio" : "Record or upload audio"}
+              </Text>
+              <Text selectable style={{ color: colors.muted, lineHeight: 21 }}>
+                OpenAI Whisper compatible ASR endpoint, including local CapsWriter HTTP API.
+              </Text>
+            </View>
+            <View style={{ alignItems: "flex-end", gap: spacing.xs, minWidth: 96 }}>
+              <Text style={{ color: colors.ink, fontSize: 32, fontWeight: "900", fontVariant: ["tabular-nums"] }}>
+                {seconds}s
+              </Text>
+              <Text style={{ color: colors.faint }}>duration</Text>
+            </View>
+          </View>
+
+          <View style={{ height: 10, borderRadius: 999, backgroundColor: colors.line, overflow: "hidden" }}>
+            <View style={{ width: `${Math.max(4, level * 100)}%`, height: "100%", backgroundColor: recorderState.isRecording ? colors.coral : colors.green }} />
+          </View>
+
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+            {recorderState.isRecording ? (
+              <CommandButton label="Stop" tone="danger" icon={Square} loading={busy === "transcribe"} onPress={onStopRecording} />
+            ) : (
+              <CommandButton label="Record" tone="primary" icon={Mic} loading={busy === "record"} onPress={onStartRecording} />
+            )}
+            <CommandButton label="Upload" tone="secondary" icon={Upload} loading={busy === "transcribe"} onPress={onPickAudio} />
+          </View>
+        </View>
+      </Surface>
+
+      <Surface>
+        <View style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.md, flexWrap: "wrap" }}>
+            <View style={{ gap: spacing.xs, flex: 1, minWidth: 220 }}>
+              <Text style={eyebrowStyle}>Transcript</Text>
+              <Text style={{ color: colors.ink, fontSize: 20, fontWeight: "800" }}>
+                {transcript ? `${transcript.length} chars` : "No transcript yet"}
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+              <IconOnly disabled={!transcript} icon={Copy} label="Copy" onPress={onCopy} />
+              <IconOnly disabled={!transcript} icon={Download} label="Export transcript" onPress={onExport} />
+              <IconOnly disabled={!transcript} icon={Send} label="Send to chat" onPress={onSendToChat} />
+              <IconOnly disabled={!transcript} icon={Volume2} label="Speak" onPress={onSpeak} />
+            </View>
+          </View>
+          <Text selectable style={{ color: transcript ? colors.ink : colors.faint, fontSize: 17, lineHeight: 26 }}>
+            {transcript || "Start a recording or upload an audio/video file. The result will appear here."}
+          </Text>
+        </View>
+      </Surface>
+
+      {rawResult ? (
+        <Surface subtle>
+          <View style={{ gap: spacing.sm }}>
+            <Text style={eyebrowStyle}>Raw response</Text>
+            <Text selectable style={{ color: colors.muted, fontFamily: "monospace", lineHeight: 18 }}>
+              {rawResult}
+            </Text>
+          </View>
+        </Surface>
+      ) : null}
+    </View>
+  );
+}
+
+function ChatView({
+  busy,
+  draft,
+  messages,
+  onChangeDraft,
+  onClear,
+  onSend,
+  onSendTranscript,
+  onSpeak,
+  onExport,
+  transcript,
+}: {
+  busy: BusyState;
+  draft: string;
+  messages: ChatMessage[];
+  onChangeDraft: (value: string) => void;
+  onClear: () => void;
+  onExport: () => void;
+  onSend: () => void;
+  onSendTranscript: () => void;
+  onSpeak: (text: string) => void;
+  transcript: string;
+}) {
+  return (
+    <View style={{ gap: spacing.lg }}>
+      <Surface>
+        <View style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md, flexWrap: "wrap" }}>
+            <View style={{ gap: spacing.xs, flex: 1, minWidth: 220 }}>
+              <Text style={eyebrowStyle}>Conversation</Text>
+              <Text style={{ color: colors.ink, fontSize: 22, fontWeight: "800" }}>
+                Chat Completions / Responses
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+              <CommandButton label="Export" tone="secondary" icon={Download} disabled={!messages.length} onPress={onExport} />
+              <CommandButton label="Clear" tone="plain" icon={RotateCcw} onPress={onClear} />
+            </View>
+          </View>
+          <TextInput
+            multiline
+            value={draft}
+            onChangeText={onChangeDraft}
+            placeholder="Type a message, or send the latest transcript."
+            placeholderTextColor={colors.faint}
+            style={inputStyle({ minHeight: 110, textAlignVertical: "top" })}
+          />
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+            <CommandButton label="Send" tone="primary" icon={Send} loading={busy === "chat"} onPress={onSend} />
+            <CommandButton label="Use transcript" tone="secondary" icon={FileAudio} disabled={!transcript} onPress={onSendTranscript} />
+          </View>
+        </View>
+      </Surface>
+
+      <View style={{ gap: spacing.md }}>
+        {messages.length === 0 ? (
+          <Surface subtle>
+            <Text style={{ color: colors.muted, lineHeight: 22 }}>
+              Conversation history is empty. Send a transcript or type a prompt to test your provider.
+            </Text>
+          </Surface>
+        ) : null}
+        {messages.map((message) => (
+          <View
+            key={message.id}
+            style={{
+              borderWidth: 1,
+              borderColor: message.role === "assistant" ? colors.green : colors.line,
+              backgroundColor: message.role === "assistant" ? colors.greenSoft : colors.panel,
+              borderRadius: radii.medium,
+              padding: spacing.md,
+              gap: spacing.sm,
+            }}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.md }}>
+              <Text style={{ color: colors.ink, fontWeight: "800" }}>
+                {message.role === "assistant" ? "Assistant" : "User"}
+              </Text>
+              {message.role === "assistant" ? <IconOnly icon={Volume2} label="Speak" onPress={() => onSpeak(message.content)} /> : null}
+            </View>
+            <Text selectable style={{ color: colors.ink, lineHeight: 23 }}>
+              {message.content || (message.role === "assistant" ? "Waiting for response..." : "")}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function SettingsView({
+  busy,
+  diagnostics,
+  onProbeAll,
+  onProbeProvider,
+  onReset,
+  onUpdate,
+  onUseModel,
+  settings,
+  wide,
+}: {
+  busy: BusyState;
+  diagnostics: Partial<Record<ProviderKey, ProviderDiagnostic>>;
+  onProbeAll: () => void;
+  onProbeProvider: (provider: ProviderKey) => void;
+  onReset: () => void;
+  onUpdate: (settings: ClientSettings) => void;
+  onUseModel: (provider: ProviderKey, modelId: string) => void;
+  settings: ClientSettings;
+  wide: boolean;
+}) {
+  const updateAsr = <K extends keyof AsrSettings>(key: K, value: AsrSettings[K]) =>
+    onUpdate({ ...settings, asr: { ...settings.asr, [key]: value } });
+  const updateConversation = <K extends keyof ConversationSettings>(key: K, value: ConversationSettings[K]) =>
+    onUpdate({ ...settings, conversation: { ...settings.conversation, [key]: value } });
+  const updateTts = <K extends keyof TtsSettings>(key: K, value: TtsSettings[K]) =>
+    onUpdate({ ...settings, tts: { ...settings.tts, [key]: value } });
+
+  return (
+    <View style={{ gap: spacing.lg }}>
+      <Surface>
+        <View style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md, flexWrap: "wrap" }}>
+            <PanelTitle icon={Wifi} eyebrow="Diagnostics" title="Provider checks" />
+            <CommandButton label="Check all" tone="secondary" icon={Wifi} loading={busy === "probe"} onPress={onProbeAll} />
+          </View>
+          <View style={{ flexDirection: wide ? "row" : "column", gap: spacing.md }}>
+            <ProviderProbeCard
+              label="ASR"
+              model={settings.asr.model}
+              result={diagnostics.asr}
+              onPress={() => onProbeProvider("asr")}
+              onUseModel={(modelId) => onUseModel("asr", modelId)}
+              style={{ flex: 1 }}
+            />
+            <ProviderProbeCard
+              label="Chat"
+              model={settings.conversation.model}
+              result={diagnostics.conversation}
+              onPress={() => onProbeProvider("conversation")}
+              onUseModel={(modelId) => onUseModel("conversation", modelId)}
+              style={{ flex: 1 }}
+            />
+            <ProviderProbeCard
+              label="TTS"
+              model={settings.tts.model}
+              result={diagnostics.tts}
+              onPress={() => onProbeProvider("tts")}
+              onUseModel={(modelId) => onUseModel("tts", modelId)}
+              style={{ flex: 1 }}
+            />
+          </View>
+        </View>
+      </Surface>
+
+      <View style={{ flexDirection: wide ? "row" : "column", gap: spacing.lg }}>
+        <Surface style={{ flex: 1 }}>
+          <View style={{ gap: spacing.md }}>
+            <PanelTitle icon={Mic} eyebrow="ASR" title="Transcription provider" />
+            <Field label="Base URL" value={settings.asr.baseUrl} onChangeText={(value) => updateAsr("baseUrl", value)} />
+            <Field label="API key" value={settings.asr.apiKey} secureTextEntry onChangeText={(value) => updateAsr("apiKey", value)} />
+            <Field label="Model" value={settings.asr.model} onChangeText={(value) => updateAsr("model", value)} />
+            <Segmented<AsrResponseFormat>
+              label="Response format"
+              value={settings.asr.responseFormat}
+              options={[
+                { label: "JSON", value: "json" },
+                { label: "Text", value: "text" },
+                { label: "Verbose", value: "verbose_json" },
+                { label: "SRT", value: "srt" },
+                { label: "VTT", value: "vtt" },
+              ]}
+              onChange={(value) => updateAsr("responseFormat", value)}
+            />
+            <Field label="Language" value={settings.asr.language} onChangeText={(value) => updateAsr("language", value)} />
+            <Field label="Prompt / vocabulary hint" value={settings.asr.prompt} multiline onChangeText={(value) => updateAsr("prompt", value)} />
+            <NumericField label="Temperature" value={settings.asr.temperature} onChange={(value) => updateAsr("temperature", value)} />
+            <NumericField label="Timeout seconds" value={settings.asr.timeoutSec} onChange={(value) => updateAsr("timeoutSec", value)} />
+            <Field label="Extra headers JSON" value={settings.asr.extraHeadersJson} multiline onChangeText={(value) => updateAsr("extraHeadersJson", value)} />
+            <Field label="Extra form fields JSON" value={settings.asr.extraFormFieldsJson} multiline onChangeText={(value) => updateAsr("extraFormFieldsJson", value)} />
+          </View>
+        </Surface>
+
+        <Surface style={{ flex: 1 }}>
+          <View style={{ gap: spacing.md }}>
+            <PanelTitle icon={MessageSquare} eyebrow="Conversation" title="Chat provider" />
+            <Field label="Base URL" value={settings.conversation.baseUrl} onChangeText={(value) => updateConversation("baseUrl", value)} />
+            <Field label="API key" value={settings.conversation.apiKey} secureTextEntry onChangeText={(value) => updateConversation("apiKey", value)} />
+            <Segmented<ConversationMode>
+              label="API mode"
+              value={settings.conversation.mode}
+              options={[
+                { label: "Responses", value: "responses" },
+                { label: "Chat", value: "chat_completions" },
+              ]}
+              onChange={(value) => updateConversation("mode", value)}
+            />
+            <Field label="Model" value={settings.conversation.model} onChangeText={(value) => updateConversation("model", value)} />
+            <Field label="System prompt" value={settings.conversation.systemPrompt} multiline onChangeText={(value) => updateConversation("systemPrompt", value)} />
+            <View style={{ flexDirection: wide ? "row" : "column", gap: spacing.md }}>
+              <NumericField label="Temperature" value={settings.conversation.temperature} onChange={(value) => updateConversation("temperature", value)} style={{ flex: 1 }} />
+              <NumericField label="Top P" value={settings.conversation.topP} onChange={(value) => updateConversation("topP", value)} style={{ flex: 1 }} />
+              <NumericField label="Max output tokens" value={settings.conversation.maxOutputTokens} onChange={(value) => updateConversation("maxOutputTokens", value)} style={{ flex: 1 }} />
+            </View>
+            <View style={{ flexDirection: wide ? "row" : "column", gap: spacing.md }}>
+              <NumericField label="Frequency penalty" value={settings.conversation.frequencyPenalty} onChange={(value) => updateConversation("frequencyPenalty", value)} style={{ flex: 1 }} />
+              <NumericField label="Presence penalty" value={settings.conversation.presencePenalty} onChange={(value) => updateConversation("presencePenalty", value)} style={{ flex: 1 }} />
+              <NumericField label="Timeout seconds" value={settings.conversation.timeoutSec} onChange={(value) => updateConversation("timeoutSec", value)} style={{ flex: 1 }} />
+            </View>
+            <SwitchRow label="Keep history" value={settings.keepConversationHistory} onValueChange={(value) => onUpdate({ ...settings, keepConversationHistory: value })} />
+            <SwitchRow label="Auto speak replies" value={settings.autoSpeak} onValueChange={(value) => onUpdate({ ...settings, autoSpeak: value })} />
+            <SwitchRow label="Streaming responses" value={settings.conversation.stream} onValueChange={(value) => updateConversation("stream", value)} />
+            <Field label="Extra headers JSON" value={settings.conversation.extraHeadersJson} multiline onChangeText={(value) => updateConversation("extraHeadersJson", value)} />
+            <Field label="Extra body JSON" value={settings.conversation.extraBodyJson} multiline onChangeText={(value) => updateConversation("extraBodyJson", value)} />
+          </View>
+        </Surface>
+      </View>
+
+      <Surface>
+        <View style={{ gap: spacing.md }}>
+          <PanelTitle icon={Volume2} eyebrow="TTS" title="Speech provider" />
+          <View style={{ flexDirection: wide ? "row" : "column", gap: spacing.md }}>
+            <Field label="Base URL" value={settings.tts.baseUrl} onChangeText={(value) => updateTts("baseUrl", value)} style={{ flex: 2 }} />
+            <Field label="API key" value={settings.tts.apiKey} secureTextEntry onChangeText={(value) => updateTts("apiKey", value)} style={{ flex: 1 }} />
+          </View>
+          <View style={{ flexDirection: wide ? "row" : "column", gap: spacing.md }}>
+            <Field label="Model" value={settings.tts.model} onChangeText={(value) => updateTts("model", value)} style={{ flex: 1 }} />
+            <Field label="Voice" value={settings.tts.voice} onChangeText={(value) => updateTts("voice", value)} style={{ flex: 1 }} />
+            <NumericField label="Speed" value={settings.tts.speed} onChange={(value) => updateTts("speed", value)} style={{ flex: 1 }} />
+            <NumericField label="Timeout seconds" value={settings.tts.timeoutSec} onChange={(value) => updateTts("timeoutSec", value)} style={{ flex: 1 }} />
+          </View>
+          <Segmented<SpeechFormat>
+            label="Speech format"
+            value={settings.tts.responseFormat}
+            options={[
+              { label: "MP3", value: "mp3" },
+              { label: "Opus", value: "opus" },
+              { label: "AAC", value: "aac" },
+              { label: "FLAC", value: "flac" },
+              { label: "WAV", value: "wav" },
+              { label: "PCM", value: "pcm" },
+            ]}
+            onChange={(value) => updateTts("responseFormat", value)}
+          />
+          <Field label="Voice instructions" value={settings.tts.instructions} multiline onChangeText={(value) => updateTts("instructions", value)} />
+          <Field label="Extra headers JSON" value={settings.tts.extraHeadersJson} multiline onChangeText={(value) => updateTts("extraHeadersJson", value)} />
+          <Field label="Extra body JSON" value={settings.tts.extraBodyJson} multiline onChangeText={(value) => updateTts("extraBodyJson", value)} />
+          <CommandButton label="Reset defaults" tone="plain" icon={RotateCcw} onPress={onReset} />
+        </View>
+      </Surface>
+    </View>
+  );
+}
+
+function ProviderProbeCard({
+  label,
+  model,
+  onPress,
+  onUseModel,
+  result,
+  style,
+}: {
+  label: string;
+  model: string;
+  onPress: () => void;
+  onUseModel: (modelId: string) => void;
+  result?: ProviderDiagnostic;
+  style?: object;
+}) {
+  const ok = result?.ok;
+  const modelIds = result?.modelIds ?? [];
+  const modelPreview = modelIds.slice(0, 4);
+  return (
+    <View
+      style={[
+        {
+          borderWidth: 1,
+          borderColor: ok === undefined ? colors.line : ok ? colors.green : colors.danger,
+          backgroundColor: ok === undefined ? colors.panel : ok ? colors.greenSoft : colors.coralSoft,
+          borderRadius: radii.medium,
+          padding: spacing.md,
+          gap: spacing.sm,
+        },
+        style,
+      ]}
+    >
+      <View style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.sm, alignItems: "center" }}>
+        <View style={{ gap: 2, flex: 1 }}>
+          <Text style={eyebrowStyle}>{label}</Text>
+          <Text selectable style={{ color: colors.ink, fontWeight: "800" }}>
+            {ok === undefined ? "Not checked" : ok ? "Reachable" : "Failed"}
+          </Text>
+        </View>
+        <IconOnly icon={Wifi} label={`Check ${label}`} onPress={onPress} />
+      </View>
+      <Text selectable style={{ color: colors.muted, lineHeight: 20 }}>
+        {result
+          ? `${result.status ? `HTTP ${result.status} · ` : ""}${result.message}`
+          : `Configured model: ${model}`}
+      </Text>
+      {modelPreview.length ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+          {modelPreview.map((modelId) => {
+            const selected = modelId === model;
+            return (
+              <Pressable
+                key={modelId}
+                accessibilityRole="button"
+                accessibilityLabel={`Use ${modelId} for ${label}`}
+                accessibilityState={{ selected }}
+                onPress={() => onUseModel(modelId)}
+                style={({ pressed }) => ({
+                  borderWidth: 1,
+                  borderColor: selected ? colors.black : colors.line,
+                  backgroundColor: selected ? colors.black : colors.panel,
+                  borderRadius: radii.small,
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: spacing.xs,
+                  opacity: pressed ? 0.75 : 1,
+                })}
+              >
+                <Text style={{ color: selected ? colors.white : colors.ink, fontSize: 12, fontWeight: "800" }}>
+                  {modelId}
+                </Text>
+              </Pressable>
+            );
+          })}
+          {modelIds.length > modelPreview.length ? (
+            <Text style={{ color: colors.muted, paddingVertical: spacing.xs, fontWeight: "800" }}>
+              +{modelIds.length - modelPreview.length}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function TemplatesView({ current, onApply }: { current: ClientSettings; onApply: (templateId: string) => void }) {
+  return (
+    <View style={{ gap: spacing.md }}>
+      {templates.map((template) => {
+        const selected =
+          current.asr.baseUrl === template.settings.asr.baseUrl &&
+          current.conversation.baseUrl === template.settings.conversation.baseUrl &&
+          current.conversation.mode === template.settings.conversation.mode;
+        return (
+          <View
+            key={template.id}
+            style={{
+              borderWidth: 1,
+              borderColor: selected ? colors.green : colors.line,
+              backgroundColor: selected ? colors.greenSoft : colors.panel,
+              borderRadius: radii.medium,
+              padding: spacing.lg,
+              gap: spacing.md,
+            }}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.md, flexWrap: "wrap" }}>
+              <View style={{ gap: spacing.xs, flex: 1, minWidth: 220 }}>
+                <Text style={{ color: colors.ink, fontSize: 20, fontWeight: "800" }}>{template.name}</Text>
+                <Text selectable style={{ color: colors.muted, lineHeight: 21 }}>{template.description}</Text>
+              </View>
+              <CommandButton label={selected ? "Applied" : "Apply"} tone={selected ? "secondary" : "primary"} icon={selected ? Check : Save} onPress={() => onApply(template.id)} />
+            </View>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+              {template.tags.map((tag) => (
+                <Text key={tag} style={{ backgroundColor: colors.cyanSoft, color: colors.cyan, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.small, fontWeight: "700" }}>
+                  {tag}
+                </Text>
+              ))}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function Surface({
+  children,
+  subtle,
+  style,
+}: {
+  children: React.ReactNode;
+  subtle?: boolean;
+  style?: object;
+}) {
+  return (
+    <View
+      style={[
+        {
+          borderWidth: 1,
+          borderColor: subtle ? colors.line : colors.black,
+          backgroundColor: subtle ? colors.panelAlt : colors.panel,
+          borderRadius: radii.medium,
+          padding: spacing.lg,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+function PanelTitle({ eyebrow, icon: IconComponent, title }: { eyebrow: string; icon: Icon; title: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+      <View style={{ width: 38, height: 38, borderRadius: radii.small, alignItems: "center", justifyContent: "center", backgroundColor: colors.black }}>
+        <IconComponent size={19} color={colors.white} strokeWidth={2.5} />
+      </View>
+      <View style={{ gap: 2 }}>
+        <Text style={eyebrowStyle}>{eyebrow}</Text>
+        <Text style={{ color: colors.ink, fontWeight: "800", fontSize: 20 }}>{title}</Text>
+      </View>
+    </View>
+  );
+}
+
+function TabButton({ active, icon: IconComponent, label, onPress }: { active: boolean; icon: Icon; label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        minWidth: 86,
+        borderRadius: radii.small,
+        borderWidth: 1,
+        borderColor: active ? colors.black : colors.line,
+        backgroundColor: active ? colors.black : colors.panel,
+        paddingHorizontal: spacing.md,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: spacing.sm,
+        opacity: pressed ? 0.78 : 1,
+      })}
+    >
+      <IconComponent size={17} color={active ? colors.white : colors.ink} strokeWidth={2.4} />
+      <Text style={{ color: active ? colors.white : colors.ink, fontWeight: "800" }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function CommandButton({
+  disabled,
+  icon: IconComponent,
+  label,
+  loading,
+  onPress,
+  tone,
+}: {
+  disabled?: boolean;
+  icon: Icon;
+  label: string;
+  loading?: boolean;
+  onPress: () => void;
+  tone: "primary" | "secondary" | "danger" | "plain";
+}) {
+  const palette = {
+    primary: { background: colors.black, border: colors.black, text: colors.white },
+    secondary: { background: colors.greenSoft, border: colors.green, text: colors.green },
+    danger: { background: colors.coralSoft, border: colors.coral, text: colors.coral },
+    plain: { background: colors.panel, border: colors.line, text: colors.ink },
+  }[tone];
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled || loading}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        borderRadius: radii.small,
+        borderWidth: 1,
+        borderColor: palette.border,
+        backgroundColor: palette.background,
+        paddingHorizontal: spacing.md,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: spacing.sm,
+        opacity: disabled ? 0.45 : pressed ? 0.75 : 1,
+      })}
+    >
+      {loading ? <ActivityIndicator color={palette.text} /> : <IconComponent size={18} color={palette.text} strokeWidth={2.4} />}
+      <Text style={{ color: palette.text, fontWeight: "800" }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function IconOnly({ disabled, icon: IconComponent, label, onPress }: { disabled?: boolean; icon: Icon; label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        borderRadius: radii.small,
+        borderWidth: 1,
+        borderColor: colors.line,
+        backgroundColor: colors.panel,
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
+      })}
+    >
+      <IconComponent size={18} color={colors.ink} strokeWidth={2.4} />
+    </Pressable>
+  );
+}
+
+function Field({
+  label,
+  multiline,
+  onChangeText,
+  secureTextEntry,
+  style,
+  value,
+}: {
+  label: string;
+  multiline?: boolean;
+  onChangeText: (value: string) => void;
+  secureTextEntry?: boolean;
+  style?: object;
+  value: string;
+}) {
+  return (
+    <View style={[{ gap: spacing.xs }, style]}>
+      <Text style={labelStyle}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        multiline={multiline}
+        secureTextEntry={secureTextEntry}
+        placeholderTextColor={colors.faint}
+        style={inputStyle({ minHeight: multiline ? 92 : 44, textAlignVertical: multiline ? "top" : "center" })}
+      />
+    </View>
+  );
+}
+
+function NumericField({ label, onChange, style, value }: { label: string; onChange: (value: number) => void; style?: object; value: number }) {
+  return (
+    <View style={[{ gap: spacing.xs }, style]}>
+      <Text style={labelStyle}>{label}</Text>
+      <TextInput
+        value={String(value)}
+        keyboardType="numeric"
+        onChangeText={(text) => {
+          const parsed = Number(text);
+          if (!Number.isNaN(parsed)) {
+            onChange(parsed);
+          }
+        }}
+        style={inputStyle({ minHeight: 44 })}
+      />
+    </View>
+  );
+}
+
+function Segmented<T extends string>({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  onChange: (value: T) => void;
+  options: Array<{ label: string; value: T }>;
+  value: T;
+}) {
+  return (
+    <View style={{ gap: spacing.xs }}>
+      <Text style={labelStyle}>{label}</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+        {options.map((option) => {
+          const selected = value === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              onPress={() => onChange(option.value)}
+              style={({ pressed }) => ({
+                minHeight: 44,
+                borderRadius: radii.small,
+                borderWidth: 1,
+                borderColor: selected ? colors.black : colors.line,
+                backgroundColor: selected ? colors.black : colors.panel,
+                paddingHorizontal: spacing.md,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pressed ? 0.75 : 1,
+              })}
+            >
+              <Text style={{ color: selected ? colors.white : colors.ink, fontWeight: "800" }}>{option.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function SwitchRow({ label, onValueChange, value }: { label: string; onValueChange: (value: boolean) => void; value: boolean }) {
+  return (
+    <View style={{ minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md }}>
+      <Text style={labelStyle}>{label}</Text>
+      <Switch value={value} onValueChange={onValueChange} trackColor={{ false: colors.line, true: colors.greenSoft }} thumbColor={value ? colors.green : colors.faint} />
+    </View>
+  );
+}
+
+function Notice({ onClear, text }: { onClear: () => void; text: string }) {
+  return (
+    <Pressable onPress={onClear} style={{ borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.goldSoft, borderRadius: radii.medium, padding: spacing.md }}>
+      <Text selectable style={{ color: colors.ink, lineHeight: 21 }}>
+        {text}
+      </Text>
+    </Pressable>
+  );
+}
+
+function inputStyle(extra?: object) {
+  return {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radii.small,
+    backgroundColor: colors.white,
+    color: colors.ink,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: 15,
+    lineHeight: 21,
+    ...extra,
+  };
+}
+
+const labelStyle = {
+  color: colors.muted,
+  fontSize: 13,
+  fontWeight: "800" as const,
+};
+
+const eyebrowStyle = {
+  color: colors.coral,
+  fontSize: 12,
+  fontWeight: "900" as const,
+  textTransform: "uppercase" as const,
+};
+
+function trimUrl(url: string) {
+  return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
+function providerConfig(settings: ClientSettings, provider: ProviderKey) {
+  if (provider === "asr") {
+    return {
+      label: "ASR",
+      baseUrl: settings.asr.baseUrl,
+      apiKey: settings.asr.apiKey,
+      extraHeadersJson: settings.asr.extraHeadersJson,
+    };
+  }
+  if (provider === "tts") {
+    return {
+      label: "TTS",
+      baseUrl: settings.tts.baseUrl,
+      apiKey: settings.tts.apiKey,
+      extraHeadersJson: settings.tts.extraHeadersJson,
+    };
+  }
+  return {
+    label: "Conversation",
+    baseUrl: settings.conversation.baseUrl,
+    apiKey: settings.conversation.apiKey,
+    extraHeadersJson: settings.conversation.extraHeadersJson,
+  };
+}

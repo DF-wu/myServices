@@ -1,0 +1,39 @@
+name: DF Voice App CI
+
+on:
+  pull_request:
+    paths:
+      - "df-voice-app/**"
+      - ".github/workflows/df-voice-app-ci.yml"
+  push:
+    paths:
+      - "df-voice-app/**"
+      - ".github/workflows/df-voice-app-ci.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: df-voice-app
+    env:
+      CI: "1"
+      EXPO_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: df-voice-app/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx expo-doctor
+      - run: python -m py_compile scripts/*.py
+      - run: npm run verify:android-config
