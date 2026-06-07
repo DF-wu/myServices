@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import pathlib
 
 from playwright.sync_api import expect, sync_playwright
@@ -12,7 +13,7 @@ from browser_utils import goto_with_retry
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "test-artifacts"
-URL = "http://localhost:8081"
+URL = os.environ.get("CLIENT_URL", "http://localhost:8081")
 
 
 def assert_layout(page, label: str) -> None:

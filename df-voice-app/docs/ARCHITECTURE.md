@@ -40,6 +40,7 @@ The app works in Expo Go for normal development. Android native builds are neede
 
 - `npm run verify:static`: TypeScript, Expo doctor, Python script compile.
 - `npm run verify:web:server`: desktop/mobile web smoke and layout checks.
+- `npm run verify:web-build`: static web export build plus the same desktop/mobile smoke checks against `dist/`.
 - `npm run verify:mock:server`: ASR upload, TTS, Chat Completions streaming, Responses streaming, provider diagnostics, and export checks.
 - `npm run verify:android-config`: Expo prebuild plus Android manifest/Gradle checks.
 - `npm run verify:android-build`: debug APK build when Android SDK and JDK are available.

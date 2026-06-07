@@ -140,6 +140,13 @@ Run the browser smoke test:
 npm run verify:web:server
 ```
 
+Build the static web export and run the same desktop/mobile smoke test against the exported files:
+
+```bash
+npm run build:web
+npm run verify:web-build
+```
+
 Run the ASR upload, TTS, model diagnostics, Chat Completions streaming, and Responses streaming integration checks:
 
 ```bash
