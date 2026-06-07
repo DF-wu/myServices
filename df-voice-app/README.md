@@ -140,9 +140,9 @@ npm run verify:android-runtime
 
 `verify:android-config` regenerates the Android project, checks the cleartext HTTP manifest setting, and pins the Gradle wrapper to `gradle-8.14.3-bin.zip`. The Gradle pin avoids the React Native Gradle plugin's Foojay resolver incompatibility seen with Gradle 9.x.
 
-`verify:android-build` also runs `:app:assembleDebug`. It requires JDK 17+ and an Android SDK with platform/build tools available through `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `android/local.properties` `sdk.dir`.
+`verify:android-build` also runs `:app:assembleDebug`. It requires JDK 17+ and an Android SDK with platform/build tools available through `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `android/local.properties` `sdk.dir`, `~/.local/share/android-sdk`, `~/Android/Sdk`, or `PATH`.
 
-`verify:android-runtime` installs the debug APK on one online adb device/emulator, launches `app.dfvoice.app`, verifies the process stays alive, and writes `test-artifacts/android-runtime.png` plus recent logcat output. Set `ANDROID_SERIAL` when more than one device is attached. Headless or VM hosts without an online adb device or emulator acceleration cannot run this check.
+`verify:android-runtime` installs the debug APK on one online adb device/emulator, launches `app.dfvoice.app`, verifies the process stays alive, and writes `test-artifacts/android-runtime.png` plus recent logcat output. The verifier locates `adb` from the same SDK sources as the build check plus `PATH`. Set `ANDROID_SERIAL` when more than one device is attached. Headless or VM hosts without an online adb device or emulator acceleration cannot run this check.
 
 Run the browser smoke test:
 

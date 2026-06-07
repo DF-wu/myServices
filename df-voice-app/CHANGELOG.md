@@ -20,6 +20,7 @@
 - Added explicit timeout errors for provider requests and model diagnostics.
 - Added Responses streaming fallback support for `response.output_text.done` and completed-response payloads.
 - Released previous web TTS object URLs when replacing playback to avoid long-running session leaks.
+- Improved Android verification scripts to find SDK tools from environment variables, `android/local.properties`, common local SDK paths, or `PATH`.
 
 ## 1.0.0
 

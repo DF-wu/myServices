@@ -16,7 +16,7 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 - `src/data/prompt-templates.ts`: reusable transcript workflow prompt templates.
 - `src/config/provider-defaults.ts`: public build-time defaults from `EXPO_PUBLIC_*` variables.
 - `plugins/with-local-http-android.js`: Android cleartext HTTP and Gradle wrapper pin.
-- `scripts/`: verification, mock provider, and server lifecycle helpers.
+- `scripts/`: verification, mock provider, Android SDK discovery, and server lifecycle helpers.
 
 ## Data Flow
 
@@ -53,3 +53,5 @@ The app works in Expo Go for normal development. Android native builds are neede
 - `npm run verify:android-config`: Expo prebuild plus Android manifest/Gradle checks.
 - `npm run verify:android-build`: debug APK build when Android SDK and JDK are available.
 - `npm run verify:android-runtime`: adb install/launch check when a device or emulator is online.
+
+Android verification scripts resolve SDK tools from `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `android/local.properties`, common local SDK directories, and `PATH` so local checks do not depend on shell-specific PATH setup.

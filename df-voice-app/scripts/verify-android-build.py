@@ -9,39 +9,10 @@ import platform
 import shutil
 import subprocess
 
+from android_sdk import find_sdk_dir
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 ANDROID_ROOT = ROOT / "android"
-
-
-def parse_local_sdk_dir() -> pathlib.Path | None:
-    local_properties = ANDROID_ROOT / "local.properties"
-    if not local_properties.exists():
-        return None
-
-    for raw_line in local_properties.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        key, separator, value = line.partition("=")
-        if separator and key.strip() == "sdk.dir" and value.strip():
-            return pathlib.Path(value.strip()).expanduser()
-    return None
-
-
-def find_sdk_dir() -> pathlib.Path | None:
-    for env_name in ("ANDROID_HOME", "ANDROID_SDK_ROOT"):
-        value = os.environ.get(env_name)
-        if value:
-            candidate = pathlib.Path(value).expanduser()
-            if candidate.exists():
-                return candidate
-
-    local_sdk_dir = parse_local_sdk_dir()
-    if local_sdk_dir and local_sdk_dir.exists():
-        return local_sdk_dir
-
-    return None
 
 
 def check_prerequisites() -> int:
@@ -58,7 +29,7 @@ def check_prerequisites() -> int:
         print("Java not found; install JDK 17+ or set JAVA_HOME")
         return 1
 
-    sdk_dir = find_sdk_dir()
+    sdk_dir = find_sdk_dir(ANDROID_ROOT)
     if sdk_dir is None:
         print(
             "Android SDK not found; set ANDROID_HOME/ANDROID_SDK_ROOT or "
@@ -83,8 +54,13 @@ def main() -> int:
         "gradlew.bat" if platform.system() == "Windows" else "gradlew"
     )
     command = [str(gradlew), ":app:assembleDebug", "--no-daemon"]
+    sdk_dir = find_sdk_dir(ANDROID_ROOT)
+    env = os.environ.copy()
+    if sdk_dir:
+        env.setdefault("ANDROID_HOME", str(sdk_dir))
+        env.setdefault("ANDROID_SDK_ROOT", str(sdk_dir))
     print("running " + " ".join(command))
-    return subprocess.run(command, cwd=ANDROID_ROOT, check=False).returncode
+    return subprocess.run(command, cwd=ANDROID_ROOT, env=env, check=False).returncode
 
 
 if __name__ == "__main__":

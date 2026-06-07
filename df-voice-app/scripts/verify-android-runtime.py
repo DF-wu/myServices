@@ -6,12 +6,13 @@ from __future__ import annotations
 import json
 import os
 import pathlib
-import shutil
 import subprocess
 import time
 
+from android_sdk import find_adb
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+ANDROID_ROOT = ROOT / "android"
 APP_JSON = ROOT / "app.json"
 APK = ROOT / "android" / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk"
 ARTIFACTS = ROOT / "test-artifacts"
@@ -25,18 +26,6 @@ def run(command: list[str], *, check: bool = True, binary: bool = False) -> subp
         stderr=subprocess.PIPE,
         text=not binary,
     )
-
-
-def find_adb() -> str | None:
-    sdk_root = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
-    candidates = [
-        pathlib.Path(sdk_root) / "platform-tools" / "adb" if sdk_root else None,
-        pathlib.Path(shutil.which("adb")) if shutil.which("adb") else None,
-    ]
-    for candidate in candidates:
-        if candidate and candidate.exists():
-            return str(candidate)
-    return None
 
 
 def android_package_name() -> str:
@@ -78,9 +67,12 @@ def connected_device(adb: str) -> str | None:
 
 
 def main() -> int:
-    adb = find_adb()
+    adb = find_adb(ANDROID_ROOT)
     if not adb:
-        print("adb not found; install Android platform-tools or set ANDROID_HOME")
+        print(
+            "adb not found; install Android platform-tools, set ANDROID_HOME, "
+            "or add sdk.dir to android/local.properties"
+        )
         return 1
 
     if not APK.exists():
