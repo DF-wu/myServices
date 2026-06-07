@@ -1215,8 +1215,8 @@ function SettingsView({
             <Field label="Prompt / vocabulary hint" value={settings.asr.prompt} multiline onChangeText={(value) => updateAsr("prompt", value)} />
             <NumericField label="Temperature" value={settings.asr.temperature} onChange={(value) => updateAsr("temperature", value)} />
             <NumericField label="Timeout seconds" value={settings.asr.timeoutSec} onChange={(value) => updateAsr("timeoutSec", value)} />
-            <Field label="Extra headers JSON" value={settings.asr.extraHeadersJson} multiline onChangeText={(value) => updateAsr("extraHeadersJson", value)} />
-            <Field label="Extra form fields JSON" value={settings.asr.extraFormFieldsJson} multiline onChangeText={(value) => updateAsr("extraFormFieldsJson", value)} />
+            <JsonField label="Extra headers JSON" mode="headers" value={settings.asr.extraHeadersJson} onChangeText={(value) => updateAsr("extraHeadersJson", value)} />
+            <JsonField label="Extra form fields JSON" mode="object" value={settings.asr.extraFormFieldsJson} onChangeText={(value) => updateAsr("extraFormFieldsJson", value)} />
           </View>
         </Surface>
 
@@ -1249,8 +1249,8 @@ function SettingsView({
             <SwitchRow label="Keep history" value={settings.keepConversationHistory} onValueChange={(value) => onUpdate({ ...settings, keepConversationHistory: value })} />
             <SwitchRow label="Auto speak replies" value={settings.autoSpeak} onValueChange={(value) => onUpdate({ ...settings, autoSpeak: value })} />
             <SwitchRow label="Streaming responses" value={settings.conversation.stream} onValueChange={(value) => updateConversation("stream", value)} />
-            <Field label="Extra headers JSON" value={settings.conversation.extraHeadersJson} multiline onChangeText={(value) => updateConversation("extraHeadersJson", value)} />
-            <Field label="Extra body JSON" value={settings.conversation.extraBodyJson} multiline onChangeText={(value) => updateConversation("extraBodyJson", value)} />
+            <JsonField label="Extra headers JSON" mode="headers" value={settings.conversation.extraHeadersJson} onChangeText={(value) => updateConversation("extraHeadersJson", value)} />
+            <JsonField label="Extra body JSON" mode="object" value={settings.conversation.extraBodyJson} onChangeText={(value) => updateConversation("extraBodyJson", value)} />
           </View>
         </Surface>
       </View>
@@ -1282,8 +1282,8 @@ function SettingsView({
             onChange={(value) => updateTts("responseFormat", value)}
           />
           <Field label="Voice instructions" value={settings.tts.instructions} multiline onChangeText={(value) => updateTts("instructions", value)} />
-          <Field label="Extra headers JSON" value={settings.tts.extraHeadersJson} multiline onChangeText={(value) => updateTts("extraHeadersJson", value)} />
-          <Field label="Extra body JSON" value={settings.tts.extraBodyJson} multiline onChangeText={(value) => updateTts("extraBodyJson", value)} />
+          <JsonField label="Extra headers JSON" mode="headers" value={settings.tts.extraHeadersJson} onChangeText={(value) => updateTts("extraHeadersJson", value)} />
+          <JsonField label="Extra body JSON" mode="object" value={settings.tts.extraBodyJson} onChangeText={(value) => updateTts("extraBodyJson", value)} />
           <CommandButton label="Reset defaults" tone="plain" icon={RotateCcw} onPress={onReset} />
         </View>
       </Surface>
@@ -1680,6 +1680,8 @@ function IconOnly({ disabled, icon: IconComponent, label, onPress }: { disabled?
 }
 
 function Field({
+  hint,
+  hintTone = "muted",
   label,
   multiline,
   onChangeText,
@@ -1687,6 +1689,8 @@ function Field({
   style,
   value,
 }: {
+  hint?: string;
+  hintTone?: "danger" | "muted" | "success";
   label: string;
   multiline?: boolean;
   onChangeText: (value: string) => void;
@@ -1706,7 +1710,36 @@ function Field({
         placeholderTextColor={colors.faint}
         style={inputStyle({ minHeight: multiline ? 92 : 44, textAlignVertical: multiline ? "top" : "center" })}
       />
+      {hint ? (
+        <Text selectable style={{ color: hintColor(hintTone), fontSize: 12, fontWeight: "700", lineHeight: 18 }}>
+          {hint}
+        </Text>
+      ) : null}
     </View>
+  );
+}
+
+function JsonField({
+  label,
+  mode,
+  onChangeText,
+  value,
+}: {
+  label: string;
+  mode: "headers" | "object";
+  onChangeText: (value: string) => void;
+  value: string;
+}) {
+  const validation = validateJsonField(value, mode);
+  return (
+    <Field
+      hint={validation?.message}
+      hintTone={validation?.tone}
+      label={label}
+      multiline
+      value={value}
+      onChangeText={onChangeText}
+    />
   );
 }
 
@@ -1858,6 +1891,44 @@ function statusSummary(settings: ClientSettings) {
     `${chatMode} ${settings.conversation.model}`,
     `TTS ${settings.tts.voice}/${settings.tts.responseFormat}`,
   ].join(" · ");
+}
+
+function validateJsonField(text: string, mode: "headers" | "object") {
+  if (!text.trim()) {
+    return null;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { message: "Invalid JSON syntax.", tone: "danger" as const };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { message: "Must be a JSON object.", tone: "danger" as const };
+  }
+  if (mode === "headers") {
+    const invalidHeader = Object.values(parsed).some(
+      (value) => value !== null && value !== undefined && typeof value === "object",
+    );
+    if (invalidHeader) {
+      return {
+        message: "Header values must be strings, numbers, booleans, or null.",
+        tone: "danger" as const,
+      };
+    }
+    return { message: "Valid headers JSON.", tone: "success" as const };
+  }
+  return { message: "Valid JSON object.", tone: "success" as const };
+}
+
+function hintColor(tone: "danger" | "muted" | "success") {
+  if (tone === "danger") {
+    return colors.danger;
+  }
+  if (tone === "success") {
+    return colors.green;
+  }
+  return colors.faint;
 }
 
 function promptWithTranscript(prompt: string, transcript: string) {

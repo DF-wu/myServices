@@ -18,6 +18,7 @@ Standalone voice workbench for web, Android, and optional iOS. It records or upl
 - Restore the current transcript, draft, and conversation after a browser refresh or app restart
 - Clear the local workspace from the Settings tab when transcripts or prompts should be removed from the device
 - Add provider-specific headers, ASR multipart fields, and JSON body overrides for OpenAI-compatible variants
+- Validate advanced JSON override fields inline before provider requests are sent
 
 ## Run
 
@@ -99,7 +100,7 @@ Streaming is enabled per conversation profile. Chat Completions reads `choices[]
 
 Provider checks run independently for the ASR, conversation, and TTS base URLs. Each check reports HTTP status and model IDs returned by `/v1/models`; returned model IDs can be applied directly to that provider.
 
-Advanced JSON fields are merged into the outgoing request after the built-in settings. They are intended for compatible providers that require custom headers, ASR fields such as timestamp options, or body fields such as `response_format`, `metadata`, `seed`, or vendor-specific flags.
+Advanced JSON fields are validated inline in Settings and merged into the outgoing request after the built-in settings. They are intended for compatible providers that require custom headers, ASR fields such as timestamp options, or body fields such as `response_format`, `metadata`, `seed`, or vendor-specific flags.
 
 Build-time provider defaults:
 

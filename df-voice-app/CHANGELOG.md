@@ -11,6 +11,7 @@
 - Added local workspace restore for transcripts, drafts, and conversations.
 - Added custom prompt template creation, restore, and deletion.
 - Added a Settings action and smoke coverage for clearing local workspace data.
+- Added inline validation for advanced JSON override fields.
 
 ## 1.0.0
 
