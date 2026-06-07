@@ -173,6 +173,55 @@ def run_settings_portability(page) -> None:
     assert imported["conversation"]["model"] == "imported-model", imported
     assert imported["conversation"]["apiKey"] == "conversation-secret", imported
 
+    invalid_path = ARTIFACTS / "settings-invalid-import.json"
+    invalid_path.write_text(
+        json.dumps(
+            {
+                "app": "df-voice-app",
+                "version": 1,
+                "redacted": True,
+                "exportedAt": "2026-06-08T00:00:00.000Z",
+                "settings": {
+                    "autoSpeak": "yes",
+                    "asr": {
+                        "responseFormat": "docx",
+                        "temperature": "hot",
+                        "timeoutSec": -10,
+                        "unknown": "ignored",
+                    },
+                    "conversation": {
+                        "mode": "legacy_completions",
+                        "maxOutputTokens": 0,
+                        "stream": "true",
+                    },
+                    "tts": {
+                        "responseFormat": "ogg",
+                        "speed": -2,
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Import settings").click()
+    chooser.value.set_files(str(invalid_path))
+    expect(page.get_by_text("Settings imported.")).to_be_visible(timeout=10000)
+    sanitized = page.evaluate(
+        """(key) => JSON.parse(localStorage.getItem(key))""",
+        SETTINGS_KEY,
+    )
+    assert sanitized["autoSpeak"] is False, sanitized
+    assert sanitized["asr"]["responseFormat"] == "verbose_json", sanitized
+    assert sanitized["asr"]["temperature"] == 0, sanitized
+    assert sanitized["asr"]["timeoutSec"] == 30, sanitized
+    assert sanitized["conversation"]["mode"] == "responses", sanitized
+    assert sanitized["conversation"]["maxOutputTokens"] == 64, sanitized
+    assert sanitized["conversation"]["stream"] is True, sanitized
+    assert sanitized["tts"]["responseFormat"] == "wav", sanitized
+    assert sanitized["tts"]["speed"] == 1, sanitized
+    assert "unknown" not in sanitized["asr"], sanitized
+
 
 def main() -> int:
     ARTIFACTS.mkdir(exist_ok=True)

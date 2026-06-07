@@ -110,6 +110,7 @@ Build-time provider defaults:
 - `EXPO_PUBLIC_DF_VOICE_TTS_VOICE`
 
 Settings can be exported and imported from the Settings tab. Exports redact API keys and extra headers by default; importing a redacted file preserves the credentials already stored on the current device.
+Unknown fields and invalid enum/type values in imported settings are ignored, so older or malformed exports cannot overwrite the current device with unsupported values.
 
 ## Verification
 

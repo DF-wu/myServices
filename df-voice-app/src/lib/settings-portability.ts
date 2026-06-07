@@ -1,4 +1,10 @@
-import type { ClientSettings } from "@/types/client";
+import type {
+  AsrResponseFormat,
+  ClientSettings,
+  ConversationMode,
+  ConversationSettings,
+  SpeechFormat,
+} from "@/types/client";
 
 export const REDACTED_SETTING_VALUE = "__DF_VOICE_REDACTED__";
 
@@ -72,28 +78,124 @@ function unwrapSettingsPayload(parsed: unknown): Partial<ClientSettings> {
 
 function mergeImportedSettings(current: ClientSettings, incoming: Partial<ClientSettings>): ClientSettings {
   return {
-    ...current,
-    ...incoming,
-    asr: mergeProvider(current.asr, incoming.asr),
-    conversation: mergeProvider(current.conversation, incoming.conversation),
-    tts: mergeProvider(current.tts, incoming.tts),
+    asr: mergeAsrSettings(current.asr, incoming.asr),
+    autoSpeak: booleanValue(incoming.autoSpeak, current.autoSpeak),
+    conversation: mergeConversationSettings(current.conversation, incoming.conversation),
+    keepConversationHistory: booleanValue(
+      incoming.keepConversationHistory,
+      current.keepConversationHistory,
+    ),
+    tts: mergeTtsSettings(current.tts, incoming.tts),
   };
 }
 
-function mergeProvider<T extends { apiKey: string; extraHeadersJson: string }>(
-  current: T,
-  incoming?: Partial<T>,
-): T {
-  if (!incoming || !isRecord(incoming)) {
+function mergeAsrSettings(
+  current: ClientSettings["asr"],
+  incoming?: Partial<ClientSettings["asr"]>,
+) {
+  if (!isRecord(incoming)) {
     return current;
   }
-  const next = { ...current, ...incoming };
+  return mergeCredentials(current, {
+    ...current,
+    baseUrl: stringValue(incoming.baseUrl, current.baseUrl),
+    extraFormFieldsJson: stringValue(incoming.extraFormFieldsJson, current.extraFormFieldsJson),
+    language: stringValue(incoming.language, current.language),
+    model: stringValue(incoming.model, current.model),
+    prompt: stringValue(incoming.prompt, current.prompt),
+    responseFormat: enumValue<AsrResponseFormat>(
+      incoming.responseFormat,
+      current.responseFormat,
+      ["json", "text", "verbose_json", "srt", "vtt"],
+    ),
+    temperature: numberValue(incoming.temperature, current.temperature),
+    timeoutSec: positiveNumberValue(incoming.timeoutSec, current.timeoutSec),
+  });
+}
+
+function mergeConversationSettings(
+  current: ConversationSettings,
+  incoming?: Partial<ConversationSettings>,
+) {
+  if (!isRecord(incoming)) {
+    return current;
+  }
+  return mergeCredentials(current, {
+    ...current,
+    baseUrl: stringValue(incoming.baseUrl, current.baseUrl),
+    extraBodyJson: stringValue(incoming.extraBodyJson, current.extraBodyJson),
+    frequencyPenalty: numberValue(incoming.frequencyPenalty, current.frequencyPenalty),
+    maxOutputTokens: positiveNumberValue(incoming.maxOutputTokens, current.maxOutputTokens),
+    mode: enumValue<ConversationMode>(
+      incoming.mode,
+      current.mode,
+      ["responses", "chat_completions"],
+    ),
+    model: stringValue(incoming.model, current.model),
+    presencePenalty: numberValue(incoming.presencePenalty, current.presencePenalty),
+    stream: booleanValue(incoming.stream, current.stream),
+    systemPrompt: stringValue(incoming.systemPrompt, current.systemPrompt),
+    temperature: numberValue(incoming.temperature, current.temperature),
+    timeoutSec: positiveNumberValue(incoming.timeoutSec, current.timeoutSec),
+    topP: numberValue(incoming.topP, current.topP),
+  });
+}
+
+function mergeTtsSettings(
+  current: ClientSettings["tts"],
+  incoming?: Partial<ClientSettings["tts"]>,
+) {
+  if (!isRecord(incoming)) {
+    return current;
+  }
+  return mergeCredentials(current, {
+    ...current,
+    baseUrl: stringValue(incoming.baseUrl, current.baseUrl),
+    extraBodyJson: stringValue(incoming.extraBodyJson, current.extraBodyJson),
+    instructions: stringValue(incoming.instructions, current.instructions),
+    model: stringValue(incoming.model, current.model),
+    responseFormat: enumValue<SpeechFormat>(
+      incoming.responseFormat,
+      current.responseFormat,
+      ["mp3", "opus", "aac", "flac", "wav", "pcm"],
+    ),
+    speed: positiveNumberValue(incoming.speed, current.speed),
+    timeoutSec: positiveNumberValue(incoming.timeoutSec, current.timeoutSec),
+    voice: stringValue(incoming.voice, current.voice),
+  });
+}
+
+function mergeCredentials<T extends { apiKey: string; extraHeadersJson: string }>(
+  current: T,
+  next: T,
+): T {
   for (const field of credentialFields) {
     if (next[field] === REDACTED_SETTING_VALUE) {
       next[field] = current[field];
     }
   }
   return next;
+}
+
+function stringValue(value: unknown, fallback: string) {
+  return typeof value === "string" ? value : fallback;
+}
+
+function numberValue(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function positiveNumberValue(value: unknown, fallback: number) {
+  const parsed = numberValue(value, fallback);
+  return parsed > 0 ? parsed : fallback;
+}
+
+function booleanValue(value: unknown, fallback: boolean) {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function enumValue<T extends string>(value: unknown, fallback: T, allowed: readonly T[]) {
+  return typeof value === "string" && allowed.includes(value as T) ? (value as T) : fallback;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -30,6 +30,7 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 Native platforms use `expo-secure-store` when available. Web uses `localStorage`. Stored settings are merged with the current defaults on load so new settings fields can be added without migration crashes.
 
 Settings export/import is intentionally redacted. API keys and extra headers are exported as `__DF_VOICE_REDACTED__`; importing that sentinel preserves the credential values already present on the target device.
+The importer applies a field allowlist with enum, number, string, and boolean checks. Unsupported keys and invalid values are ignored rather than persisted.
 
 ## Native Strategy
 
