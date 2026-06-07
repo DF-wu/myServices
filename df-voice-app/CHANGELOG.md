@@ -9,6 +9,7 @@
 - Added static web export verification to catch production web build regressions.
 - Added transcript workflow prompt templates and non-streaming conversation verification.
 - Added local workspace restore for transcripts, drafts, and conversations.
+- Added custom prompt template creation, restore, and deletion.
 
 ## 1.0.0
 

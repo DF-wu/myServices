@@ -82,6 +82,30 @@ def main() -> int:
 
         page.get_by_role("button", name="範本").click()
         expect(page.get_by_text("Prompt templates")).to_be_visible()
+        expect(page.get_by_text("Create prompt template")).to_be_visible()
+        page.get_by_label("Name").fill("Custom voice brief")
+        page.get_by_label("Category").fill("Custom")
+        page.get_by_label("Tags").fill("brief, personal")
+        page.get_by_label("Description").fill("Reusable custom prompt for smoke testing.")
+        page.get_by_label("Prompt").fill("Turn this transcript into a direct project brief.")
+        page.get_by_role("button", name="Save custom prompt").click()
+        expect(page.get_by_text("Saved custom prompt template: Custom voice brief")).to_be_visible()
+        expect(page.get_by_text("Custom voice brief", exact=True)).to_be_visible()
+        page.wait_for_function(
+            """() => {
+                const stored = JSON.parse(localStorage.getItem("df-voice-app.workspace.v1") || "{}");
+                return Array.isArray(stored.customPromptTemplates)
+                    && stored.customPromptTemplates.some((template) => template.name === "Custom voice brief");
+            }""",
+            timeout=10000,
+        )
+        page.reload(wait_until="domcontentloaded")
+        page.wait_for_selector("text=DF Voice App")
+        page.get_by_role("button", name="範本").click()
+        expect(page.get_by_text("Custom voice brief", exact=True)).to_be_visible()
+        page.get_by_label("Delete Custom voice brief").click()
+        expect(page.get_by_text("Custom prompt template deleted.")).to_be_visible()
+        expect(page.get_by_text("Custom voice brief", exact=True)).not_to_be_visible()
         expect(page.get_by_text("逐字稿整理")).to_be_visible()
         expect(page.get_by_text("會議摘要")).to_be_visible()
         expect(page.get_by_text("CapsWriter 本機 ASR")).to_be_visible()

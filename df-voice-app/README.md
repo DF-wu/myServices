@@ -14,7 +14,7 @@ Standalone voice workbench for web, Android, and optional iOS. It records or upl
 - Check ASR, chat, and TTS providers with `GET /v1/models`
 - Persist provider settings and API keys locally
 - Apply templates for local CapsWriter, cloud-compatible, Android emulator, and LM Studio/Ollama-style setups
-- Use prompt workflow templates for transcript cleanup, meeting summaries, action extraction, reply drafts, and English briefs
+- Use built-in and custom prompt workflow templates for transcript cleanup, meeting summaries, action extraction, reply drafts, and English briefs
 - Restore the current transcript, draft, and conversation after a browser refresh or app restart
 - Add provider-specific headers, ASR multipart fields, and JSON body overrides for OpenAI-compatible variants
 
@@ -149,7 +149,7 @@ npm run build:web
 npm run verify:web-build
 ```
 
-Run the ASR upload, TTS, workspace restore, prompt templates, model diagnostics, Chat Completions, Responses, streaming, and non-streaming integration checks:
+Run the ASR upload, TTS, workspace restore, custom prompt templates, model diagnostics, Chat Completions, Responses, streaming, and non-streaming integration checks:
 
 ```bash
 npm run verify:mock:server

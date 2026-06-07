@@ -10,7 +10,7 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 - `src/components/app-shell.tsx`: product UI, workflow state, and user actions.
 - `src/lib/openai-compatible.ts`: provider HTTP client for ASR, Chat Completions, Responses, model probes, and TTS.
 - `src/lib/settings-portability.ts`: redacted settings export/import and credential preservation.
-- `src/lib/workspace-storage.ts`: transcript, draft, and conversation workspace persistence.
+- `src/lib/workspace-storage.ts`: transcript, draft, custom prompt template, and conversation workspace persistence.
 - `src/state/settings.tsx`: persisted settings and defaults merge.
 - `src/data/templates.ts`: provider templates and default settings.
 - `src/data/prompt-templates.ts`: reusable transcript workflow prompt templates.
@@ -30,7 +30,7 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 ## Persistence
 
 Native platforms use `expo-secure-store` when available for settings. Web uses `localStorage`. Stored settings are merged with the current defaults on load so new settings fields can be added without migration crashes.
-The active transcript, raw ASR response, chat draft, and recent conversation messages are saved as a workspace snapshot so mobile app restarts and browser refreshes do not discard current work. Web stores that snapshot in `localStorage`; native stores it as an app-private document JSON file.
+The active transcript, raw ASR response, chat draft, custom prompt templates, and recent conversation messages are saved as a workspace snapshot so mobile app restarts and browser refreshes do not discard current work. Web stores that snapshot in `localStorage`; native stores it as an app-private document JSON file.
 
 Settings export/import is intentionally redacted. API keys and extra headers are exported as `__DF_VOICE_REDACTED__`; importing that sentinel preserves the credential values already present on the target device.
 The importer applies a field allowlist with enum, number, string, and boolean checks. Unsupported keys and invalid values are ignored rather than persisted.
@@ -42,7 +42,7 @@ The app works in Expo Go for normal development. Android native builds are neede
 ## Verification
 
 - `npm run verify:static`: TypeScript, Expo doctor, Python script compile.
-- `npm run verify:web:server`: desktop/mobile web smoke and layout checks.
+- `npm run verify:web:server`: desktop/mobile web smoke, custom prompt template, and layout checks.
 - `npm run verify:web-build`: static web export build plus the same desktop/mobile smoke checks against `dist/`.
 - `npm run verify:mock:server`: ASR upload, TTS, workspace restore, prompt templates, Chat Completions/Responses streaming and non-streaming, provider diagnostics, and export checks.
 - `npm run verify:android-config`: Expo prebuild plus Android manifest/Gradle checks.

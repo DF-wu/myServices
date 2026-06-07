@@ -18,12 +18,14 @@ import {
   FileAudio,
   MessageSquare,
   Mic,
+  Plus,
   RotateCcw,
   Save,
   Send,
   Settings2,
   Sparkles,
   Square,
+  Trash2,
   Upload,
   Volume2,
   Wifi,
@@ -69,9 +71,17 @@ type ProviderKey = "asr" | "conversation" | "tts";
 type ProviderDiagnostic = ApiProbe & { checkedAt: number };
 type WorkspaceSnapshot = {
   chatDraft: string;
+  customPromptTemplates: PromptTemplate[];
   messages: ChatMessage[];
   rawResult: string;
   transcript: string;
+};
+type PromptTemplateDraft = {
+  category: string;
+  description: string;
+  name: string;
+  prompt: string;
+  tags: string;
 };
 
 const tabs: Array<{ id: TabId; label: string; icon: Icon }> = [
@@ -81,6 +91,13 @@ const tabs: Array<{ id: TabId; label: string; icon: Icon }> = [
   { id: "templates", label: "範本", icon: Sparkles },
 ];
 const providerKeys: ProviderKey[] = ["asr", "conversation", "tts"];
+const emptyPromptTemplateDraft: PromptTemplateDraft = {
+  category: "Custom",
+  description: "",
+  name: "",
+  prompt: "",
+  tags: "",
+};
 
 function id() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -97,6 +114,7 @@ export function AppShell() {
   const [transcript, setTranscript] = useState("");
   const [rawResult, setRawResult] = useState("");
   const [chatDraft, setChatDraft] = useState("");
+  const [customPromptTemplates, setCustomPromptTemplates] = useState<PromptTemplate[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [workspaceLoaded, setWorkspaceLoaded] = useState(false);
   const [providerDiagnostics, setProviderDiagnostics] = useState<
@@ -123,6 +141,7 @@ export function AppShell() {
         setTranscript(next.transcript);
         setRawResult(next.rawResult);
         setChatDraft(next.chatDraft);
+        setCustomPromptTemplates(next.customPromptTemplates);
         setMessages(next.messages);
       })
       .finally(() => {
@@ -142,13 +161,14 @@ export function AppShell() {
     const handle = setTimeout(() => {
       void setWorkspaceJson({
         chatDraft,
+        customPromptTemplates,
         messages: messages.slice(-80),
         rawResult,
         transcript,
       }).catch(() => undefined);
     }, 250);
     return () => clearTimeout(handle);
-  }, [chatDraft, messages, rawResult, transcript, workspaceLoaded]);
+  }, [chatDraft, customPromptTemplates, messages, rawResult, transcript, workspaceLoaded]);
 
   const statusLine = useMemo(() => {
     const base = trimUrl(settings.asr.baseUrl);
@@ -453,6 +473,35 @@ export function AppShell() {
     await sendChat(promptWithTranscript(template.prompt, transcript));
   }
 
+  function saveCustomPromptTemplate(draft: PromptTemplateDraft) {
+    const name = draft.name.trim();
+    const prompt = draft.prompt.trim();
+    if (!name || !prompt) {
+      setNotice("Custom prompt templates need a name and prompt.");
+      return false;
+    }
+    const template: PromptTemplate = {
+      id: `custom-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      category: draft.category.trim() || "Custom",
+      description: draft.description.trim() || "User-defined prompt workflow.",
+      name,
+      prompt,
+      tags: draft.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .slice(0, 8),
+    };
+    setCustomPromptTemplates((current) => [template, ...current].slice(0, 40));
+    setNotice(`Saved custom prompt template: ${template.name}`);
+    return true;
+  }
+
+  function deleteCustomPromptTemplate(templateId: string) {
+    setCustomPromptTemplates((current) => current.filter((template) => template.id !== templateId));
+    setNotice("Custom prompt template deleted.");
+  }
+
   if (!loaded || !workspaceLoaded) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md }}>
@@ -574,11 +623,14 @@ export function AppShell() {
       {activeTab === "templates" ? (
         <TemplatesView
           busy={busy}
+          customPromptTemplates={customPromptTemplates}
           current={settings}
           transcript={transcript}
           onApply={applyTemplate}
+          onDeletePrompt={deleteCustomPromptTemplate}
           onLoadPrompt={loadPromptTemplate}
           onRunPrompt={runPromptTemplate}
+          onSavePrompt={saveCustomPromptTemplate}
         />
       ) : null}
     </ScrollView>
@@ -1294,45 +1346,91 @@ function ProviderProbeCard({
 
 function TemplatesView({
   busy,
+  customPromptTemplates,
   current,
   onApply,
+  onDeletePrompt,
   onLoadPrompt,
   onRunPrompt,
+  onSavePrompt,
   transcript,
 }: {
   busy: BusyState;
+  customPromptTemplates: PromptTemplate[];
   current: ClientSettings;
   onApply: (templateId: string) => void;
+  onDeletePrompt: (templateId: string) => void;
   onLoadPrompt: (template: PromptTemplate) => void;
   onRunPrompt: (template: PromptTemplate) => void;
+  onSavePrompt: (draft: PromptTemplateDraft) => boolean;
   transcript: string;
 }) {
+  const [draft, setDraft] = useState<PromptTemplateDraft>(emptyPromptTemplateDraft);
+  const promptLibrary = [...customPromptTemplates, ...promptTemplates];
+  const updateDraft = (key: keyof PromptTemplateDraft, value: string) =>
+    setDraft((currentDraft) => ({ ...currentDraft, [key]: value }));
+  const saveDraft = () => {
+    if (onSavePrompt(draft)) {
+      setDraft(emptyPromptTemplateDraft);
+    }
+  };
+
   return (
     <View style={{ gap: spacing.lg }}>
       <View style={{ gap: spacing.md }}>
         <PanelTitle icon={Sparkles} eyebrow="Workflows" title="Prompt templates" />
-        {promptTemplates.map((template) => (
-          <TemplateCard
-            key={template.id}
-            title={template.name}
-            description={template.description}
-            eyebrow={template.category}
-            tags={template.tags}
-            actions={
-              <>
-                <CommandButton label="Use prompt" tone="secondary" icon={MessageSquare} onPress={() => onLoadPrompt(template)} />
-                <CommandButton
-                  label="Run with transcript"
-                  tone="primary"
-                  icon={Send}
-                  disabled={!transcript.trim()}
-                  loading={busy === "chat"}
-                  onPress={() => onRunPrompt(template)}
-                />
-              </>
-            }
-          />
-        ))}
+
+        <Surface subtle>
+          <View style={{ gap: spacing.md }}>
+            <PanelTitle icon={Plus} eyebrow="Custom" title="Create prompt template" />
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md }}>
+              <Field label="Name" value={draft.name} onChangeText={(value) => updateDraft("name", value)} style={{ flex: 1, minWidth: 180 }} />
+              <Field label="Category" value={draft.category} onChangeText={(value) => updateDraft("category", value)} style={{ flex: 1, minWidth: 160 }} />
+              <Field label="Tags" value={draft.tags} onChangeText={(value) => updateDraft("tags", value)} style={{ flex: 1, minWidth: 180 }} />
+            </View>
+            <Field label="Description" value={draft.description} onChangeText={(value) => updateDraft("description", value)} />
+            <Field label="Prompt" value={draft.prompt} multiline onChangeText={(value) => updateDraft("prompt", value)} />
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+              <CommandButton
+                label="Save custom prompt"
+                tone="primary"
+                icon={Save}
+                disabled={!draft.name.trim() || !draft.prompt.trim()}
+                onPress={saveDraft}
+              />
+              <CommandButton label="Reset form" tone="plain" icon={RotateCcw} onPress={() => setDraft(emptyPromptTemplateDraft)} />
+            </View>
+          </View>
+        </Surface>
+
+        {promptLibrary.map((template) => {
+          const custom = template.id.startsWith("custom-");
+          return (
+            <TemplateCard
+              key={template.id}
+              title={template.name}
+              description={template.description}
+              eyebrow={custom ? `${template.category} · Custom` : template.category}
+              tags={template.tags}
+              actions={
+                <>
+                  <CommandButton label="Use prompt" tone="secondary" icon={MessageSquare} onPress={() => onLoadPrompt(template)} />
+                  <CommandButton
+                    label="Run with transcript"
+                    tone="primary"
+                    icon={Send}
+                    disabled={!transcript.trim()}
+                    loading={busy === "chat"}
+                    onPress={() => onRunPrompt(template)}
+                  />
+                  {custom ? (
+                    <IconOnly icon={Trash2} label={`Delete ${template.name}`} onPress={() => onDeletePrompt(template.id)} />
+                  ) : null}
+                </>
+              }
+            />
+          );
+        })}
       </View>
 
       <View style={{ gap: spacing.md }}>
@@ -1569,6 +1667,7 @@ function Field({
     <View style={[{ gap: spacing.xs }, style]}>
       <Text style={labelStyle}>{label}</Text>
       <TextInput
+        accessibilityLabel={label}
         value={value}
         onChangeText={onChangeText}
         multiline={multiline}
@@ -1585,6 +1684,7 @@ function NumericField({ label, onChange, style, value }: { label: string; onChan
     <View style={[{ gap: spacing.xs }, style]}>
       <Text style={labelStyle}>{label}</Text>
       <TextInput
+        accessibilityLabel={label}
         value={String(value)}
         keyboardType="numeric"
         onChangeText={(text) => {
@@ -1736,12 +1836,32 @@ function promptWithTranscript(prompt: string, transcript: string) {
 function normalizeWorkspaceSnapshot(snapshot: Partial<WorkspaceSnapshot>): WorkspaceSnapshot {
   return {
     chatDraft: typeof snapshot.chatDraft === "string" ? snapshot.chatDraft : "",
+    customPromptTemplates: Array.isArray(snapshot.customPromptTemplates)
+      ? snapshot.customPromptTemplates.filter(isPromptTemplate).slice(0, 40)
+      : [],
     messages: Array.isArray(snapshot.messages)
       ? snapshot.messages.filter(isChatMessage).slice(-80)
       : [],
     rawResult: typeof snapshot.rawResult === "string" ? snapshot.rawResult : "",
     transcript: typeof snapshot.transcript === "string" ? snapshot.transcript : "",
   };
+}
+
+function isPromptTemplate(value: unknown): value is PromptTemplate {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const item = value as Partial<PromptTemplate>;
+  return (
+    typeof item.id === "string" &&
+    item.id.startsWith("custom-") &&
+    typeof item.name === "string" &&
+    typeof item.category === "string" &&
+    typeof item.description === "string" &&
+    typeof item.prompt === "string" &&
+    Array.isArray(item.tags) &&
+    item.tags.every((tag) => typeof tag === "string")
+  );
 }
 
 function isChatMessage(value: unknown): value is ChatMessage {
