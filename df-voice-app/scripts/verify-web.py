@@ -80,6 +80,51 @@ def main() -> int:
         page.screenshot(path=str(ARTIFACTS / "web-settings-mobile.png"), full_page=True)
         page.set_viewport_size({"width": 1366, "height": 900})
 
+        page.evaluate(
+            """() => localStorage.setItem("df-voice-app.workspace.v1", JSON.stringify({
+                transcript: "Sensitive test transcript.",
+                rawResult: "{\\"text\\":\\"Sensitive test transcript.\\"}",
+                chatDraft: "Sensitive draft",
+                messages: [
+                    { id: "seed-user", role: "user", content: "Sensitive seeded question.", createdAt: 1 },
+                    { id: "seed-assistant", role: "assistant", content: "Sensitive seeded answer.", createdAt: 2 }
+                ],
+                customPromptTemplates: [
+                    {
+                        id: "custom-seeded",
+                        name: "Sensitive custom prompt",
+                        category: "Custom",
+                        description: "Temporary sensitive prompt.",
+                        tags: ["sensitive"],
+                        prompt: "Sensitive prompt body."
+                    }
+                ]
+            }))""",
+        )
+        page.reload(wait_until="domcontentloaded")
+        page.wait_for_selector("text=DF Voice App")
+        expect(page.get_by_text("Sensitive test transcript.", exact=True)).to_be_visible()
+        page.get_by_role("button", name="設定").click()
+        page.get_by_role("button", name="Clear workspace").click()
+        expect(page.get_by_text("Workspace cleared.")).to_be_visible()
+        page.wait_for_function(
+            """() => {
+                const stored = JSON.parse(localStorage.getItem("df-voice-app.workspace.v1") || "{}");
+                return stored.transcript === ""
+                    && stored.rawResult === ""
+                    && stored.chatDraft === ""
+                    && Array.isArray(stored.messages)
+                    && stored.messages.length === 0
+                    && Array.isArray(stored.customPromptTemplates)
+                    && stored.customPromptTemplates.length === 0;
+            }""",
+            timeout=10000,
+        )
+        page.get_by_role("button", name="語音").click()
+        expect(page.get_by_text("Sensitive test transcript.", exact=True)).not_to_be_visible()
+        page.get_by_role("button", name="對話").click()
+        expect(page.get_by_text("Sensitive seeded answer.", exact=True)).not_to_be_visible()
+
         page.get_by_role("button", name="範本").click()
         expect(page.get_by_text("Prompt templates")).to_be_visible()
         expect(page.get_by_text("Create prompt template")).to_be_visible()

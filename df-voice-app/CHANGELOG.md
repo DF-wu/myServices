@@ -10,6 +10,7 @@
 - Added transcript workflow prompt templates and non-streaming conversation verification.
 - Added local workspace restore for transcripts, drafts, and conversations.
 - Added custom prompt template creation, restore, and deletion.
+- Added a Settings action and smoke coverage for clearing local workspace data.
 
 ## 1.0.0
 

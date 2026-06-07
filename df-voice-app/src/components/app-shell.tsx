@@ -98,6 +98,13 @@ const emptyPromptTemplateDraft: PromptTemplateDraft = {
   prompt: "",
   tags: "",
 };
+const emptyWorkspaceSnapshot: WorkspaceSnapshot = {
+  chatDraft: "",
+  customPromptTemplates: [],
+  messages: [],
+  rawResult: "",
+  transcript: "",
+};
 
 function id() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -352,6 +359,20 @@ export function AppShell() {
     setTranscript("");
     setRawResult("");
     setNotice("Transcript cleared.");
+  }
+
+  async function clearWorkspace() {
+    try {
+      await setWorkspaceJson(emptyWorkspaceSnapshot);
+      setTranscript("");
+      setRawResult("");
+      setChatDraft("");
+      setCustomPromptTemplates([]);
+      setMessages([]);
+      setNotice("Workspace cleared.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Workspace clear failed.");
+    }
   }
 
   async function exportConversation() {
@@ -612,6 +633,7 @@ export function AppShell() {
           wide={wide}
           onProbeAll={probeAllProviders}
           onProbeProvider={probeProvider}
+          onClearWorkspace={clearWorkspace}
           onExportSettings={exportSettings}
           onImportSettings={importSettings}
           onReset={resetSettings}
@@ -1085,6 +1107,7 @@ function SettingsView({
   diagnostics,
   onExportSettings,
   onImportSettings,
+  onClearWorkspace,
   onProbeAll,
   onProbeProvider,
   onReset,
@@ -1095,6 +1118,7 @@ function SettingsView({
 }: {
   busy: BusyState;
   diagnostics: Partial<Record<ProviderKey, ProviderDiagnostic>>;
+  onClearWorkspace: () => void;
   onProbeAll: () => void;
   onProbeProvider: (provider: ProviderKey) => void;
   onExportSettings: () => void;
@@ -1158,6 +1182,13 @@ function SettingsView({
               <CommandButton label="Import settings" tone="plain" icon={Upload} onPress={onImportSettings} />
             </View>
           </View>
+        </View>
+      </Surface>
+
+      <Surface>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md, flexWrap: "wrap" }}>
+          <PanelTitle icon={Trash2} eyebrow="Local data" title="Workspace storage" />
+          <CommandButton label="Clear workspace" tone="danger" icon={Trash2} onPress={onClearWorkspace} />
         </View>
       </Surface>
 
