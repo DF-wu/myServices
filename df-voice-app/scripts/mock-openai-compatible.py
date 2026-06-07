@@ -100,6 +100,40 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self._maybe_delay()
             if payload.get("stream"):
+                metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+                if metadata.get("variant") == "responses-text-done":
+                    self._sse(
+                        [
+                            {
+                                "type": "response.output_text.done",
+                                "text": "Mock response text done.",
+                            }
+                        ],
+                        event="response.output_text.done",
+                    )
+                    return
+                if metadata.get("variant") == "responses-completed-only":
+                    self._sse(
+                        [
+                            {
+                                "type": "response.completed",
+                                "response": {
+                                    "output": [
+                                        {
+                                            "content": [
+                                                {
+                                                    "type": "output_text",
+                                                    "text": "Mock completed response.",
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                            }
+                        ],
+                        event="response.completed",
+                    )
+                    return
                 self._sse(
                     [
                         {"type": "response.output_text.delta", "delta": "Mock "},

@@ -20,7 +20,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "test-artifacts"
 
 
-def settings(mode: str, *, stream: bool = True) -> dict:
+def settings(mode: str, *, stream: bool = True, variant: str | None = None) -> dict:
+    metadata = {"test": "conversation-extra"}
+    if variant:
+        metadata["variant"] = variant
     return {
         "asr": {
             "baseUrl": MOCK_BASE_URL,
@@ -48,7 +51,7 @@ def settings(mode: str, *, stream: bool = True) -> dict:
             "stream": stream,
             "timeoutSec": 30,
             "extraHeadersJson": '{"x-df-voice-test":"conversation"}',
-            "extraBodyJson": '{"metadata":{"test":"conversation-extra"}}',
+            "extraBodyJson": json.dumps({"metadata": metadata}, separators=(",", ":")),
         },
         "tts": {
             "baseUrl": MOCK_BASE_URL,
@@ -86,11 +89,12 @@ def run_case(
     expected: str,
     *,
     stream: bool = True,
+    variant: str | None = None,
     verify_export: bool = False,
 ) -> None:
     page.evaluate(
         """([key, value]) => localStorage.setItem(key, JSON.stringify(value))""",
-        [SETTINGS_KEY, settings(mode, stream=stream)],
+        [SETTINGS_KEY, settings(mode, stream=stream, variant=variant)],
     )
     page.reload(wait_until="domcontentloaded")
     page.wait_for_selector("text=DF Voice App")
@@ -332,6 +336,8 @@ def main() -> int:
         run_timeout_case(page)
         run_case(page, "chat_completions", "Mock chat stream.", verify_export=True)
         run_case(page, "responses", "Mock responses stream.")
+        run_case(page, "responses", "Mock response text done.", variant="responses-text-done")
+        run_case(page, "responses", "Mock completed response.", variant="responses-completed-only")
         run_case(page, "chat_completions", "Mock chat response.", stream=False)
         run_case(page, "responses", "Mock responses output.", stream=False)
         browser.close()

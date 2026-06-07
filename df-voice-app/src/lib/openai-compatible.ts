@@ -545,18 +545,26 @@ function extractResponseStreamDelta(event: string, raw: unknown, hasStreamedText
   const value = raw as {
     type?: string;
     delta?: string;
+    text?: string;
     output_text?: string;
+    response?: unknown;
   };
   const type = value.type ?? event;
   if (type === "response.output_text.delta" && typeof value.delta === "string") {
     return value.delta;
   }
   if (
-    type === "response.completed" &&
+    type === "response.output_text.done" &&
     !hasStreamedText &&
-    typeof value.output_text === "string"
+    typeof value.text === "string"
   ) {
-    return value.output_text;
+    return value.text;
+  }
+  if (
+    type === "response.completed" &&
+    !hasStreamedText
+  ) {
+    return extractResponseTextValue(value.response ?? raw);
   }
   return "";
 }
@@ -586,6 +594,10 @@ function extractChatText(raw: unknown): string {
 }
 
 function extractResponseText(raw: unknown): string {
+  return extractResponseTextValue(raw) || JSON.stringify(raw, null, 2);
+}
+
+function extractResponseTextValue(raw: unknown): string {
   const value = raw as {
     output_text?: string;
     output?: Array<{ content?: Array<{ text?: string; type?: string }> }>;
@@ -597,7 +609,7 @@ function extractResponseText(raw: unknown): string {
     ?.flatMap((item) => item.content ?? [])
     .map((part) => part.text ?? "")
     .join("");
-  return text || JSON.stringify(raw, null, 2);
+  return text || "";
 }
 
 function extractModelIds(raw: unknown): string[] {

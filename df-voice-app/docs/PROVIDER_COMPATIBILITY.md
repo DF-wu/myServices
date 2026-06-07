@@ -11,7 +11,7 @@ DF Voice App targets OpenAI-compatible HTTP APIs and local providers that implem
 | ASR | `POST /v1/audio/transcriptions` | Multipart upload with `file`, `model`, `response_format`, `language`, `prompt`, `temperature`, and custom extra form fields. |
 | Models | `GET /v1/models` | Used independently for ASR, conversation, and TTS provider diagnostics. |
 | Chat Completions | `POST /v1/chat/completions` | Supports normal JSON responses and SSE streaming with `choices[].delta.content`. |
-| Responses | `POST /v1/responses` | Supports normal JSON responses and SSE streaming with `response.output_text.delta`. |
+| Responses | `POST /v1/responses` | Supports normal JSON responses and SSE streaming with `response.output_text.delta`, `response.output_text.done`, and completed-response payload fallbacks. |
 | TTS | `POST /v1/audio/speech` | Sends `model`, `voice`, `input`, `response_format`, `speed`, optional `instructions`, and custom extra body fields. |
 
 ## Official Reference Points

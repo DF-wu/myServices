@@ -18,6 +18,7 @@
 - Added numeric range validation for provider settings and stored/imported settings files.
 - Added cancellation support for in-flight ASR, conversation, TTS, and provider diagnostic requests.
 - Added explicit timeout errors for provider requests and model diagnostics.
+- Added Responses streaming fallback support for `response.output_text.done` and completed-response payloads.
 
 ## 1.0.0
 
