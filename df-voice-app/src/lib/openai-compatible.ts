@@ -11,6 +11,10 @@ import type {
   UploadableAudio,
 } from "@/types/client";
 
+type RequestOptions = {
+  signal?: AbortSignal;
+};
+
 class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -42,10 +46,22 @@ function authHeaders(
   };
 }
 
-function timeoutSignal(timeoutSec: number) {
+function timeoutSignal(timeoutSec: number, externalSignal?: AbortSignal) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.max(1, timeoutSec) * 1000);
-  return { signal: controller.signal, cancel: () => clearTimeout(timeout) };
+  const abort = () => controller.abort();
+  const timeout = setTimeout(abort, Math.max(1, timeoutSec) * 1000);
+  if (externalSignal?.aborted) {
+    abort();
+  } else {
+    externalSignal?.addEventListener("abort", abort, { once: true });
+  }
+  return {
+    signal: controller.signal,
+    cancel: () => {
+      clearTimeout(timeout);
+      externalSignal?.removeEventListener("abort", abort);
+    },
+  };
 }
 
 async function readError(response: Response) {
@@ -106,6 +122,7 @@ function appendFormValue(form: FormData, key: string, value: unknown) {
 export async function transcribeAudio(
   settings: AsrSettings,
   audio: UploadableAudio,
+  options: RequestOptions = {},
 ): Promise<TranscriptionResult> {
   const form = new FormData();
   appendAudio(form, audio);
@@ -120,7 +137,7 @@ export async function transcribeAudio(
   }
   appendExtraFormFields(form, settings.extraFormFieldsJson);
 
-  const { signal, cancel } = timeoutSignal(settings.timeoutSec);
+  const { signal, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
   try {
     const response = await fetch(endpoint(settings.baseUrl, "/audio/transcriptions"), {
       method: "POST",
@@ -145,7 +162,7 @@ export async function transcribeAudio(
 export async function runConversation(
   settings: ConversationSettings,
   messages: ChatMessage[],
-  options: { onDelta?: (delta: string) => void } = {},
+  options: RequestOptions & { onDelta?: (delta: string) => void } = {},
 ): Promise<string> {
   const payload =
     settings.mode === "responses"
@@ -153,7 +170,7 @@ export async function runConversation(
       : chatCompletionsPayload(settings, messages);
   const extraBody = jsonObjectFromText(settings.extraBodyJson, "Conversation extra body JSON");
   const path = settings.mode === "responses" ? "/responses" : "/chat/completions";
-  const { signal, cancel } = timeoutSignal(settings.timeoutSec);
+  const { signal, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
   try {
     const response = await fetch(endpoint(settings.baseUrl, path), {
       method: "POST",
@@ -176,8 +193,12 @@ export async function runConversation(
   }
 }
 
-export async function synthesizeSpeech(settings: TtsSettings, input: string): Promise<string> {
-  const { signal, cancel } = timeoutSignal(settings.timeoutSec);
+export async function synthesizeSpeech(
+  settings: TtsSettings,
+  input: string,
+  options: RequestOptions = {},
+): Promise<string> {
+  const { signal, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
   const extraBody = jsonObjectFromText(settings.extraBodyJson, "TTS extra body JSON");
   try {
     const response = await fetch(endpoint(settings.baseUrl, "/audio/speech"), {
@@ -217,11 +238,13 @@ export async function probeModels(
   baseUrl: string,
   apiKey: string,
   extraHeadersJson = "",
+  options: RequestOptions = {},
 ): Promise<ApiProbe> {
   const modelsEndpoint = endpoint(baseUrl, "/models");
   try {
     const response = await fetch(modelsEndpoint, {
       headers: authHeaders(apiKey, undefined, extraHeadersJson),
+      signal: options.signal,
     });
     if (!response.ok) {
       return {
@@ -244,6 +267,9 @@ export async function probeModels(
       modelIds,
     };
   } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
     return {
       ok: false,
       endpoint: modelsEndpoint,
@@ -251,6 +277,10 @@ export async function probeModels(
       modelIds: [],
     };
   }
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 function jsonObjectFromText(text: string, label: string): Record<string, unknown> {

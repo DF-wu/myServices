@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import json
 import pathlib
 import struct
 import tempfile
@@ -22,7 +23,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "test-artifacts"
 
 
-def settings(response_format: str = "verbose_json") -> dict:
+def settings(response_format: str = "verbose_json", *, delay_ms: int = 0) -> dict:
+    asr_headers = {"x-df-voice-test": "asr"}
+    if delay_ms:
+        asr_headers["x-df-voice-delay-ms"] = str(delay_ms)
     return {
         "asr": {
             "baseUrl": MOCK_BASE_URL,
@@ -33,7 +37,7 @@ def settings(response_format: str = "verbose_json") -> dict:
             "prompt": "mock vocabulary",
             "temperature": 0,
             "timeoutSec": 30,
-            "extraHeadersJson": '{"x-df-voice-test":"asr"}',
+            "extraHeadersJson": json_dumps(asr_headers),
             "extraFormFieldsJson": '{"provider_hint":"asr-extra"}',
         },
         "conversation": {
@@ -67,6 +71,10 @@ def settings(response_format: str = "verbose_json") -> dict:
         "autoSpeak": False,
         "keepConversationHistory": False,
     }
+
+
+def json_dumps(value: dict[str, str]) -> str:
+    return json.dumps(value, separators=(",", ":"))
 
 
 def write_wav(path: str) -> None:
@@ -106,6 +114,38 @@ def upload_audio(page, path: str, expected_text: str) -> None:
 def verify_response_format(page, path: str, response_format: str, expected_text: str) -> None:
     seed_settings(page, response_format)
     upload_audio(page, path, expected_text)
+
+
+def verify_cancel_transcription(page, path: str) -> None:
+    page.evaluate(
+        """([settingsKey, workspaceKey, value]) => {
+            localStorage.setItem(settingsKey, JSON.stringify(value));
+            localStorage.setItem(workspaceKey, JSON.stringify({
+                transcript: "",
+                rawResult: "",
+                chatDraft: "",
+                messages: [],
+                customPromptTemplates: [],
+                customProviderTemplates: []
+            }));
+        }""",
+        [SETTINGS_KEY, WORKSPACE_KEY, settings(delay_ms=900)],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Upload").click()
+    chooser.value.set_files(path)
+    page.get_by_role("button", name="Cancel request").click()
+    expect(page.get_by_text("Request cancelled.")).to_be_visible(timeout=10000)
+    page.wait_for_timeout(1200)
+    expect(page.get_by_text("Mock ASR transcript.")).not_to_be_visible()
+    stored = page.evaluate(
+        """(key) => JSON.parse(localStorage.getItem(key) || "{}")""",
+        WORKSPACE_KEY,
+    )
+    assert stored.get("transcript") == "", stored
+    assert stored.get("rawResult") == "", stored
 
 
 def main() -> int:
@@ -148,6 +188,7 @@ def main() -> int:
             verify_response_format(page, audio.name, "text", "Mock ASR transcript.")
             verify_response_format(page, audio.name, "srt", "00:00:00,000 --> 00:00:01,000")
             verify_response_format(page, audio.name, "vtt", "WEBVTT")
+            verify_cancel_transcription(page, audio.name)
             browser.close()
     print("mock ASR upload, response formats, and TTS integration passed")
     return 0

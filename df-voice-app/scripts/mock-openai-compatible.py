@@ -28,6 +28,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path == "/v1/models":
+            self._maybe_delay()
             self._json(
                 {
                     "object": "list",
@@ -45,6 +46,7 @@ class Handler(BaseHTTPRequestHandler):
             fields = self._multipart_fields()
             if not self._request_options_ok("asr", fields=fields):
                 return
+            self._maybe_delay()
             response_format = fields.get("response_format", "json")
             text = "Mock ASR transcript."
             if response_format == "text":
@@ -74,6 +76,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/v1/chat/completions":
             if not self._request_options_ok("conversation", payload=payload):
                 return
+            self._maybe_delay()
             if payload.get("stream"):
                 self._sse(
                     [
@@ -95,6 +98,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/v1/responses":
             if not self._request_options_ok("conversation", payload=payload):
                 return
+            self._maybe_delay()
             if payload.get("stream"):
                 self._sse(
                     [
@@ -115,12 +119,13 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/v1/audio/speech":
             if not self._request_options_ok("tts", payload=payload):
                 return
+            self._maybe_delay()
             self.send_response(200)
             self._cors()
             self.send_header("Content-Type", "audio/wav")
             self.send_header("Content-Length", str(len(WAV_BYTES)))
             self.end_headers()
-            self.wfile.write(WAV_BYTES)
+            self._write(WAV_BYTES)
             return
 
         self.send_error(404)
@@ -189,9 +194,19 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header(
             "Access-Control-Allow-Headers",
-            "authorization,content-type,x-df-voice-test",
+            "authorization,content-type,x-df-voice-delay-ms,x-df-voice-test",
         )
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+
+    def _maybe_delay(self) -> None:
+        value = self.headers.get("x-df-voice-delay-ms")
+        if not value:
+            return
+        try:
+            delay = max(0, min(5000, int(value))) / 1000
+        except ValueError:
+            return
+        time.sleep(delay)
 
     def _json(self, data: dict, status: int = 200) -> None:
         body = json.dumps(data).encode("utf-8")
@@ -200,7 +215,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        self._write(body)
 
     def _text(self, text: str, content_type: str = "text/plain") -> None:
         body = text.encode("utf-8")
@@ -209,7 +224,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", f"{content_type}; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        self._write(body)
 
     def _sse(self, payloads: list[dict], event: str | None = None) -> None:
         self.send_response(200)
@@ -217,14 +232,23 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
-        for payload in payloads:
-            if event:
-                self.wfile.write(f"event: {event}\n".encode("utf-8"))
-            self.wfile.write(f"data: {json.dumps(payload)}\n\n".encode("utf-8"))
+        try:
+            for payload in payloads:
+                if event:
+                    self.wfile.write(f"event: {event}\n".encode("utf-8"))
+                self.wfile.write(f"data: {json.dumps(payload)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                time.sleep(0.03)
+            self.wfile.write(b"data: [DONE]\n\n")
             self.wfile.flush()
-            time.sleep(0.03)
-        self.wfile.write(b"data: [DONE]\n\n")
-        self.wfile.flush()
+        except BrokenPipeError:
+            return
+
+    def _write(self, body: bytes) -> None:
+        try:
+            self.wfile.write(body)
+        except BrokenPipeError:
+            return
 
 
 def main() -> int:

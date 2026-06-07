@@ -27,6 +27,8 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 5. Streaming responses are parsed from server-sent events and appended into the assistant message.
 6. TTS calls `/v1/audio/speech`; web uses an object URL and native writes the returned bytes to cache.
 
+Each provider request receives an abort signal from the app shell in addition to its configured timeout. Cancelling an in-flight ASR, conversation, TTS, or provider diagnostic request aborts the HTTP call and ignores any stale response path that resolves after cancellation.
+
 ## Persistence
 
 Native platforms use `expo-secure-store` when available for settings. Web uses `localStorage`. Stored settings are merged with the current defaults on load so new settings fields can be added without migration crashes.
@@ -46,7 +48,7 @@ The app works in Expo Go for normal development. Android native builds are neede
 - `npm run verify:static`: TypeScript, Expo doctor, Python script compile.
 - `npm run verify:web:server`: desktop/mobile web smoke, JSON override and numeric setting validation, workspace clearing, custom prompt/provider templates, and layout checks.
 - `npm run verify:web-build`: static web export build plus the same desktop/mobile smoke checks against `dist/`.
-- `npm run verify:mock:server`: ASR upload and response formats, TTS, workspace restore, prompt templates, Chat Completions/Responses streaming and non-streaming, provider diagnostics, and export checks.
+- `npm run verify:mock:server`: ASR upload and response formats, request cancellation, TTS, workspace restore, prompt templates, Chat Completions/Responses streaming and non-streaming, provider diagnostics, and export checks.
 - `npm run verify:android-config`: Expo prebuild plus Android manifest/Gradle checks.
 - `npm run verify:android-build`: debug APK build when Android SDK and JDK are available.
 - `npm run verify:android-runtime`: adb install/launch check when a device or emulator is online.

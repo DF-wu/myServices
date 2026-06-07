@@ -67,6 +67,14 @@ def settings(mode: str, *, stream: bool = True) -> dict:
     }
 
 
+def delayed_settings(mode: str, *, stream: bool = False) -> dict:
+    value = settings(mode, stream=stream)
+    value["conversation"]["extraHeadersJson"] = (
+        '{"x-df-voice-test":"conversation","x-df-voice-delay-ms":"900"}'
+    )
+    return value
+
+
 def run_case(
     page,
     mode: str,
@@ -106,6 +114,40 @@ def run_case(
         export_text = export_path.read_text(encoding="utf-8")
         assert "DF Voice Conversation" in export_text
         assert expected in export_text
+
+
+def run_cancel_case(page) -> None:
+    page.evaluate(
+        """([settingsKey, workspaceKey, value]) => {
+            localStorage.setItem(settingsKey, JSON.stringify(value));
+            localStorage.setItem(workspaceKey, JSON.stringify({
+                transcript: "",
+                rawResult: "",
+                chatDraft: "",
+                messages: [],
+                customPromptTemplates: [],
+                customProviderTemplates: []
+            }));
+        }""",
+        [SETTINGS_KEY, WORKSPACE_KEY, delayed_settings("chat_completions")],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    page.get_by_role("button", name="對話").click()
+    page.get_by_placeholder("Type a message, or send the latest transcript.").fill("cancel me")
+    page.get_by_role("button", name="Send").click()
+    page.get_by_role("button", name="Cancel request").click()
+    expect(page.get_by_text("Request cancelled.").first).to_be_visible(timeout=10000)
+    page.wait_for_timeout(1200)
+    expect(page.get_by_text("Mock chat response.")).not_to_be_visible()
+    stored = page.evaluate(
+        """(key) => JSON.parse(localStorage.getItem(key) || "{}")""",
+        WORKSPACE_KEY,
+    )
+    contents = [message.get("content") for message in stored.get("messages", [])]
+    assert "cancel me" in contents, stored
+    assert "Request cancelled." in contents, stored
+    assert "Mock chat response." not in contents, stored
 
 
 def run_diagnostics(page) -> None:
@@ -248,6 +290,7 @@ def main() -> int:
         goto_with_retry(page, CLIENT_URL)
         run_diagnostics(page)
         run_settings_portability(page)
+        run_cancel_case(page)
         run_case(page, "chat_completions", "Mock chat stream.", verify_export=True)
         run_case(page, "responses", "Mock responses stream.")
         run_case(page, "chat_completions", "Mock chat response.", stream=False)

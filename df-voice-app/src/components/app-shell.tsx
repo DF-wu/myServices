@@ -127,6 +127,7 @@ export function AppShell() {
   const { loaded, resetSettings, saveSettings, settings } = useSettings();
   const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
   const recorderState = useAudioRecorderState(recorder, 250);
+  const activeRequestRef = useRef<AbortController | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("capture");
   const [busy, setBusy] = useState<BusyState>(null);
@@ -146,6 +147,8 @@ export function AppShell() {
 
   useEffect(() => {
     return () => {
+      activeRequestRef.current?.abort();
+      activeRequestRef.current = null;
       playerRef.current?.remove();
       playerRef.current = null;
     };
@@ -209,6 +212,31 @@ export function AppShell() {
     await saveSettings(next);
   }
 
+  function beginRequest() {
+    activeRequestRef.current?.abort();
+    const controller = new AbortController();
+    activeRequestRef.current = controller;
+    return controller;
+  }
+
+  function finishRequest(controller: AbortController) {
+    if (activeRequestRef.current === controller) {
+      activeRequestRef.current = null;
+      setBusy(null);
+    }
+  }
+
+  function cancelRequest() {
+    activeRequestRef.current?.abort();
+    activeRequestRef.current = null;
+    setBusy(null);
+    setNotice("Request cancelled.");
+  }
+
+  function requestWasAborted(error: unknown, controller: AbortController) {
+    return controller.signal.aborted || (error instanceof Error && error.name === "AbortError");
+  }
+
   async function startRecording() {
     setNotice("");
     setBusy("record");
@@ -254,16 +282,23 @@ export function AppShell() {
   }
 
   async function transcribe(audio: Parameters<typeof transcribeAudio>[1]) {
+    const controller = beginRequest();
     try {
-      const result = await transcribeAudio(settings.asr, audio);
+      const result = await transcribeAudio(settings.asr, audio, { signal: controller.signal });
+      if (controller.signal.aborted || activeRequestRef.current !== controller) {
+        return;
+      }
       setTranscript(result.text);
       setRawResult(typeof result.raw === "string" ? result.raw : JSON.stringify(result.raw, null, 2));
       setNotice(`Transcribed ${audio.name}.`);
       setActiveTab("capture");
     } catch (error) {
+      if (requestWasAborted(error, controller)) {
+        return;
+      }
       setNotice(error instanceof Error ? error.message : "Transcription failed.");
     } finally {
-      setBusy(null);
+      finishRequest(controller);
     }
   }
 
@@ -292,10 +327,15 @@ export function AppShell() {
     setBusy("chat");
     setActiveTab("chat");
 
+    const controller = beginRequest();
     try {
       let streamed = "";
       const answer = await runConversation(settings.conversation, inputMessages, {
+        signal: controller.signal,
         onDelta: (delta) => {
+          if (controller.signal.aborted || activeRequestRef.current !== controller) {
+            return;
+          }
           streamed += delta;
           setMessages((current) =>
             current.map((message) =>
@@ -306,6 +346,9 @@ export function AppShell() {
           );
         },
       });
+      if (controller.signal.aborted || activeRequestRef.current !== controller) {
+        return;
+      }
       if (!streamed || streamed !== answer) {
         setMessages((current) =>
           current.map((message) =>
@@ -315,9 +358,24 @@ export function AppShell() {
       }
       setNotice("Conversation response received.");
       if (settings.autoSpeak) {
-        await speak(answer);
+        void speak(answer);
       }
     } catch (error) {
+      if (requestWasAborted(error, controller)) {
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === assistantId
+              ? {
+                  ...message,
+                  content: message.content
+                    ? `${message.content}\n\nRequest cancelled.`
+                    : "Request cancelled.",
+                }
+              : message,
+          ),
+        );
+        return;
+      }
       setMessages((current) =>
         current.map((message) =>
           message.id === assistantId
@@ -333,7 +391,7 @@ export function AppShell() {
       );
       setNotice(error instanceof Error ? error.message : "Conversation request failed.");
     } finally {
-      setBusy(null);
+      finishRequest(controller);
     }
   }
 
@@ -344,17 +402,24 @@ export function AppShell() {
       return;
     }
     setBusy("tts");
+    const controller = beginRequest();
     try {
-      const uri = await synthesizeSpeech(settings.tts, input);
+      const uri = await synthesizeSpeech(settings.tts, input, { signal: controller.signal });
+      if (controller.signal.aborted || activeRequestRef.current !== controller) {
+        return;
+      }
       playerRef.current?.remove();
       const player = createAudioPlayer(uri, { updateInterval: 250 });
       playerRef.current = player;
       player.play();
       setNotice("TTS audio is playing.");
     } catch (error) {
+      if (requestWasAborted(error, controller)) {
+        return;
+      }
       setNotice(error instanceof Error ? error.message : "TTS request failed.");
     } finally {
-      setBusy(null);
+      finishRequest(controller);
     }
   }
 
@@ -435,35 +500,49 @@ export function AppShell() {
     }
   }
 
-  async function runProviderProbe(provider: ProviderKey) {
+  async function fetchProviderProbe(provider: ProviderKey, signal?: AbortSignal) {
     const config = providerConfig(settings, provider);
-    const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson);
-    const diagnostic = { ...result, checkedAt: Date.now() };
-    setProviderDiagnostics((current) => ({ ...current, [provider]: diagnostic }));
-    return diagnostic;
+    const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson, { signal });
+    return { ...result, checkedAt: Date.now() };
   }
 
   async function probeProvider(provider: ProviderKey) {
     setBusy("probe");
     const label = providerConfig(settings, provider).label;
+    const controller = beginRequest();
     try {
-      const result = await runProviderProbe(provider);
+      const result = await fetchProviderProbe(provider, controller.signal);
+      if (controller.signal.aborted || activeRequestRef.current !== controller) {
+        return;
+      }
+      setProviderDiagnostics((current) => ({ ...current, [provider]: result }));
       setNotice(result.ok ? `${label} provider is reachable.` : `${label}: ${result.message}`);
+    } catch (error) {
+      if (requestWasAborted(error, controller)) {
+        return;
+      }
+      setNotice(error instanceof Error ? error.message : `${label} provider check failed.`);
     } finally {
-      setBusy(null);
+      finishRequest(controller);
     }
   }
 
   async function probeAllProviders() {
     setBusy("probe");
+    const controller = beginRequest();
     try {
       const results = await Promise.all(
         providerKeys.map(async (provider) => {
           const config = providerConfig(settings, provider);
-          const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson);
+          const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson, {
+            signal: controller.signal,
+          });
           return [provider, { ...result, checkedAt: Date.now() }] as const;
         }),
       );
+      if (controller.signal.aborted || activeRequestRef.current !== controller) {
+        return;
+      }
       setProviderDiagnostics(Object.fromEntries(results));
       const failed = results.filter(([, result]) => !result.ok);
       setNotice(
@@ -471,8 +550,13 @@ export function AppShell() {
           ? `${failed.length} provider check${failed.length === 1 ? "" : "s"} failed.`
           : "All provider model endpoints are reachable.",
       );
+    } catch (error) {
+      if (requestWasAborted(error, controller)) {
+        return;
+      }
+      setNotice(error instanceof Error ? error.message : "Provider checks failed.");
     } finally {
-      setBusy(null);
+      finishRequest(controller);
     }
   }
 
@@ -615,6 +699,14 @@ export function AppShell() {
               onPress={() => setActiveTab(tab.id)}
             />
           ))}
+          {busy && busy !== "record" ? (
+            <CommandButton
+              label="Cancel request"
+              tone="danger"
+              icon={Square}
+              onPress={cancelRequest}
+            />
+          ) : null}
         </View>
       </View>
 
