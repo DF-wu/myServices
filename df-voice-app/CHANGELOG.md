@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added the voice pipeline overview for desktop and mobile home screens.
+- Added redacted settings export/import for moving provider configurations across devices.
 
 ## 1.0.0
 

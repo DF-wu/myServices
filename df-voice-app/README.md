@@ -109,6 +109,8 @@ Build-time provider defaults:
 - `EXPO_PUBLIC_DF_VOICE_TTS_MODEL`
 - `EXPO_PUBLIC_DF_VOICE_TTS_VOICE`
 
+Settings can be exported and imported from the Settings tab. Exports redact API keys and extra headers by default; importing a redacted file preserves the credentials already stored on the current device.
+
 ## Verification
 
 Run static checks:
@@ -154,6 +156,8 @@ npm run verify:ci
 On Android and iOS, settings are stored with `expo-secure-store` when available. On web, settings are stored in browser `localStorage`; avoid saving production cloud API keys on shared machines.
 
 The Android native config enables cleartext HTTP so local providers, `10.0.2.2`, and LAN IP endpoints work in release builds. It also pins the generated Gradle wrapper to 8.14.3 for React Native Gradle plugin compatibility. Background audio recording/playback services are disabled in the `expo-audio` config plugin.
+
+Settings exports use the `__DF_VOICE_REDACTED__` sentinel for API keys and extra headers. Imports preserve existing local credentials whenever that sentinel is present.
 
 ## Project Docs
 

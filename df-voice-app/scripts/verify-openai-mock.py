@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import json
 import pathlib
 
 from playwright.sync_api import expect, sync_playwright
@@ -116,6 +117,63 @@ def run_diagnostics(page) -> None:
     page.screenshot(path=str(ARTIFACTS / "web-diagnostics-models.png"), full_page=True)
 
 
+def run_settings_portability(page) -> None:
+    seeded = settings("responses")
+    seeded["asr"]["apiKey"] = "asr-secret"
+    seeded["conversation"]["apiKey"] = "conversation-secret"
+    seeded["tts"]["apiKey"] = "tts-secret"
+    page.evaluate(
+        """([key, value]) => localStorage.setItem(key, JSON.stringify(value))""",
+        [SETTINGS_KEY, seeded],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    page.get_by_role("button", name="設定").click()
+
+    with page.expect_download() as download_info:
+        page.get_by_role("button", name="Export settings").click()
+    download = download_info.value
+    assert download.suggested_filename.startswith("df-voice-settings-")
+    export_path = ARTIFACTS / download.suggested_filename
+    download.save_as(export_path)
+    export_text = export_path.read_text(encoding="utf-8")
+    assert "asr-secret" not in export_text
+    assert "conversation-secret" not in export_text
+    assert "tts-secret" not in export_text
+    assert "__DF_VOICE_REDACTED__" in export_text
+
+    import_path = ARTIFACTS / "settings-import.json"
+    import_path.write_text(
+        json.dumps(
+            {
+                "app": "df-voice-app",
+                "version": 1,
+                "redacted": True,
+                "exportedAt": "2026-06-08T00:00:00.000Z",
+                "settings": {
+                    **seeded,
+                    "conversation": {
+                        **seeded["conversation"],
+                        "apiKey": "__DF_VOICE_REDACTED__",
+                        "model": "imported-model",
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Import settings").click()
+    chooser.value.set_files(str(import_path))
+    expect(page.get_by_text("Settings imported.")).to_be_visible(timeout=10000)
+    imported = page.evaluate(
+        """(key) => JSON.parse(localStorage.getItem(key))""",
+        SETTINGS_KEY,
+    )
+    assert imported["conversation"]["model"] == "imported-model", imported
+    assert imported["conversation"]["apiKey"] == "conversation-secret", imported
+
+
 def main() -> int:
     ARTIFACTS.mkdir(exist_ok=True)
     with sync_playwright() as p:
@@ -123,6 +181,7 @@ def main() -> int:
         page = browser.new_page(viewport={"width": 1180, "height": 900})
         goto_with_retry(page, CLIENT_URL)
         run_diagnostics(page)
+        run_settings_portability(page)
         run_case(page, "chat_completions", "Mock chat stream.", verify_export=True)
         run_case(page, "responses", "Mock responses stream.")
         browser.close()

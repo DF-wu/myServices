@@ -10,6 +10,7 @@ import {
   useAudioRecorderState,
   type AudioPlayer,
 } from "expo-audio";
+import { File } from "expo-file-system";
 import {
   Check,
   Copy,
@@ -43,6 +44,7 @@ import { templates } from "@/data/templates";
 import { conversationMarkdownExport, exportTextFile, transcriptMarkdownExport } from "@/lib/export-text";
 import { documentAssetToAudio, probeModels, recordingUriToAudio, runConversation, synthesizeSpeech, transcribeAudio } from "@/lib/openai-compatible";
 import { isIOS } from "@/lib/platform";
+import { importSettingsText, settingsJsonExport } from "@/lib/settings-portability";
 import { useSettings } from "@/state/settings";
 import { colors, radii, spacing } from "@/theme";
 import type {
@@ -291,6 +293,36 @@ export function AppShell() {
     }
   }
 
+  async function exportSettings() {
+    try {
+      await exportTextFile(settingsJsonExport(settings));
+      setNotice("Settings export started. Credentials and extra headers were redacted.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Settings export failed.");
+    }
+  }
+
+  async function importSettings() {
+    setNotice("");
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/json", "text/json", "text/plain"],
+        copyToCacheDirectory: true,
+        multiple: false,
+        base64: false,
+      });
+      if (result.canceled || !result.assets?.[0]) {
+        return;
+      }
+      const text = await readPickedDocumentText(result.assets[0]);
+      const next = importSettingsText(settings, text);
+      await saveSettings(next);
+      setNotice("Settings imported. Redacted credentials on this device were preserved.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Settings import failed.");
+    }
+  }
+
   async function runProviderProbe(provider: ProviderKey) {
     const config = providerConfig(settings, provider);
     const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson);
@@ -462,6 +494,8 @@ export function AppShell() {
           wide={wide}
           onProbeAll={probeAllProviders}
           onProbeProvider={probeProvider}
+          onExportSettings={exportSettings}
+          onImportSettings={importSettings}
           onReset={resetSettings}
           onUpdate={updateSettings}
           onUseModel={useProviderModel}
@@ -473,6 +507,16 @@ export function AppShell() {
       ) : null}
     </ScrollView>
   );
+}
+
+async function readPickedDocumentText(asset: {
+  file?: Blob;
+  uri: string;
+}) {
+  if (asset.file && typeof asset.file.text === "function") {
+    return asset.file.text();
+  }
+  return new File(asset.uri).text();
 }
 
 function WorkflowOverview({
@@ -908,6 +952,8 @@ function ChatView({
 function SettingsView({
   busy,
   diagnostics,
+  onExportSettings,
+  onImportSettings,
   onProbeAll,
   onProbeProvider,
   onReset,
@@ -920,6 +966,8 @@ function SettingsView({
   diagnostics: Partial<Record<ProviderKey, ProviderDiagnostic>>;
   onProbeAll: () => void;
   onProbeProvider: (provider: ProviderKey) => void;
+  onExportSettings: () => void;
+  onImportSettings: () => void;
   onReset: () => void;
   onUpdate: (settings: ClientSettings) => void;
   onUseModel: (provider: ProviderKey, modelId: string) => void;
@@ -966,6 +1014,18 @@ function SettingsView({
               onUseModel={(modelId) => onUseModel("tts", modelId)}
               style={{ flex: 1 }}
             />
+          </View>
+        </View>
+      </Surface>
+
+      <Surface>
+        <View style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md, flexWrap: "wrap" }}>
+            <PanelTitle icon={Settings2} eyebrow="Portability" title="Settings backup" />
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+              <CommandButton label="Export settings" tone="secondary" icon={Download} onPress={onExportSettings} />
+              <CommandButton label="Import settings" tone="plain" icon={Upload} onPress={onImportSettings} />
+            </View>
           </View>
         </View>
       </Surface>

@@ -13,6 +13,7 @@ Do not file public issues for secrets, credential exposure, or exploitable reque
 - API keys entered in the app are stored with `expo-secure-store` on native platforms when available.
 - Web builds use browser `localStorage`; avoid storing production keys on shared browsers.
 - `.env.example` only contains public Expo defaults. Never put provider API keys in `EXPO_PUBLIC_*` variables because those values are bundled into web and native clients.
+- Settings exports redact API keys and extra headers. Importing a redacted export preserves credentials already stored on the current device.
 
 ## Network Model
 

@@ -9,6 +9,7 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 - `app/`: Expo Router entry points and native stack shell.
 - `src/components/app-shell.tsx`: product UI, workflow state, and user actions.
 - `src/lib/openai-compatible.ts`: provider HTTP client for ASR, Chat Completions, Responses, model probes, and TTS.
+- `src/lib/settings-portability.ts`: redacted settings export/import and credential preservation.
 - `src/state/settings.tsx`: persisted settings and defaults merge.
 - `src/data/templates.ts`: provider templates and default settings.
 - `src/config/provider-defaults.ts`: public build-time defaults from `EXPO_PUBLIC_*` variables.
@@ -27,6 +28,8 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 ## Persistence
 
 Native platforms use `expo-secure-store` when available. Web uses `localStorage`. Stored settings are merged with the current defaults on load so new settings fields can be added without migration crashes.
+
+Settings export/import is intentionally redacted. API keys and extra headers are exported as `__DF_VOICE_REDACTED__`; importing that sentinel preserves the credential values already present on the target device.
 
 ## Native Strategy
 
