@@ -196,11 +196,40 @@ def main() -> int:
             )
             page.reload(wait_until="domcontentloaded")
             expect(page.get_by_text("Mock ASR transcript.").first).to_be_visible(timeout=10000)
+            page.evaluate(
+                """() => {
+                    window.__dfVoiceUrls = { created: [], revoked: [] };
+                    const originalCreate = URL.createObjectURL.bind(URL);
+                    const originalRevoke = URL.revokeObjectURL.bind(URL);
+                    URL.createObjectURL = (value) => {
+                        const url = originalCreate(value);
+                        window.__dfVoiceUrls.created.push(url);
+                        return url;
+                    };
+                    URL.revokeObjectURL = (url) => {
+                        window.__dfVoiceUrls.revoked.push(url);
+                        return originalRevoke(url);
+                    };
+                }"""
+            )
             with page.expect_response(
                 lambda response: "/v1/audio/speech" in response.url and response.status == 200
             ):
                 page.get_by_label("Speak").click()
             expect(page.get_by_text("TTS audio is playing.")).to_be_visible(timeout=10000)
+            with page.expect_response(
+                lambda response: "/v1/audio/speech" in response.url and response.status == 200
+            ):
+                page.get_by_label("Speak").click()
+            page.wait_for_function(
+                """() => {
+                    const urls = window.__dfVoiceUrls;
+                    return urls.created.length >= 2
+                        && urls.revoked.includes(urls.created[0])
+                        && !urls.revoked.includes(urls.created[1]);
+                }""",
+                timeout=10000,
+            )
             with page.expect_download() as download_info:
                 page.get_by_label("Export transcript").click()
             download = download_info.value

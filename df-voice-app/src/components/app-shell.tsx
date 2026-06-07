@@ -129,6 +129,7 @@ export function AppShell() {
   const recorderState = useAudioRecorderState(recorder, 250);
   const activeRequestRef = useRef<AbortController | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
+  const ttsObjectUrlRef = useRef<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("capture");
   const [busy, setBusy] = useState<BusyState>(null);
   const [notice, setNotice] = useState<string>("");
@@ -149,8 +150,7 @@ export function AppShell() {
     return () => {
       activeRequestRef.current?.abort();
       activeRequestRef.current = null;
-      playerRef.current?.remove();
-      playerRef.current = null;
+      replaceAudioPlayer(null);
     };
   }, []);
 
@@ -235,6 +235,19 @@ export function AppShell() {
 
   function requestWasAborted(error: unknown, controller: AbortController) {
     return controller.signal.aborted || (error instanceof Error && error.name === "AbortError");
+  }
+
+  function replaceAudioPlayer(nextPlayer: AudioPlayer | null, nextUri?: string) {
+    playerRef.current?.remove();
+    playerRef.current = nextPlayer;
+    releaseTtsObjectUrl(ttsObjectUrlRef.current);
+    ttsObjectUrlRef.current = nextUri && isObjectUrl(nextUri) ? nextUri : null;
+  }
+
+  function releaseTtsObjectUrl(uri: string | null | undefined) {
+    if (uri && isObjectUrl(uri) && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+      URL.revokeObjectURL(uri);
+    }
   }
 
   async function startRecording() {
@@ -406,11 +419,11 @@ export function AppShell() {
     try {
       const uri = await synthesizeSpeech(settings.tts, input, { signal: controller.signal });
       if (controller.signal.aborted || activeRequestRef.current !== controller) {
+        releaseTtsObjectUrl(uri);
         return;
       }
-      playerRef.current?.remove();
       const player = createAudioPlayer(uri, { updateInterval: 250 });
-      playerRef.current = player;
+      replaceAudioPlayer(player, uri);
       player.play();
       setNotice("TTS audio is playing.");
     } catch (error) {
@@ -2143,6 +2156,10 @@ const eyebrowStyle = {
 
 function trimUrl(url: string) {
   return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
+function isObjectUrl(uri?: string | null) {
+  return typeof uri === "string" && uri.startsWith("blob:");
 }
 
 function providerConfig(settings: ClientSettings, provider: ProviderKey) {
