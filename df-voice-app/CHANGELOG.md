@@ -5,6 +5,7 @@
 - Added the voice pipeline overview for desktop and mobile home screens.
 - Added redacted settings export/import for moving provider configurations across devices.
 - Hardened settings import validation against unknown fields and invalid enum/type values.
+- Added a fast settings portability logic verifier to the static gate.
 
 ## 1.0.0
 

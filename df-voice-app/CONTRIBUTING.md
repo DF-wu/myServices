@@ -19,6 +19,8 @@ Run the fast checks before opening a PR:
 npm run verify:static
 ```
 
+`verify:static` includes TypeScript, the settings portability logic verifier, Expo doctor, and Python script compilation.
+
 Run the browser and mock provider checks when changing UI, settings, provider calls, exports, or scripts:
 
 ```bash

@@ -5,7 +5,8 @@ node_modules/
 .expo/
 dist/
 web-build/
-test-artifacts/
+test-artifacts/*
+!test-artifacts/.gitkeep
 
 # Expo
 .expo/

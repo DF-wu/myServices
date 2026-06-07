@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": false,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "outDir": "test-artifacts/logic-build",
+    "rootDir": "src",
+    "target": "ES2022"
+  },
+  "include": [
+    "src/lib/settings-portability.ts",
+    "src/types/client.ts"
+  ]
+}
