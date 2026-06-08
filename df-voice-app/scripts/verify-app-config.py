@@ -25,6 +25,10 @@ EXPECTED_ASSETS = {
     "./assets/icon.png": (1024, 1024),
     "./assets/splash-icon.png": (1024, 1024),
 }
+EXPECTED_WEB_ICONS = {
+    "/icon-192.png": (192, 192),
+    "/icon-512.png": (512, 512),
+}
 
 
 def fail(message: str) -> int:
@@ -38,6 +42,10 @@ def read_json(path: pathlib.Path) -> dict[str, Any]:
 
 def asset_path(value: str) -> pathlib.Path:
     return ROOT / value.removeprefix("./")
+
+
+def public_path(value: str) -> pathlib.Path:
+    return ROOT / "public" / value.removeprefix("/")
 
 
 def png_size(path: pathlib.Path) -> tuple[int, int]:
@@ -60,6 +68,16 @@ def require(condition: bool, message: str) -> None:
 def require_asset(value: str, expected_size: tuple[int, int]) -> None:
     path = asset_path(value)
     require(path.exists(), f"missing asset {value}")
+    actual_size = png_size(path)
+    require(
+        actual_size == expected_size,
+        f"{value} must be {expected_size[0]}x{expected_size[1]}; got {actual_size[0]}x{actual_size[1]}",
+    )
+
+
+def require_public_png(value: str, expected_size: tuple[int, int]) -> None:
+    path = public_path(value)
+    require(path.exists(), f"missing web icon {value}")
     actual_size = png_size(path)
     require(
         actual_size == expected_size,
@@ -132,6 +150,14 @@ def main() -> int:
             web_manifest["background_color"] == web["backgroundColor"],
             "web manifest background_color must match app config",
         )
+        manifest_icons = {icon["src"]: icon for icon in web_manifest["icons"]}
+        require("/favicon.ico" in manifest_icons, "web manifest must include favicon")
+        for src, expected_size in EXPECTED_WEB_ICONS.items():
+            icon = manifest_icons.get(src)
+            require(icon is not None, f"web manifest must include {src}")
+            require(icon["sizes"] == f"{expected_size[0]}x{expected_size[1]}", f"{src} size metadata mismatch")
+            require(icon["type"] == "image/png", f"{src} must be a PNG icon")
+            require_public_png(src, expected_size)
         require('rel="manifest"' in web_html, "web HTML must link the web manifest")
         require('name="theme-color"' in web_html, "web HTML must set theme-color")
         require("apple-mobile-web-app-capable" in web_html, "web HTML must enable iOS home screen metadata")

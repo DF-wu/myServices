@@ -8,6 +8,7 @@
 - Added a fast settings portability logic verifier to the static gate.
 - Added provider and prompt template contract checks to the static gate.
 - Added installable web app metadata and app config contract checks to the static gate.
+- Added 192px and 512px web app icons to the exported manifest contract.
 - Added static web export verification to catch production web build regressions.
 - Added transcript workflow prompt templates and non-streaming conversation verification.
 - Added local workspace restore for transcripts, drafts, and conversations.

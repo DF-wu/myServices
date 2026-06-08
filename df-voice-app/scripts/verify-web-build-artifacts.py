@@ -11,6 +11,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
 INDEX_HTML = DIST / "index.html"
 MANIFEST = DIST / "manifest.webmanifest"
+EXPECTED_ICONS = {
+    "/icon-192.png": (192, 192),
+    "/icon-512.png": (512, 512),
+}
 
 
 def fail(message: str) -> int:
@@ -21,6 +25,16 @@ def fail(message: str) -> int:
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
+
+
+def png_size(path: pathlib.Path) -> tuple[int, int]:
+    with path.open("rb") as handle:
+        signature = handle.read(8)
+        require(signature == b"\x89PNG\r\n\x1a\n", f"{path.name} must be a PNG")
+        _length = int.from_bytes(handle.read(4), "big")
+        chunk = handle.read(4)
+        require(chunk == b"IHDR", f"{path.name} missing IHDR")
+        return tuple(int.from_bytes(handle.read(4), "big") for _ in range(2))
 
 
 def main() -> int:
@@ -47,6 +61,16 @@ def main() -> int:
         require(manifest["background_color"] == "#F4F7F8", "manifest background_color mismatch")
         require(manifest["orientation"] == "portrait", "manifest orientation mismatch")
         require("CapsWriter" in manifest["description"], "manifest description must mention CapsWriter")
+        manifest_icons = {icon["src"]: icon for icon in manifest["icons"]}
+        require("/favicon.ico" in manifest_icons, "manifest must include favicon")
+        for src, expected_size in EXPECTED_ICONS.items():
+            icon = manifest_icons.get(src)
+            require(icon is not None, f"manifest must include {src}")
+            require(icon["sizes"] == f"{expected_size[0]}x{expected_size[1]}", f"{src} size metadata mismatch")
+            require(icon["type"] == "image/png", f"{src} type mismatch")
+            icon_path = DIST / src.removeprefix("/")
+            require(icon_path.exists(), f"exported {src} missing")
+            require(png_size(icon_path) == expected_size, f"exported {src} dimensions mismatch")
     except (AssertionError, KeyError, OSError, json.JSONDecodeError) as error:
         return fail(str(error))
 

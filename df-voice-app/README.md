@@ -160,7 +160,7 @@ npm run build:web
 npm run verify:web-build
 ```
 
-The web build verifier also checks the exported manifest and mobile home-screen metadata.
+The web build verifier also checks the exported manifest, mobile home-screen metadata, and install icon assets.
 
 Run the ASR upload, ASR `verbose_json`/`text`/`srt`/`vtt` response formats, TTS, workspace restore, custom prompt templates, model diagnostics, Chat Completions, Responses, streaming, and non-streaming integration checks:
 
