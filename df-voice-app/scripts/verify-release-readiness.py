@@ -360,6 +360,8 @@ def check_verification_gates() -> None:
             "\"text\"",
             "\"srt\"",
             "\"vtt\"",
+            "verify_transcript_copy",
+            "Transcript copied.",
             "verify_transcript_edit",
             "verify_missing_asr_settings",
             "verify_missing_tts_settings",

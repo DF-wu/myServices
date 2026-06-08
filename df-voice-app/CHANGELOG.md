@@ -25,6 +25,7 @@
 - Added custom provider template creation, restore, application, and deletion.
 - Redacted API keys and extra headers from custom provider templates stored in local workspace data.
 - Added mock integration coverage for ASR text, SRT, and VTT response formats.
+- Added mock integration coverage for transcript copy actions.
 - Added numeric range validation for provider settings and stored/imported settings files.
 - Added cancellation support for in-flight ASR, conversation, TTS, and provider diagnostic requests.
 - Added confirmation dialogs for destructive local workspace, conversation, settings reset, and custom template actions.

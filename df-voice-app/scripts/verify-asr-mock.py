@@ -117,6 +117,12 @@ def verify_response_format(page, path: str, response_format: str, expected_text:
     upload_audio(page, path, expected_text)
 
 
+def verify_transcript_copy(page) -> None:
+    expect(page.get_by_label("Copy")).to_be_enabled(timeout=10000)
+    page.get_by_label("Copy").click()
+    expect(page.get_by_text("Transcript copied.")).to_be_visible(timeout=10000)
+
+
 def verify_transcript_edit(page, path: str) -> None:
     seed_settings(page)
     upload_audio(page, path, "Mock ASR transcript.")
@@ -330,6 +336,7 @@ def main() -> int:
             )
             page.reload(wait_until="domcontentloaded")
             expect(page.get_by_text("Mock ASR transcript.").first).to_be_visible(timeout=10000)
+            verify_transcript_copy(page)
             verify_missing_tts_settings(page)
             seed_settings(page)
             page.reload(wait_until="domcontentloaded")
