@@ -131,6 +131,7 @@ npm run verify:static
 ```
 
 `verify:logic` compiles and checks settings portability plus the built-in provider and prompt template contracts.
+`verify:app-config` checks web install metadata, native identifiers, microphone permissions, EAS build profiles, and required image asset dimensions.
 
 Run Android native checks:
 
@@ -158,6 +159,8 @@ Build the static web export and run the same desktop/mobile smoke test against t
 npm run build:web
 npm run verify:web-build
 ```
+
+The web build verifier also checks the exported manifest and mobile home-screen metadata.
 
 Run the ASR upload, ASR `verbose_json`/`text`/`srt`/`vtt` response formats, TTS, workspace restore, custom prompt templates, model diagnostics, Chat Completions, Responses, streaming, and non-streaming integration checks:
 

@@ -29,7 +29,24 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
-      "output": "static"
+      "output": "static",
+      "name": "DF Voice App",
+      "shortName": "DF Voice",
+      "lang": "zh-Hant",
+      "scope": "/",
+      "themeColor": "#18765A",
+      "description": "CapsWriter and OpenAI-compatible voice workbench for ASR, chat, Responses, and TTS.",
+      "dir": "ltr",
+      "display": "standalone",
+      "startUrl": "/",
+      "orientation": "portrait",
+      "backgroundColor": "#F4F7F8",
+      "barStyle": "default",
+      "splash": {
+        "backgroundColor": "#F4F7F8",
+        "resizeMode": "contain",
+        "image": "./assets/splash-icon.png"
+      }
     },
     "plugins": [
       "expo-router",

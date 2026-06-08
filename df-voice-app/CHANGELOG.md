@@ -7,6 +7,7 @@
 - Hardened settings import validation against unknown fields and invalid enum/type values.
 - Added a fast settings portability logic verifier to the static gate.
 - Added provider and prompt template contract checks to the static gate.
+- Added installable web app metadata and app config contract checks to the static gate.
 - Added static web export verification to catch production web build regressions.
 - Added transcript workflow prompt templates and non-streaming conversation verification.
 - Added local workspace restore for transcripts, drafts, and conversations.

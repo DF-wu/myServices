@@ -1,0 +1,20 @@
+{
+  "name": "DF Voice App",
+  "short_name": "DF Voice",
+  "lang": "zh-Hant",
+  "dir": "ltr",
+  "description": "CapsWriter and OpenAI-compatible voice workbench for ASR, chat, Responses, and TTS.",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/",
+  "orientation": "portrait",
+  "theme_color": "#18765A",
+  "background_color": "#F4F7F8",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}
