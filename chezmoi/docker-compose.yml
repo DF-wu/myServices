@@ -1,0 +1,67 @@
+# author: df
+# prepared: 2026-06-08
+# description: chezmoi manual runner for dotfiles bootstrap/sync.
+# doc: https://www.chezmoi.io/
+#
+# 設計原則:
+# - chezmoi 是 CLI 工具，不是常駐服務；這份 compose 只提供可重現的手動執行環境。
+# - 服務放在 manual profile，直接 `docker compose up` 不會啟動。
+# - 預設 CHEZMOI_ARGS=--help，不會 init/apply，也不會改 host home。
+# - 真正要套用前先跑 diff；不要把 secrets 明文放進 repo。
+
+name: chezmoi
+
+services:
+  chezmoi:
+    image: alpine:3.22
+    container_name: chezmoi-runner
+    profiles:
+      - manual
+    restart: "no"
+    init: true
+    working_dir: /work
+    environment:
+      TZ: ${TZ:-Asia/Taipei}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      CHEZMOI_TAG: ${CHEZMOI_TAG:-v2.70.5}
+      # Safe default. Override in `.env` or at command time, for example:
+      # CHEZMOI_ARGS=doctor
+      # CHEZMOI_ARGS=diff
+      # CHEZMOI_ARGS=init --source=/chezmoi-source git@github.com:USER/dotfiles.git
+      CHEZMOI_ARGS: ${CHEZMOI_ARGS:---help}
+    volumes:
+      # Host home target. Keep this explicit because apply can write here.
+      - ${CHEZMOI_TARGET_HOME:-/home/df}:/target-home
+      # chezmoi source state. Use a host path so the repo survives container exit.
+      - ${CHEZMOI_SOURCE_DIR:-/mnt/appdata/chezmoi/source}:/chezmoi-source
+      # Cache/download state. Separate from source to keep repo clean.
+      - ${CHEZMOI_CACHE_DIR:-/mnt/appdata/chezmoi/cache}:/chezmoi-cache
+    networks:
+      - chezmoi-egress
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        apk add --no-cache ca-certificates curl git openssh-client su-exec
+
+        curl -fsLS https://get.chezmoi.io | sh -s -- -b /usr/local/bin -t "$${CHEZMOI_TAG}"
+
+        mkdir -p /target-home /chezmoi-source /chezmoi-cache
+        chown -R "$${PUID}:$${PGID}" /chezmoi-source /chezmoi-cache
+
+        echo "chezmoi tag: $${CHEZMOI_TAG}"
+        echo "target home: /target-home"
+        echo "source dir: /chezmoi-source"
+        echo "args: $${CHEZMOI_ARGS}"
+
+        exec su-exec "$${PUID}:$${PGID}" env \
+          HOME=/target-home \
+          XDG_CACHE_HOME=/chezmoi-cache \
+          CHEZMOI_SOURCE_DIR=/chezmoi-source \
+          /usr/local/bin/chezmoi $${CHEZMOI_ARGS}
+
+networks:
+  chezmoi-egress:
+    name: chezmoi-egress
+    driver: bridge
