@@ -33,6 +33,7 @@ import {
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   Switch,
@@ -70,6 +71,12 @@ type BusyState = "record" | "transcribe" | "chat" | "tts" | "probe" | null;
 type Icon = ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
 type ProviderKey = "asr" | "conversation" | "tts";
 type ProviderDiagnostic = ApiProbe & { checkedAt: number };
+type PendingConfirmation = {
+  body: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  title: string;
+};
 type WorkspaceSnapshot = {
   chatDraft: string;
   customProviderTemplates: ClientTemplate[];
@@ -139,6 +146,7 @@ export function AppShell() {
   const [customProviderTemplates, setCustomProviderTemplates] = useState<ClientTemplate[]>([]);
   const [customPromptTemplates, setCustomPromptTemplates] = useState<PromptTemplate[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const [workspaceLoaded, setWorkspaceLoaded] = useState(false);
   const [providerDiagnostics, setProviderDiagnostics] = useState<
     Partial<Record<ProviderKey, ProviderDiagnostic>>
@@ -210,6 +218,30 @@ export function AppShell() {
 
   async function updateSettings(next: ClientSettings) {
     await saveSettings(next);
+  }
+
+  function confirmDestructiveAction({
+    body,
+    confirmLabel,
+    onConfirm,
+    title,
+  }: {
+    body: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+    title: string;
+  }) {
+    setPendingConfirmation({ body, confirmLabel, onConfirm, title });
+  }
+
+  function dismissConfirmation() {
+    setPendingConfirmation(null);
+  }
+
+  function confirmPendingAction() {
+    const action = pendingConfirmation?.onConfirm;
+    setPendingConfirmation(null);
+    action?.();
   }
 
   function beginRequest() {
@@ -450,12 +482,30 @@ export function AppShell() {
   }
 
   function clearTranscript() {
+    confirmDestructiveAction({
+      title: "Clear transcript?",
+      body: "This removes the current transcript and raw ASR response from the workspace.",
+      confirmLabel: "Clear",
+      onConfirm: clearTranscriptNow,
+    });
+  }
+
+  function clearTranscriptNow() {
     setTranscript("");
     setRawResult("");
     setNotice("Transcript cleared.");
   }
 
   async function clearWorkspace() {
+    confirmDestructiveAction({
+      title: "Clear workspace?",
+      body: "This removes the transcript, raw ASR response, draft, conversation, and custom templates saved on this device.",
+      confirmLabel: "Clear workspace",
+      onConfirm: () => void clearWorkspaceNow(),
+    });
+  }
+
+  async function clearWorkspaceNow() {
     try {
       await setWorkspaceJson(emptyWorkspaceSnapshot);
       setTranscript("");
@@ -468,6 +518,27 @@ export function AppShell() {
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Workspace clear failed.");
     }
+  }
+
+  function clearConversation() {
+    confirmDestructiveAction({
+      title: "Clear conversation?",
+      body: "This removes all messages in the current conversation.",
+      confirmLabel: "Clear",
+      onConfirm: () => {
+        setMessages([]);
+        setNotice("Conversation cleared.");
+      },
+    });
+  }
+
+  function resetSettingsWithConfirmation() {
+    confirmDestructiveAction({
+      title: "Reset settings?",
+      body: "This restores all provider settings to the app defaults. Local workspace data is not cleared.",
+      confirmLabel: "Reset defaults",
+      onConfirm: () => void resetSettings(),
+    });
   }
 
   async function exportConversation() {
@@ -621,6 +692,16 @@ export function AppShell() {
   }
 
   function deleteCustomProviderTemplate(templateId: string) {
+    const template = customProviderTemplates.find((item) => item.id === templateId);
+    confirmDestructiveAction({
+      title: "Delete provider template?",
+      body: `This removes ${template?.name ?? "this custom provider template"} from this device.`,
+      confirmLabel: "Delete",
+      onConfirm: () => deleteCustomProviderTemplateNow(templateId),
+    });
+  }
+
+  function deleteCustomProviderTemplateNow(templateId: string) {
     setCustomProviderTemplates((current) => current.filter((template) => template.id !== templateId));
     setNotice("Custom provider template deleted.");
   }
@@ -664,6 +745,16 @@ export function AppShell() {
   }
 
   function deleteCustomPromptTemplate(templateId: string) {
+    const template = customPromptTemplates.find((item) => item.id === templateId);
+    confirmDestructiveAction({
+      title: "Delete prompt template?",
+      body: `This removes ${template?.name ?? "this custom prompt template"} from this device.`,
+      confirmLabel: "Delete",
+      onConfirm: () => deleteCustomPromptTemplateNow(templateId),
+    });
+  }
+
+  function deleteCustomPromptTemplateNow(templateId: string) {
     setCustomPromptTemplates((current) => current.filter((template) => template.id !== templateId));
     setNotice("Custom prompt template deleted.");
   }
@@ -678,17 +769,18 @@ export function AppShell() {
   }
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: colors.canvas }}
-      contentContainerStyle={{
-        padding: width < 520 ? spacing.md : spacing.xl,
-        gap: spacing.lg,
-        maxWidth: 1160,
-        width: "100%",
-        alignSelf: "center",
-      }}
-    >
+    <>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={{ flex: 1, backgroundColor: colors.canvas }}
+        contentContainerStyle={{
+          padding: width < 520 ? spacing.md : spacing.xl,
+          gap: spacing.lg,
+          maxWidth: 1160,
+          width: "100%",
+          alignSelf: "center",
+        }}
+      >
       <View
         style={{
           borderBottomWidth: 1,
@@ -770,7 +862,7 @@ export function AppShell() {
           messages={messages}
           transcript={transcript}
           onChangeDraft={setChatDraft}
-          onClear={() => setMessages([])}
+          onClear={clearConversation}
           onExport={exportConversation}
           onSend={() => sendChat()}
           onSendTranscript={() => sendChat(transcript)}
@@ -789,7 +881,7 @@ export function AppShell() {
           onClearWorkspace={clearWorkspace}
           onExportSettings={exportSettings}
           onImportSettings={importSettings}
-          onReset={resetSettings}
+          onReset={resetSettingsWithConfirmation}
           onUpdate={updateSettings}
           onUseModel={useProviderModel}
         />
@@ -811,7 +903,13 @@ export function AppShell() {
           onSavePrompt={saveCustomPromptTemplate}
         />
       ) : null}
-    </ScrollView>
+      </ScrollView>
+      <ConfirmationDialog
+        confirmation={pendingConfirmation}
+        onCancel={dismissConfirmation}
+        onConfirm={confirmPendingAction}
+      />
+    </>
   );
 }
 
@@ -823,6 +921,69 @@ async function readPickedDocumentText(asset: {
     return asset.file.text();
   }
   return new File(asset.uri).text();
+}
+
+function ConfirmationDialog({
+  confirmation,
+  onCancel,
+  onConfirm,
+}: {
+  confirmation: PendingConfirmation | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal
+      animationType="fade"
+      transparent
+      visible={Boolean(confirmation)}
+      onRequestClose={onCancel}
+    >
+      <View
+        style={{
+          alignItems: "center",
+          backgroundColor: "rgba(12, 19, 24, 0.58)",
+          flex: 1,
+          justifyContent: "center",
+          padding: spacing.lg,
+        }}
+      >
+        <View
+          accessibilityRole="alert"
+          testID="confirmation-dialog"
+          style={{
+            backgroundColor: colors.panel,
+            borderColor: colors.black,
+            borderRadius: radii.medium,
+            borderWidth: 1,
+            gap: spacing.md,
+            maxWidth: 460,
+            padding: spacing.lg,
+            width: "100%",
+          }}
+        >
+          <View style={{ gap: spacing.xs }}>
+            <Text style={eyebrowStyle}>Confirm action</Text>
+            <Text style={{ color: colors.ink, fontSize: 22, fontWeight: "900" }}>
+              {confirmation?.title ?? ""}
+            </Text>
+            <Text selectable style={{ color: colors.muted, lineHeight: 22 }}>
+              {confirmation?.body ?? ""}
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, justifyContent: "flex-end" }}>
+            <CommandButton label="Cancel" tone="plain" icon={Square} onPress={onCancel} />
+            <CommandButton
+              label={confirmation?.confirmLabel ?? "Confirm"}
+              tone="danger"
+              icon={Trash2}
+              onPress={onConfirm}
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 function WorkflowOverview({

@@ -16,6 +16,13 @@ ARTIFACTS = ROOT / "test-artifacts"
 URL = os.environ.get("CLIENT_URL", "http://localhost:8081")
 
 
+def get_confirmation_dialog(page, title: str):
+    dialog = page.get_by_test_id("confirmation-dialog")
+    expect(dialog).to_be_visible()
+    expect(dialog.get_by_text(title, exact=True)).to_be_visible()
+    return dialog
+
+
 def assert_layout(page, label: str) -> None:
     metrics = page.evaluate(
         """() => {
@@ -162,6 +169,27 @@ def main() -> int:
         expect(page.get_by_text("Sensitive test transcript.", exact=True)).to_be_visible()
         page.get_by_role("button", name="設定").click()
         page.get_by_role("button", name="Clear workspace").click()
+        workspace_dialog = get_confirmation_dialog(page, "Clear workspace?")
+        workspace_dialog.get_by_role("button", name="Cancel").click()
+        expect(page.get_by_test_id("confirmation-dialog")).not_to_be_visible()
+        page.wait_for_function(
+            """() => {
+                const stored = JSON.parse(localStorage.getItem("df-voice-app.workspace.v1") || "{}");
+                return stored.transcript === "Sensitive test transcript."
+                    && stored.rawResult.includes("Sensitive test transcript.")
+                    && stored.chatDraft === "Sensitive draft"
+                    && Array.isArray(stored.messages)
+                    && stored.messages.some((message) => message.content === "Sensitive seeded answer.")
+                    && Array.isArray(stored.customPromptTemplates)
+                    && stored.customPromptTemplates.some((template) => template.name === "Sensitive custom prompt")
+                    && Array.isArray(stored.customProviderTemplates)
+                    && stored.customProviderTemplates.some((template) => template.name === "Sensitive provider setup");
+            }""",
+            timeout=10000,
+        )
+        page.get_by_role("button", name="Clear workspace").click()
+        workspace_dialog = get_confirmation_dialog(page, "Clear workspace?")
+        workspace_dialog.get_by_role("button", name="Clear workspace").click()
         expect(page.get_by_text("Workspace cleared.")).to_be_visible()
         page.wait_for_function(
             """() => {
@@ -207,6 +235,21 @@ def main() -> int:
         page.get_by_role("button", name="範本").click()
         expect(page.get_by_text("Custom voice brief", exact=True)).to_be_visible()
         page.get_by_label("Delete Custom voice brief").click()
+        prompt_delete_dialog = get_confirmation_dialog(page, "Delete prompt template?")
+        prompt_delete_dialog.get_by_role("button", name="Cancel").click()
+        expect(page.get_by_test_id("confirmation-dialog")).not_to_be_visible()
+        expect(page.get_by_text("Custom voice brief", exact=True)).to_be_visible()
+        page.wait_for_function(
+            """() => {
+                const stored = JSON.parse(localStorage.getItem("df-voice-app.workspace.v1") || "{}");
+                return Array.isArray(stored.customPromptTemplates)
+                    && stored.customPromptTemplates.some((template) => template.name === "Custom voice brief");
+            }""",
+            timeout=10000,
+        )
+        page.get_by_label("Delete Custom voice brief").click()
+        prompt_delete_dialog = get_confirmation_dialog(page, "Delete prompt template?")
+        prompt_delete_dialog.get_by_role("button", name="Delete").click()
         expect(page.get_by_text("Custom prompt template deleted.")).to_be_visible()
         expect(page.get_by_text("Custom voice brief", exact=True)).not_to_be_visible()
         saved_asr_base = page.evaluate(
@@ -280,6 +323,21 @@ def main() -> int:
         assert applied_settings["asr"]["apiKey"] == "asr-provider-template-secret"
         assert "asr-provider-template-secret" in applied_settings["asr"]["extraHeadersJson"]
         page.get_by_label("Delete Lab provider setup").click()
+        provider_delete_dialog = get_confirmation_dialog(page, "Delete provider template?")
+        provider_delete_dialog.get_by_role("button", name="Cancel").click()
+        expect(page.get_by_test_id("confirmation-dialog")).not_to_be_visible()
+        expect(page.get_by_text("Lab provider setup", exact=True)).to_be_visible()
+        page.wait_for_function(
+            """() => {
+                const stored = JSON.parse(localStorage.getItem("df-voice-app.workspace.v1") || "{}");
+                return Array.isArray(stored.customProviderTemplates)
+                    && stored.customProviderTemplates.some((template) => template.name === "Lab provider setup");
+            }""",
+            timeout=10000,
+        )
+        page.get_by_label("Delete Lab provider setup").click()
+        provider_delete_dialog = get_confirmation_dialog(page, "Delete provider template?")
+        provider_delete_dialog.get_by_role("button", name="Delete").click()
         expect(page.get_by_text("Custom provider template deleted.")).to_be_visible()
         expect(page.get_by_text("Lab provider setup", exact=True)).not_to_be_visible()
         expect(page.get_by_text("逐字稿整理")).to_be_visible()

@@ -16,7 +16,7 @@ Standalone voice workbench for web, Android, and optional iOS. It records or upl
 - Apply built-in and custom provider templates for local CapsWriter, cloud-compatible, Android emulator, and LM Studio/Ollama-style setups
 - Use built-in and custom prompt workflow templates for transcript cleanup, meeting summaries, action extraction, reply drafts, and English briefs
 - Restore the current transcript, draft, and conversation after a browser refresh or app restart
-- Clear the local workspace from the Settings tab when transcripts or prompts should be removed from the device
+- Clear the local workspace from the Settings tab, with confirmation before transcripts, prompts, or templates are removed from the device
 - Add provider-specific headers, ASR multipart fields, and JSON body overrides for OpenAI-compatible variants
 - Validate advanced JSON override fields inline before provider requests are sent
 - Validate provider numeric settings inline and ignore invalid stored/imported numeric values
@@ -171,7 +171,7 @@ npm run verify:ci
 
 ## Security
 
-On Android and iOS, settings are stored with `expo-secure-store` when available, and the active workspace is stored as an app-private document JSON file. On web, both are stored in browser `localStorage`; avoid saving production cloud API keys or sensitive transcripts on shared machines. Custom provider templates in workspace storage redact API keys and extra headers, but still keep non-sensitive provider URLs, model names, prompts, and parameters. Use Settings -> Clear workspace to remove the current transcript, raw ASR response, draft, conversation, custom prompt templates, and custom provider templates from local workspace storage.
+On Android and iOS, settings are stored with `expo-secure-store` when available, and the active workspace is stored as an app-private document JSON file. On web, both are stored in browser `localStorage`; avoid saving production cloud API keys or sensitive transcripts on shared machines. Custom provider templates in workspace storage redact API keys and extra headers, but still keep non-sensitive provider URLs, model names, prompts, and parameters. Use Settings -> Clear workspace to remove the current transcript, raw ASR response, draft, conversation, custom prompt templates, and custom provider templates from local workspace storage. Destructive workspace and custom template actions ask for confirmation before removal.
 
 The Android native config enables cleartext HTTP so local providers, `10.0.2.2`, and LAN IP endpoints work in release builds. It also pins the generated Gradle wrapper to 8.14.3 for React Native Gradle plugin compatibility. Background audio recording/playback services are disabled in the `expo-audio` config plugin.
 
