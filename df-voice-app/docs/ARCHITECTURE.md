@@ -23,7 +23,7 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 1. User records audio with `expo-audio` or uploads audio/video through `expo-document-picker`.
 2. Empty local uploads and files over 512 MB are rejected before provider requests begin.
 3. The app posts multipart form data to `/v1/audio/transcriptions`.
-4. Transcript text can be copied, exported, sent to conversation, or sent to TTS.
+4. Transcript text can be edited, copied, exported, sent to conversation, or sent to TTS.
 5. Conversation calls either `/v1/chat/completions` or `/v1/responses`; prompt workflow templates can wrap a transcript before sending.
 6. Streaming responses are parsed from server-sent events and appended into the assistant message. Responses API streams consume delta events first and fall back to completed payload text when a provider sends the final response without deltas.
 7. TTS calls `/v1/audio/speech`; web uses an object URL and native writes the returned bytes to cache. Web playback revokes the previous object URL when replacing audio or unmounting the app shell.

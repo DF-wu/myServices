@@ -116,23 +116,37 @@ def verify_response_format(page, path: str, response_format: str, expected_text:
     upload_audio(page, path, expected_text)
 
 
-def verify_empty_upload(page, path: str) -> None:
-    page.evaluate(
-        """([settingsKey, workspaceKey, value]) => {
-            localStorage.setItem(settingsKey, JSON.stringify(value));
-            localStorage.setItem(workspaceKey, JSON.stringify({
-                transcript: "",
-                rawResult: "",
-                chatDraft: "",
-                messages: [],
-                customPromptTemplates: [],
-                customProviderTemplates: []
-            }));
+def verify_transcript_edit(page, path: str) -> None:
+    seed_settings(page)
+    upload_audio(page, path, "Mock ASR transcript.")
+    page.get_by_label("Transcript text").fill("Edited transcript for handoff.")
+    page.wait_for_function(
+        """(key) => {
+            const stored = JSON.parse(localStorage.getItem(key) || "{}");
+            return stored.transcript === "Edited transcript for handoff.";
         }""",
-        [SETTINGS_KEY, WORKSPACE_KEY, settings()],
+        arg=WORKSPACE_KEY,
+        timeout=10000,
     )
     page.reload(wait_until="domcontentloaded")
     page.wait_for_selector("text=DF Voice App")
+    expect(page.get_by_label("Transcript text")).to_have_value(
+        "Edited transcript for handoff.",
+        timeout=10000,
+    )
+
+
+def verify_empty_upload(page, path: str) -> None:
+    existing_transcript = page.get_by_label("Transcript text").input_value()
+    existing_raw = page.evaluate(
+        """(key) => {
+            const stored = JSON.parse(localStorage.getItem(key) || "{}");
+            return stored.rawResult || "";
+        }""",
+        WORKSPACE_KEY,
+    )
+    assert existing_transcript, "empty upload test requires an existing transcript"
+    assert existing_raw, "empty upload test requires an existing raw result"
     with page.expect_file_chooser() as chooser:
         page.get_by_role("button", name="Upload").click()
     chooser.value.set_files(path)
@@ -142,8 +156,8 @@ def verify_empty_upload(page, path: str) -> None:
         """(key) => JSON.parse(localStorage.getItem(key) || "{}")""",
         WORKSPACE_KEY,
     )
-    assert stored.get("transcript") == "", stored
-    assert stored.get("rawResult") == "", stored
+    assert stored.get("transcript") == existing_transcript, stored
+    assert stored.get("rawResult") == existing_raw, stored
 
 
 def verify_cancel_transcription(page, path: str) -> None:
@@ -328,6 +342,7 @@ def main() -> int:
             verify_response_format(page, audio.name, "text", "Mock ASR transcript.")
             verify_response_format(page, audio.name, "srt", "00:00:00,000 --> 00:00:01,000")
             verify_response_format(page, audio.name, "vtt", "WEBVTT")
+            verify_transcript_edit(page, audio.name)
             verify_empty_upload(page, empty_audio.name)
             verify_missing_asr_settings(page, audio.name)
             verify_cancel_transcription(page, audio.name)

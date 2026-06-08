@@ -11,6 +11,7 @@ Standalone voice workbench for web, Android, and optional iOS. It records or upl
 - Stream Chat Completions and Responses replies over server-sent events
 - Generate speech with `POST /v1/audio/speech`
 - Export transcripts, raw ASR payloads, and conversations as Markdown
+- Edit transcripts before copy, export, chat, or TTS handoff
 - Check ASR, chat, and TTS providers with `GET /v1/models`
 - Persist provider settings and API keys locally
 - Apply built-in and custom provider templates for local CapsWriter, cloud-compatible, Android emulator, and LM Studio/Ollama-style setups
@@ -94,6 +95,8 @@ http://YOUR_SERVER_IP:6017/v1
 For Android emulators, `localhost` points at the emulator itself. Use your LAN IP or `10.0.2.2` when the server is on the host machine. The app includes an `Android Emulator Host` template that applies `10.0.2.2` to ASR, chat, and TTS providers.
 
 ## Provider Settings
+
+Transcripts are editable after ASR returns, so provider output can be corrected before copy, export, conversation handoff, prompt workflows, or TTS playback.
 
 The app exposes the parameters users normally need to tune:
 

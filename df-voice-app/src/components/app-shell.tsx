@@ -885,6 +885,7 @@ export function AppShell() {
             setNotice("Transcript copied.");
           }}
           onExport={exportTranscript}
+          onChangeTranscript={setTranscript}
           onPickAudio={pickAudio}
           onSendToChat={() => sendChat(transcript)}
           onSpeak={() => speak(transcript)}
@@ -1280,6 +1281,7 @@ function StatusPill({ diagnostic, label }: { diagnostic?: ProviderDiagnostic; la
 
 function CaptureView({
   busy,
+  onChangeTranscript,
   onClearTranscript,
   onCopy,
   onExport,
@@ -1293,6 +1295,7 @@ function CaptureView({
   transcript,
 }: {
   busy: BusyState;
+  onChangeTranscript: (value: string) => void;
   onClearTranscript: () => void;
   onCopy: () => void;
   onExport: () => void;
@@ -1362,9 +1365,21 @@ function CaptureView({
               <IconOnly disabled={!transcript && !rawResult} icon={RotateCcw} label="Clear transcript" onPress={onClearTranscript} />
             </View>
           </View>
-          <Text selectable style={{ color: transcript ? colors.ink : colors.faint, fontSize: 17, lineHeight: 26 }}>
-            {transcript || "Start a recording or upload an audio/video file. The result will appear here."}
-          </Text>
+          <TextInput
+            accessibilityLabel="Transcript text"
+            multiline
+            value={transcript}
+            onChangeText={onChangeTranscript}
+            placeholder="Start a recording or upload an audio/video file. The result will appear here."
+            placeholderTextColor={colors.faint}
+            style={inputStyle({
+              color: transcript ? colors.ink : colors.faint,
+              fontSize: 17,
+              lineHeight: 26,
+              minHeight: transcript ? 180 : 128,
+              textAlignVertical: "top",
+            })}
+          />
         </View>
       </Surface>
 
