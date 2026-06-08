@@ -8,6 +8,7 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 
 - `app/`: Expo Router entry points and native stack shell.
 - `src/components/app-shell.tsx`: product UI, workflow state, and user actions.
+- `src/lib/export-audio.ts`: generated TTS audio download/share helper.
 - `src/lib/openai-compatible.ts`: provider HTTP client for ASR, Chat Completions, Responses, model probes, and TTS.
 - `src/lib/settings-portability.ts`: redacted settings export/import and credential preservation.
 - `src/lib/workspace-storage.ts`: transcript, draft, custom prompt/provider templates, and conversation workspace persistence.
@@ -27,7 +28,9 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 5. Conversation calls either `/v1/chat/completions` or `/v1/responses`; prompt workflow templates can wrap a transcript before sending.
 6. Streaming responses are parsed from server-sent events and appended into the assistant message. Responses API streams consume delta events first and fall back to completed payload text when a provider sends the final response without deltas.
 7. Individual conversation messages can be copied, and assistant messages can be sent to TTS.
-8. TTS calls `/v1/audio/speech`; web uses an object URL and native writes the returned bytes to cache. Web playback revokes the previous object URL when replacing audio, stopping playback, or unmounting the app shell.
+8. TTS calls `/v1/audio/speech`; web uses an object URL and native writes the returned bytes to cache. The latest generated speech can be saved or shared after playback starts, and stopping playback does not discard the audio file.
+
+The app shell revokes the previous web TTS object URL when a newer speech result replaces it or when the shell unmounts. Native speech files are written to cache and shared through `expo-sharing` when available.
 
 Each provider request receives an abort signal from the app shell in addition to its configured timeout. Cancelling an in-flight ASR, conversation, TTS, or provider diagnostic request aborts the HTTP call and ignores any stale response path that resolves after cancellation. Timeout aborts are converted into explicit timeout messages so slow providers are distinguishable from user-cancelled requests.
 The app shell keeps request-triggering controls mutually exclusive while busy, which prevents a second user action from accidentally aborting or replacing a visible in-flight request. Recorder start/stop failures reset audio mode and busy state before surfacing an error notice.
@@ -46,14 +49,14 @@ Numeric provider settings are validated in the Settings UI before they are persi
 
 ## Native Strategy
 
-The app works in Expo Go for normal development. Android native builds are needed to verify generated manifest permissions and cleartext HTTP behavior. The generated `android/` and `ios/` directories are intentionally ignored and regenerated with Expo Prebuild.
+The app works in Expo Go for normal development. Android native builds are needed to verify generated manifest permissions, cleartext HTTP behavior, and file sharing integration. The generated `android/` and `ios/` directories are intentionally ignored and regenerated with Expo Prebuild.
 
 ## Verification
 
 - `npm run verify:static`: TypeScript, settings portability and template contract logic checks, app/native/web config contracts, release-readiness audit, Expo doctor, Python script compile.
 - `npm run verify:web:server`: desktop/mobile web smoke, JSON override and numeric setting validation, workspace clearing, custom prompt/provider templates, and layout checks.
 - `npm run verify:web-build`: static web export build, manifest/head metadata checks, plus the same desktop/mobile smoke checks against `dist/`.
-- `npm run verify:mock:server`: ASR upload and response formats, request cancellation, TTS, workspace restore, prompt templates, Chat Completions/Responses streaming and non-streaming, provider diagnostics, and export checks.
+- `npm run verify:mock:server`: ASR upload and response formats, request cancellation, TTS playback/download, workspace restore, prompt templates, Chat Completions/Responses streaming and non-streaming, provider diagnostics, and export checks.
 - `npm run verify:android-config`: Expo prebuild plus Android manifest/Gradle checks.
 - `npm run verify:android-build`: debug APK build when Android SDK and JDK are available.
 - `npm run verify:android-runtime`: adb install/launch check when a device or emulator is online.

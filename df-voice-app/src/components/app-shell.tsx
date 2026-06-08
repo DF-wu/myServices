@@ -45,6 +45,7 @@ import {
 
 import { promptTemplates } from "@/data/prompt-templates";
 import { defaultSettings, templates } from "@/data/templates";
+import { exportAudioFile } from "@/lib/export-audio";
 import { conversationMarkdownExport, exportTextFile, transcriptMarkdownExport } from "@/lib/export-text";
 import { documentAssetToAudio, probeModels, recordingUriToAudio, runConversation, synthesizeSpeech, transcribeAudio } from "@/lib/openai-compatible";
 import { isIOS } from "@/lib/platform";
@@ -97,6 +98,11 @@ type PromptTemplateDraft = {
   prompt: string;
   tags: string;
 };
+type TtsAudioAsset = {
+  createdAt: number;
+  format: SpeechFormat;
+  uri: string;
+};
 
 const tabs: Array<{ id: TabId; label: string; icon: Icon }> = [
   { id: "capture", label: "語音", icon: Mic },
@@ -138,10 +144,11 @@ export function AppShell() {
   const recorderState = useAudioRecorderState(recorder, 250);
   const activeRequestRef = useRef<AbortController | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
-  const ttsObjectUrlRef = useRef<string | null>(null);
+  const ttsAudioAssetRef = useRef<TtsAudioAsset | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("capture");
   const [busy, setBusy] = useState<BusyState>(null);
   const [notice, setNotice] = useState<string>("");
+  const [ttsAudioAsset, setTtsAudioAsset] = useState<TtsAudioAsset | null>(null);
   const [ttsPlaybackReady, setTtsPlaybackReady] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [rawResult, setRawResult] = useState("");
@@ -273,16 +280,30 @@ export function AppShell() {
   }
 
   function disposeAudioPlayer() {
-    playerRef.current?.remove();
-    playerRef.current = null;
-    releaseTtsObjectUrl(ttsObjectUrlRef.current);
-    ttsObjectUrlRef.current = null;
+    removeAudioPlayer();
+    releaseTtsAudioAsset();
   }
 
-  function replaceAudioPlayer(nextPlayer: AudioPlayer | null, nextUri?: string) {
-    disposeAudioPlayer();
+  function removeAudioPlayer() {
+    playerRef.current?.remove();
+    playerRef.current = null;
+    setTtsPlaybackReady(false);
+  }
+
+  function releaseTtsAudioAsset() {
+    releaseTtsObjectUrl(ttsAudioAssetRef.current?.uri);
+    ttsAudioAssetRef.current = null;
+    setTtsAudioAsset(null);
+  }
+
+  function replaceAudioPlayer(nextPlayer: AudioPlayer | null, nextAsset?: TtsAudioAsset) {
+    removeAudioPlayer();
+    if (nextAsset) {
+      releaseTtsAudioAsset();
+      ttsAudioAssetRef.current = nextAsset;
+      setTtsAudioAsset(nextAsset);
+    }
     playerRef.current = nextPlayer;
-    ttsObjectUrlRef.current = nextUri && isObjectUrl(nextUri) ? nextUri : null;
     setTtsPlaybackReady(Boolean(nextPlayer));
   }
 
@@ -499,7 +520,11 @@ export function AppShell() {
         return;
       }
       const player = createAudioPlayer(uri, { updateInterval: 250 });
-      replaceAudioPlayer(player, uri);
+      replaceAudioPlayer(player, {
+        createdAt: Date.now(),
+        format: settings.tts.responseFormat,
+        uri,
+      });
       player.play();
       setNotice("TTS audio is playing.");
     } catch (error) {
@@ -523,9 +548,22 @@ export function AppShell() {
     try {
       currentPlayer.pause();
     } finally {
-      replaceAudioPlayer(null);
+      removeAudioPlayer();
     }
     setNotice("TTS audio stopped.");
+  }
+
+  async function saveTtsAudio() {
+    if (!ttsAudioAsset) {
+      setNotice("No generated TTS audio to save.");
+      return;
+    }
+    try {
+      const filename = await exportAudioFile(ttsAudioAsset);
+      setNotice(`Generated audio export started: ${filename}`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Generated audio export failed.");
+    }
   }
 
   async function exportTranscript() {
@@ -884,6 +922,14 @@ export function AppShell() {
               tone="plain"
               icon={Square}
               onPress={stopAudioPlayback}
+            />
+          ) : null}
+          {ttsAudioAsset ? (
+            <CommandButton
+              label="Save audio"
+              tone="secondary"
+              icon={Download}
+              onPress={saveTtsAudio}
             />
           ) : null}
         </View>

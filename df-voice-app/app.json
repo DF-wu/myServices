@@ -62,7 +62,8 @@
       "expo-secure-store",
       "expo-asset",
       "expo-system-ui",
-      "./plugins/with-local-http-android"
+      "./plugins/with-local-http-android",
+      "expo-sharing"
     ]
   }
 }

@@ -314,6 +314,7 @@ def main() -> int:
             ):
                 page.get_by_label("Speak").click()
             expect(page.get_by_text("TTS audio is playing.")).to_be_visible(timeout=10000)
+            expect(page.get_by_role("button", name="Save audio")).to_be_visible(timeout=10000)
             with page.expect_response(
                 lambda response: "/v1/audio/speech" in response.url and response.status == 200
             ):
@@ -332,11 +333,21 @@ def main() -> int:
             page.wait_for_function(
                 """() => {
                     const urls = window.__dfVoiceUrls;
-                    return urls.created.length >= 2 && urls.revoked.includes(urls.created[1]);
+                    return urls.created.length >= 2 && !urls.revoked.includes(urls.created[1]);
                 }""",
                 timeout=10000,
             )
             expect(page.get_by_role("button", name="Stop audio")).not_to_be_visible()
+            expect(page.get_by_role("button", name="Save audio")).to_be_visible(timeout=10000)
+            with page.expect_download() as audio_download_info:
+                page.get_by_role("button", name="Save audio").click()
+            audio_download = audio_download_info.value
+            assert audio_download.suggested_filename.startswith("df-voice-speech-")
+            assert audio_download.suggested_filename.endswith(".wav")
+            audio_export_path = ARTIFACTS / audio_download.suggested_filename
+            audio_download.save_as(audio_export_path)
+            assert audio_export_path.stat().st_size > 0
+            expect(page.get_by_text("Generated audio export started:")).to_be_visible(timeout=10000)
             with page.expect_download() as download_info:
                 page.get_by_label("Export transcript").click()
             download = download_info.value

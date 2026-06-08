@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Save audio for the latest generated TTS output on web and native sharing targets.
+- Added container Android runtime verification support for headless environments without KVM.
 - Added the voice pipeline overview for desktop and mobile home screens.
 - Added redacted settings export/import for moving provider configurations across devices.
 - Hardened settings import validation against unknown fields and invalid enum/type values.

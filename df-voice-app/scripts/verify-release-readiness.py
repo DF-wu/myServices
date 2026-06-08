@@ -104,6 +104,7 @@ def check_platform_contracts() -> None:
     plugins = app["plugins"]
     require("expo-router" in plugins, "expo-router plugin missing")
     require("expo-secure-store" in plugins, "secure settings storage plugin missing")
+    require("expo-sharing" in plugins, "native audio sharing plugin missing")
     require("./plugins/with-local-http-android" in plugins, "Android local HTTP plugin missing")
     audio_plugin = next(
         (plugin for plugin in plugins if isinstance(plugin, list) and plugin[0] == "expo-audio"),
@@ -227,6 +228,9 @@ def check_configurable_settings_contract() -> None:
             "Message copied.",
             "stopAudioPlayback",
             "Stop audio",
+            "Save audio",
+            "saveTtsAudio",
+            "exportAudioFile",
             "TTS audio stopped.",
             "JsonField label=\"Extra body JSON\"",
             "Field label=\"Voice\"",
@@ -360,6 +364,8 @@ def check_verification_gates() -> None:
             "verify_cancel_transcription",
             "verify_timeout_transcription",
             "Stop audio",
+            "Save audio",
+            "df-voice-speech-",
             "TTS audio stopped.",
             "to_be_disabled",
         ],

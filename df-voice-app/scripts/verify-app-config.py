@@ -166,6 +166,7 @@ def main() -> int:
         plugins = app["plugins"]
         require("expo-router" in plugins, "expo-router plugin missing")
         require("expo-secure-store" in plugins, "expo-secure-store plugin missing")
+        require("expo-sharing" in plugins, "expo-sharing plugin missing")
         require(LOCAL_HTTP_PLUGIN in plugins, "local HTTP Android plugin missing")
         audio_plugin = next(
             (plugin for plugin in plugins if isinstance(plugin, list) and plugin[0] == "expo-audio"),
