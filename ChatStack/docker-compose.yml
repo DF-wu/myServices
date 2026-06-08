@@ -19,7 +19,7 @@
 # - 43061 | api-conversion
 # - 43062 | sub2api
 # - 43063 | infinite-canvas
-# - 43080 | telegram-chatbot
+# - 43080 | telegram-chatbot (legacy profile)
 # - 59998 | tika
 
 services:
@@ -475,6 +475,8 @@ services:
     container_name: telegram-chatbot
     image: yym68686/chatgpt:latest
     restart: unless-stopped
+    profiles:
+      - legacy-telegram
     environment:
       - TZ=Asia/Taipei
       # Secrets are provided by the deployment environment.
@@ -705,19 +707,22 @@ services:
   # author : df
   # AstrBot - AI-powered chatbot
   # doc: https://docs.astrbot.app/deploy/astrbot/docker.html
-  # astrbot:
-  #   image: soulter/astrbot:latest
-  #   container_name: astrbot
-  #   restart: unless-stopped
-  #   ports: # mappings description: https://github.com/AstrBotDevs/AstrBot/issues/497
-  #     - "43004:6185" # 必选，AstrBot WebUI 端口
-  #     # - "6199:6199" # 可选, QQ 个人号 WebSocket 端口
-  #   environment:
-  #     - TZ=Asia/Taipei
-  #   volumes:
-  #     - /mnt/appdata/ChatStack/astrbot/data:/AstrBot/data
-  #     - /etc/timezone:/etc/timezone:ro
-  #     - /etc/localtime:/etc/localtime:ro
+  astrbot:
+    image: soulter/astrbot:latest
+    container_name: astrbot
+    restart: unless-stopped
+    ports: # mappings description: https://github.com/AstrBotDevs/AstrBot/issues/497
+      - "43004:6185" # 必选，AstrBot WebUI 端口
+      # - "6199:6199" # 可选, QQ 个人号 WebSocket 端口
+    environment:
+      - TZ=Asia/Taipei
+    volumes:
+      - /mnt/appdata/ChatStack/astrbot/data:/AstrBot/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      new-api:
+        condition: service_started
   # astrbot sandbox
   # shipyard:
   #   image: soulter/shipyard-bay:latest
