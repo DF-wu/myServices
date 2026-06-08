@@ -587,6 +587,7 @@ export function AppShell() {
   async function fetchProviderProbe(provider: ProviderKey, signal?: AbortSignal) {
     const config = providerConfig(settings, provider);
     const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson, {
+      label: config.label,
       signal,
       timeoutSec: config.timeoutSec,
     });
@@ -622,6 +623,7 @@ export function AppShell() {
         providerKeys.map(async (provider) => {
           const config = providerConfig(settings, provider);
           const result = await probeModels(config.baseUrl, config.apiKey, config.extraHeadersJson, {
+            label: config.label,
             signal: controller.signal,
             timeoutSec: config.timeoutSec,
           });

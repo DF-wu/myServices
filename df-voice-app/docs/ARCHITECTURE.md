@@ -28,6 +28,7 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 6. TTS calls `/v1/audio/speech`; web uses an object URL and native writes the returned bytes to cache. Web playback revokes the previous object URL when replacing audio or unmounting the app shell.
 
 Each provider request receives an abort signal from the app shell in addition to its configured timeout. Cancelling an in-flight ASR, conversation, TTS, or provider diagnostic request aborts the HTTP call and ignores any stale response path that resolves after cancellation. Timeout aborts are converted into explicit timeout messages so slow providers are distinguishable from user-cancelled requests.
+Before a provider request is sent, the provider client validates the request-critical settings it needs: HTTP(S) base URLs for ASR, conversation, TTS, and diagnostics; models for ASR and conversation; and model plus voice for TTS. This catches empty or malformed imported settings in the client and keeps provider errors actionable.
 
 ## Persistence
 

@@ -32,13 +32,35 @@ class TimeoutError extends Error {
   }
 }
 
-function endpoint(baseUrl: string, path: string) {
-  const cleanBase = baseUrl.trim().replace(/\/+$/, "");
+function endpoint(baseUrl: string, path: string, label = "Provider base URL") {
+  const cleanBase = requireHttpBaseUrl(baseUrl, label).replace(/\/+$/, "");
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   if (cleanBase.endsWith("/v1")) {
     return `${cleanBase}${cleanPath}`;
   }
   return `${cleanBase}/v1${cleanPath}`;
+}
+
+function requireText(value: string, label: string) {
+  const clean = value.trim();
+  if (!clean) {
+    throw new Error(`${label} is required.`);
+  }
+  return clean;
+}
+
+function requireHttpBaseUrl(value: string, label: string) {
+  const clean = requireText(value, label);
+  let parsed: URL;
+  try {
+    parsed = new URL(clean);
+  } catch {
+    throw new Error(`${label} must be a valid HTTP(S) URL.`);
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(`${label} must use HTTP or HTTPS.`);
+  }
+  return clean;
 }
 
 function authHeaders(
@@ -137,9 +159,11 @@ export async function transcribeAudio(
   audio: UploadableAudio,
   options: RequestOptions = {},
 ): Promise<TranscriptionResult> {
+  const endpointUrl = endpoint(settings.baseUrl, "/audio/transcriptions", "ASR base URL");
+  const model = requireText(settings.model, "ASR model");
   const form = new FormData();
   appendAudio(form, audio);
-  form.append("model", settings.model);
+  form.append("model", model);
   form.append("response_format", settings.responseFormat);
   form.append("temperature", String(settings.temperature));
   if (settings.language.trim()) {
@@ -152,7 +176,7 @@ export async function transcribeAudio(
 
   const { signal, timedOut, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
   try {
-    const response = await fetch(endpoint(settings.baseUrl, "/audio/transcriptions"), {
+    const response = await fetch(endpointUrl, {
       method: "POST",
       headers: authHeaders(settings.apiKey, undefined, settings.extraHeadersJson),
       body: form,
@@ -182,15 +206,20 @@ export async function runConversation(
   messages: ChatMessage[],
   options: RequestOptions & { onDelta?: (delta: string) => void } = {},
 ): Promise<string> {
+  const endpointUrl = endpoint(
+    settings.baseUrl,
+    settings.mode === "responses" ? "/responses" : "/chat/completions",
+    "Conversation base URL",
+  );
+  requireText(settings.model, "Conversation model");
   const payload =
     settings.mode === "responses"
       ? responsesPayload(settings, messages)
       : chatCompletionsPayload(settings, messages);
   const extraBody = jsonObjectFromText(settings.extraBodyJson, "Conversation extra body JSON");
-  const path = settings.mode === "responses" ? "/responses" : "/chat/completions";
   const { signal, timedOut, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
   try {
-    const response = await fetch(endpoint(settings.baseUrl, path), {
+    const response = await fetch(endpointUrl, {
       method: "POST",
       headers: authHeaders(
         settings.apiKey,
@@ -221,10 +250,13 @@ export async function synthesizeSpeech(
   input: string,
   options: RequestOptions = {},
 ): Promise<string> {
+  const endpointUrl = endpoint(settings.baseUrl, "/audio/speech", "TTS base URL");
+  const model = requireText(settings.model, "TTS model");
+  const voice = requireText(settings.voice, "TTS voice");
   const { signal, timedOut, cancel } = timeoutSignal(settings.timeoutSec, options.signal);
   const extraBody = jsonObjectFromText(settings.extraBodyJson, "TTS extra body JSON");
   try {
-    const response = await fetch(endpoint(settings.baseUrl, "/audio/speech"), {
+    const response = await fetch(endpointUrl, {
       method: "POST",
       headers: authHeaders(
         settings.apiKey,
@@ -232,8 +264,8 @@ export async function synthesizeSpeech(
         settings.extraHeadersJson,
       ),
       body: JSON.stringify({
-        model: settings.model,
-        voice: settings.voice,
+        model,
+        voice,
         input,
         response_format: settings.responseFormat,
         speed: settings.speed,
@@ -266,9 +298,18 @@ export async function probeModels(
   baseUrl: string,
   apiKey: string,
   extraHeadersJson = "",
-  options: RequestOptions & { timeoutSec?: number } = {},
+  options: RequestOptions & { label?: string; timeoutSec?: number } = {},
 ): Promise<ApiProbe> {
-  const modelsEndpoint = endpoint(baseUrl, "/models");
+  let modelsEndpoint: string;
+  try {
+    modelsEndpoint = endpoint(baseUrl, "/models", `${options.label ?? "Provider"} base URL`);
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Provider base URL is invalid.",
+      modelIds: [],
+    };
+  }
   const timeout = options.timeoutSec ?? 30;
   const { signal, timedOut, cancel } = timeoutSignal(timeout, options.signal);
   try {
@@ -380,7 +421,7 @@ export function recordingUriToAudio(uri: string): UploadableAudio {
 
 function chatCompletionsPayload(settings: ConversationSettings, messages: ChatMessage[]) {
   return {
-    model: settings.model,
+    model: settings.model.trim(),
     messages: [
       ...(settings.systemPrompt.trim()
         ? [{ role: "system", content: settings.systemPrompt.trim() }]
@@ -401,7 +442,7 @@ function chatCompletionsPayload(settings: ConversationSettings, messages: ChatMe
 
 function responsesPayload(settings: ConversationSettings, messages: ChatMessage[]) {
   return {
-    model: settings.model,
+    model: settings.model.trim(),
     input: [
       ...(settings.systemPrompt.trim()
         ? [{ role: "system", content: settings.systemPrompt.trim() }]

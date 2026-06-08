@@ -218,6 +218,67 @@ def run_diagnostics(page) -> None:
     page.screenshot(path=str(ARTIFACTS / "web-diagnostics-models.png"), full_page=True)
 
 
+def run_diagnostics_missing_base_url(page) -> None:
+    value = settings("responses")
+    value["asr"]["baseUrl"] = ""
+    page.evaluate(
+        """([key, value]) => localStorage.setItem(key, JSON.stringify(value))""",
+        [SETTINGS_KEY, value],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    page.get_by_role("button", name="設定").click()
+    page.get_by_label("Check ASR").click()
+    expect(page.get_by_text("ASR base URL is required.", exact=True)).to_be_visible(timeout=10000)
+
+
+def run_missing_conversation_settings_case(page) -> None:
+    value = settings("responses", stream=False)
+    value["conversation"]["baseUrl"] = ""
+    page.evaluate(
+        """([settingsKey, workspaceKey, value]) => {
+            localStorage.setItem(settingsKey, JSON.stringify(value));
+            localStorage.setItem(workspaceKey, JSON.stringify({
+                transcript: "",
+                rawResult: "",
+                chatDraft: "",
+                messages: [],
+                customPromptTemplates: [],
+                customProviderTemplates: []
+            }));
+        }""",
+        [SETTINGS_KEY, WORKSPACE_KEY, value],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    page.get_by_role("button", name="對話").click()
+    page.get_by_placeholder("Type a message, or send the latest transcript.").fill("missing base")
+    page.get_by_role("button", name="Send").click()
+    expect(page.get_by_text("Request failed: Conversation base URL is required.")).to_be_visible(
+        timeout=10000
+    )
+    expect(page.get_by_text("Mock responses output.")).not_to_be_visible()
+    page.wait_for_function(
+        """(key) => {
+            const stored = JSON.parse(localStorage.getItem(key) || "{}");
+            const messages = Array.isArray(stored.messages) ? stored.messages : [];
+            const contents = messages.map((message) => message.content);
+            return contents.includes("missing base")
+                && contents.includes("Request failed: Conversation base URL is required.");
+        }""",
+        arg=WORKSPACE_KEY,
+        timeout=10000,
+    )
+    stored = page.evaluate(
+        """(key) => JSON.parse(localStorage.getItem(key) || "{}")""",
+        WORKSPACE_KEY,
+    )
+    contents = [message.get("content") for message in stored.get("messages", [])]
+    assert "missing base" in contents, stored
+    assert "Request failed: Conversation base URL is required." in contents, stored
+    assert "Mock responses output." not in contents, stored
+
+
 def run_settings_portability(page) -> None:
     seeded = settings("responses")
     seeded["asr"]["apiKey"] = "asr-secret"
@@ -331,9 +392,11 @@ def main() -> int:
         page = browser.new_page(viewport={"width": 1180, "height": 900})
         goto_with_retry(page, CLIENT_URL)
         run_diagnostics(page)
+        run_diagnostics_missing_base_url(page)
         run_settings_portability(page)
         run_cancel_case(page)
         run_timeout_case(page)
+        run_missing_conversation_settings_case(page)
         run_case(page, "chat_completions", "Mock chat stream.", verify_export=True)
         run_case(page, "responses", "Mock responses stream.")
         run_case(page, "responses", "Mock response text done.", variant="responses-text-done")

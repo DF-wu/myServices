@@ -176,6 +176,53 @@ def verify_timeout_transcription(page, path: str) -> None:
     assert stored.get("transcript") == "", stored
 
 
+def verify_missing_asr_settings(page, path: str) -> None:
+    value = settings()
+    value["asr"]["baseUrl"] = "   "
+    page.evaluate(
+        """([settingsKey, workspaceKey, value]) => {
+            localStorage.setItem(settingsKey, JSON.stringify(value));
+            localStorage.setItem(workspaceKey, JSON.stringify({
+                transcript: "",
+                rawResult: "",
+                chatDraft: "",
+                messages: [],
+                customPromptTemplates: [],
+                customProviderTemplates: []
+            }));
+        }""",
+        [SETTINGS_KEY, WORKSPACE_KEY, value],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Upload").click()
+    chooser.value.set_files(path)
+    expect(page.get_by_text("ASR base URL is required.")).to_be_visible(timeout=10000)
+    expect(page.get_by_text("Mock ASR transcript.")).not_to_be_visible()
+    stored = page.evaluate(
+        """(key) => JSON.parse(localStorage.getItem(key) || "{}")""",
+        WORKSPACE_KEY,
+    )
+    assert stored.get("transcript") == "", stored
+    assert stored.get("rawResult") == "", stored
+
+
+def verify_missing_tts_settings(page) -> None:
+    value = settings()
+    value["tts"]["voice"] = "   "
+    page.evaluate(
+        """([settingsKey, value]) => localStorage.setItem(settingsKey, JSON.stringify(value))""",
+        [SETTINGS_KEY, value],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    expect(page.get_by_text("Mock ASR transcript.").first).to_be_visible(timeout=10000)
+    page.get_by_label("Speak").click()
+    expect(page.get_by_text("TTS voice is required.")).to_be_visible(timeout=10000)
+    expect(page.get_by_text("TTS audio is playing.")).not_to_be_visible()
+
+
 def main() -> int:
     ARTIFACTS.mkdir(exist_ok=True)
     with tempfile.NamedTemporaryFile(suffix=".wav") as audio:
@@ -194,6 +241,10 @@ def main() -> int:
                 arg=WORKSPACE_KEY,
                 timeout=10000,
             )
+            page.reload(wait_until="domcontentloaded")
+            expect(page.get_by_text("Mock ASR transcript.").first).to_be_visible(timeout=10000)
+            verify_missing_tts_settings(page)
+            seed_settings(page)
             page.reload(wait_until="domcontentloaded")
             expect(page.get_by_text("Mock ASR transcript.").first).to_be_visible(timeout=10000)
             page.evaluate(
@@ -245,6 +296,7 @@ def main() -> int:
             verify_response_format(page, audio.name, "text", "Mock ASR transcript.")
             verify_response_format(page, audio.name, "srt", "00:00:00,000 --> 00:00:01,000")
             verify_response_format(page, audio.name, "vtt", "WEBVTT")
+            verify_missing_asr_settings(page, audio.name)
             verify_cancel_transcription(page, audio.name)
             verify_timeout_transcription(page, audio.name)
             browser.close()

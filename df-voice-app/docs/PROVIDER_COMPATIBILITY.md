@@ -26,6 +26,8 @@ DF Voice App targets OpenAI-compatible HTTP APIs and local providers that implem
 ## Provider Notes
 
 - `baseUrl` may include `/v1` or omit it; the client normalizes endpoint paths.
+- ASR, conversation, TTS, and model diagnostic requests require an HTTP(S) `baseUrl` before any network request is sent.
+- ASR and conversation requests require `model`; TTS requests require both `model` and `voice`.
 - API keys are optional so local providers can run without authentication.
 - Extra headers are merged before each request and are useful for gateways or vendor routing.
 - Extra JSON body fields are merged after built-in fields for conversation and TTS requests.
