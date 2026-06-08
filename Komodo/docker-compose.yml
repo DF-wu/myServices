@@ -15,7 +15,6 @@
 #   代價：SSPL 授權（自架自用無影響，商用要評估）；container 比 FerretDB+Postgres 多吃一些 RAM。
 # - mongo 容器打 `komodo.skip` label：避免 Komodo 自己 UI 把自家 DB 也納入「stop all」之類的全域操作。
 # - core 與 periphery 拆開兩個容器（即使現在單機），未來新增主機只要在新主機跑 periphery，core 不動。
-# - periphery 放在 `agent` profile：預設只開 Mongo + Core 面板，不掛 Docker socket，不接管本機 Docker。
 # - periphery 跟 core 共用 named volume `keys/` 來交換 ed25519 公鑰，這樣 LAN 內就不用人工貼 key。
 # - 不開 host network、不掛 user repo（你選 /etc/komodo 隔離模式）。Portainer-style 全權限是反模式。
 # - ports 預設開在 0.0.0.0:55003 → core:9120，方便 LAN UI；之後上 NPM 再改 127.0.0.1 binding。
@@ -63,7 +62,7 @@ services:
   # ── Komodo Core (Web UI + API) ────────────────────────────────────────────
   # 這是你要打開瀏覽器看的服務。port 9120（內）→ 55003（外）對齊你的 5500x 管理工具慣例。
   core:
-    image: ghcr.io/moghtech/komodo-core:2.2.0
+    image: ghcr.io/moghtech/komodo-core:v2.1.2
     container_name: komodo-core
     # init: true → 用 tini 當 PID 1，正確處理 SIGTERM、避免 zombie process。
     init: true
@@ -95,12 +94,9 @@ services:
   # ── Komodo Periphery (Agent on this host) ─────────────────────────────────
   # Periphery 是真正去操作 docker 的 agent。即使單機也拆出來：未來新增主機只要在那台跑 periphery 即可。
   # 它跟 core 透過 ws://core:9120 通訊，授權用 ed25519 公鑰（共享 keys volume）。
-  # 預設不啟動；要讓 Komodo 管理本機 Docker 時才加 `--profile agent`。
   periphery:
-    image: ghcr.io/moghtech/komodo-periphery:2.2.0
+    image: ghcr.io/moghtech/komodo-periphery:v2.1.2
     container_name: komodo-periphery
-    profiles:
-      - agent
     init: true
     restart: unless-stopped
     depends_on:

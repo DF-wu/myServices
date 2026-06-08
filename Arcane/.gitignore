@@ -1,9 +1,0 @@
-# Local secrets
-compose.env.local
-.env
-
-# Local app data if someone changes mounts into this directory
-data/
-projects/
-builds/
-templates/
