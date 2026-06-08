@@ -14,6 +14,7 @@
 - Added transcript workflow prompt templates and non-streaming conversation verification.
 - Added local workspace restore for transcripts, drafts, and conversations.
 - Added editable transcripts before copy, export, chat, prompt workflow, or TTS handoff.
+- Added copy actions for individual conversation messages.
 - Added custom prompt template creation, restore, and deletion.
 - Added a Settings action and smoke coverage for clearing local workspace data.
 - Added inline validation for advanced JSON override fields.

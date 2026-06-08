@@ -102,6 +102,8 @@ def run_case(
     page.get_by_placeholder("Type a message, or send the latest transcript.").fill("hello")
     page.get_by_role("button", name="Send").click()
     expect(page.get_by_text(expected)).to_be_visible(timeout=10000)
+    page.get_by_label("Copy assistant message").click()
+    expect(page.get_by_text("Message copied.")).to_be_visible(timeout=10000)
     page.wait_for_function(
         """([key, expected]) => {
             const stored = JSON.parse(localStorage.getItem(key) || "{}");

@@ -222,21 +222,21 @@ def verify_timeout_transcription(page, path: str) -> None:
 
 
 def verify_missing_asr_settings(page, path: str) -> None:
+    existing_transcript = page.get_by_label("Transcript text").input_value()
+    existing_raw = page.evaluate(
+        """(key) => {
+            const stored = JSON.parse(localStorage.getItem(key) || "{}");
+            return stored.rawResult || "";
+        }""",
+        WORKSPACE_KEY,
+    )
     value = settings()
     value["asr"]["baseUrl"] = "   "
     page.evaluate(
-        """([settingsKey, workspaceKey, value]) => {
+        """([settingsKey, value]) => {
             localStorage.setItem(settingsKey, JSON.stringify(value));
-            localStorage.setItem(workspaceKey, JSON.stringify({
-                transcript: "",
-                rawResult: "",
-                chatDraft: "",
-                messages: [],
-                customPromptTemplates: [],
-                customProviderTemplates: []
-            }));
         }""",
-        [SETTINGS_KEY, WORKSPACE_KEY, value],
+        [SETTINGS_KEY, value],
     )
     page.reload(wait_until="domcontentloaded")
     page.wait_for_selector("text=DF Voice App")
@@ -244,13 +244,13 @@ def verify_missing_asr_settings(page, path: str) -> None:
         page.get_by_role("button", name="Upload").click()
     chooser.value.set_files(path)
     expect(page.get_by_text("ASR base URL is required.")).to_be_visible(timeout=10000)
-    expect(page.get_by_text("Mock ASR transcript.")).not_to_be_visible()
+    expect(page.get_by_text("Transcribed")).not_to_be_visible()
     stored = page.evaluate(
         """(key) => JSON.parse(localStorage.getItem(key) || "{}")""",
         WORKSPACE_KEY,
     )
-    assert stored.get("transcript") == "", stored
-    assert stored.get("rawResult") == "", stored
+    assert stored.get("transcript") == existing_transcript, stored
+    assert stored.get("rawResult") == existing_raw, stored
 
 
 def verify_missing_tts_settings(page) -> None:

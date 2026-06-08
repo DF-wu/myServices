@@ -903,6 +903,10 @@ export function AppShell() {
           onChangeDraft={setChatDraft}
           onClear={clearConversation}
           onExport={exportConversation}
+          onCopyMessage={async (content) => {
+            await Clipboard.setStringAsync(content);
+            setNotice("Message copied.");
+          }}
           onSend={() => sendChat()}
           onSendTranscript={() => sendChat(transcript)}
           onSpeak={speak}
@@ -1403,6 +1407,7 @@ function ChatView({
   messages,
   onChangeDraft,
   onClear,
+  onCopyMessage,
   onSend,
   onSendTranscript,
   onSpeak,
@@ -1414,6 +1419,7 @@ function ChatView({
   messages: ChatMessage[];
   onChangeDraft: (value: string) => void;
   onClear: () => void;
+  onCopyMessage: (content: string) => void;
   onExport: () => void;
   onSend: () => void;
   onSendTranscript: () => void;
@@ -1476,7 +1482,10 @@ function ChatView({
               <Text style={{ color: colors.ink, fontWeight: "800" }}>
                 {message.role === "assistant" ? "Assistant" : "User"}
               </Text>
-              {message.role === "assistant" ? <IconOnly disabled={requestBusy} icon={Volume2} label="Speak" onPress={() => onSpeak(message.content)} /> : null}
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <IconOnly disabled={!message.content} icon={Copy} label={`Copy ${message.role} message`} onPress={() => onCopyMessage(message.content)} />
+                {message.role === "assistant" ? <IconOnly disabled={requestBusy || !message.content} icon={Volume2} label="Speak" onPress={() => onSpeak(message.content)} /> : null}
+              </View>
             </View>
             <Text selectable style={{ color: colors.ink, lineHeight: 23 }}>
               {message.content || (message.role === "assistant" ? "Waiting for response..." : "")}

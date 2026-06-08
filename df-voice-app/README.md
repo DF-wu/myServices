@@ -12,6 +12,7 @@ Standalone voice workbench for web, Android, and optional iOS. It records or upl
 - Generate speech with `POST /v1/audio/speech`
 - Export transcripts, raw ASR payloads, and conversations as Markdown
 - Edit transcripts before copy, export, chat, or TTS handoff
+- Copy individual conversation messages for direct reuse
 - Check ASR, chat, and TTS providers with `GET /v1/models`
 - Persist provider settings and API keys locally
 - Apply built-in and custom provider templates for local CapsWriter, cloud-compatible, Android emulator, and LM Studio/Ollama-style setups
