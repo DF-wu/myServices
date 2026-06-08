@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { rm } from "node:fs/promises";
+import { mkdir, rm, symlink } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 
 const buildDir = "test-artifacts/logic-build";
@@ -19,6 +19,8 @@ if (tsc.status !== 0) {
   process.exit(tsc.status ?? 1);
 }
 
+await linkRuntimeAliases();
+
 const {
   REDACTED_SETTING_VALUE,
   importSettingsText,
@@ -26,6 +28,8 @@ const {
   sanitizeSettings,
   settingsJsonExport,
 } = await import(`../${buildDir}/lib/settings-portability.js`);
+const { defaultSettings, templates } = await import(`../${buildDir}/data/templates.js`);
+const { promptTemplates } = await import(`../${buildDir}/data/prompt-templates.js`);
 
 const current = {
   asr: {
@@ -205,4 +209,146 @@ assert.throws(
   /must be a JSON object/,
 );
 
-console.log("settings portability logic verification passed");
+assert.equal(JSON.stringify(defaultSettings).includes("secret"), false);
+validateSettings(defaultSettings, "default settings");
+
+assert.ok(templates.length >= 4, "expected provider templates for local, cloud, emulator, and desktop use");
+assertUniqueIds(templates, "provider templates");
+assert.ok(
+  templates.some((template) => template.id === "capswriter-local"),
+  "missing CapsWriter local provider template",
+);
+assert.ok(
+  templates.some((template) => template.settings.conversation.mode === "responses"),
+  "provider templates must include a Responses configuration",
+);
+assert.ok(
+  templates.some((template) => template.settings.conversation.mode === "chat_completions"),
+  "provider templates must include a Chat Completions configuration",
+);
+assert.ok(
+  templates.some((template) => JSON.stringify(template.settings).includes("10.0.2.2")),
+  "provider templates must include an Android emulator host setup",
+);
+
+for (const template of templates) {
+  assertNonEmptyString(template.id, "provider template id");
+  assert.match(template.id, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  assertNonEmptyString(template.name, `${template.id} name`);
+  assertNonEmptyString(template.description, `${template.id} description`);
+  assert.ok(template.tags.length > 0, `${template.id} must have tags`);
+  validateSettings(template.settings, `${template.id} settings`);
+  assert.equal(template.settings.asr.apiKey, "", `${template.id} must not embed an ASR API key`);
+  assert.equal(template.settings.conversation.apiKey, "", `${template.id} must not embed a chat API key`);
+  assert.equal(template.settings.tts.apiKey, "", `${template.id} must not embed a TTS API key`);
+  assert.equal(template.settings.asr.extraHeadersJson, "", `${template.id} must not embed ASR headers`);
+  assert.equal(template.settings.conversation.extraHeadersJson, "", `${template.id} must not embed chat headers`);
+  assert.equal(template.settings.tts.extraHeadersJson, "", `${template.id} must not embed TTS headers`);
+}
+
+assert.ok(promptTemplates.length >= 5, "expected a useful prompt workflow library");
+assertUniqueIds(promptTemplates, "prompt templates");
+assert.ok(
+  promptTemplates.some((template) => template.id === "clean-transcript"),
+  "missing transcript cleanup prompt template",
+);
+assert.ok(
+  new Set(promptTemplates.map((template) => template.category)).size >= 4,
+  "prompt templates should cover multiple workflow categories",
+);
+
+for (const template of promptTemplates) {
+  assertNonEmptyString(template.id, "prompt template id");
+  assert.match(template.id, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  assertNonEmptyString(template.name, `${template.id} name`);
+  assertNonEmptyString(template.category, `${template.id} category`);
+  assertNonEmptyString(template.description, `${template.id} description`);
+  assert.ok(template.tags.length > 0, `${template.id} must have tags`);
+  assert.ok(template.prompt.trim().length >= 30, `${template.id} prompt should be production-useful`);
+}
+
+console.log("voice app logic verification passed");
+
+async function linkRuntimeAliases() {
+  const aliasRoot = `${buildDir}/node_modules/@`;
+  await mkdir(aliasRoot, { recursive: true });
+  await symlink("../../config", `${aliasRoot}/config`);
+  await symlink("../../data", `${aliasRoot}/data`);
+  await symlink("../../lib", `${aliasRoot}/lib`);
+  await symlink("../../types", `${aliasRoot}/types`);
+}
+
+function validateSettings(settings, label) {
+  assertOneOf(settings.asr.responseFormat, ["json", "text", "verbose_json", "srt", "vtt"], `${label} ASR format`);
+  assertNumberRange(settings.asr.temperature, 0, 1, `${label} ASR temperature`);
+  assertIntegerAtLeast(settings.asr.timeoutSec, 1, `${label} ASR timeout`);
+  assertValidUrl(settings.asr.baseUrl, `${label} ASR base URL`);
+  assertNonEmptyString(settings.asr.model, `${label} ASR model`);
+  assertJsonObjectText(settings.asr.extraFormFieldsJson, `${label} ASR extra form fields`);
+  assertJsonObjectText(settings.asr.extraHeadersJson, `${label} ASR extra headers`);
+
+  assertOneOf(settings.conversation.mode, ["responses", "chat_completions"], `${label} conversation mode`);
+  assertNumberRange(settings.conversation.temperature, 0, 2, `${label} conversation temperature`);
+  assertNumberRange(settings.conversation.topP, 0, 1, `${label} conversation top_p`);
+  assertNumberRange(settings.conversation.frequencyPenalty, -2, 2, `${label} frequency penalty`);
+  assertNumberRange(settings.conversation.presencePenalty, -2, 2, `${label} presence penalty`);
+  assertIntegerAtLeast(settings.conversation.maxOutputTokens, 1, `${label} max output tokens`);
+  assertIntegerAtLeast(settings.conversation.timeoutSec, 1, `${label} conversation timeout`);
+  assertValidUrl(settings.conversation.baseUrl, `${label} conversation base URL`);
+  assertNonEmptyString(settings.conversation.model, `${label} conversation model`);
+  assertNonEmptyString(settings.conversation.systemPrompt, `${label} system prompt`);
+  assertJsonObjectText(settings.conversation.extraBodyJson, `${label} conversation extra body`);
+  assertJsonObjectText(settings.conversation.extraHeadersJson, `${label} conversation extra headers`);
+
+  assertOneOf(settings.tts.responseFormat, ["mp3", "opus", "aac", "flac", "wav", "pcm"], `${label} TTS format`);
+  assertNumberRange(settings.tts.speed, 0.25, 4, `${label} TTS speed`);
+  assertIntegerAtLeast(settings.tts.timeoutSec, 1, `${label} TTS timeout`);
+  assertValidUrl(settings.tts.baseUrl, `${label} TTS base URL`);
+  assertNonEmptyString(settings.tts.model, `${label} TTS model`);
+  assertNonEmptyString(settings.tts.voice, `${label} TTS voice`);
+  assertJsonObjectText(settings.tts.extraBodyJson, `${label} TTS extra body`);
+  assertJsonObjectText(settings.tts.extraHeadersJson, `${label} TTS extra headers`);
+
+  assert.equal(typeof settings.autoSpeak, "boolean", `${label} autoSpeak must be boolean`);
+  assert.equal(typeof settings.keepConversationHistory, "boolean", `${label} history flag must be boolean`);
+}
+
+function assertUniqueIds(values, label) {
+  const ids = values.map((value) => value.id);
+  assert.deepEqual(ids, [...new Set(ids)], `${label} must have unique ids`);
+}
+
+function assertNonEmptyString(value, label) {
+  assert.equal(typeof value, "string", `${label} must be a string`);
+  assert.ok(value.trim().length > 0, `${label} must not be empty`);
+}
+
+function assertOneOf(value, allowed, label) {
+  assert.ok(allowed.includes(value), `${label} must be one of ${allowed.join(", ")}`);
+}
+
+function assertNumberRange(value, min, max, label) {
+  assert.equal(typeof value, "number", `${label} must be a number`);
+  assert.ok(Number.isFinite(value), `${label} must be finite`);
+  assert.ok(value >= min && value <= max, `${label} must be between ${min} and ${max}`);
+}
+
+function assertIntegerAtLeast(value, min, label) {
+  assertNumberRange(value, min, Number.MAX_SAFE_INTEGER, label);
+  assert.ok(Number.isInteger(value), `${label} must be an integer`);
+}
+
+function assertValidUrl(value, label) {
+  assertNonEmptyString(value, label);
+  const parsed = new URL(value);
+  assert.ok(["http:", "https:"].includes(parsed.protocol), `${label} must use HTTP(S)`);
+}
+
+function assertJsonObjectText(value, label) {
+  assert.equal(typeof value, "string", `${label} must be a string`);
+  if (!value.trim()) {
+    return;
+  }
+  const parsed = JSON.parse(value);
+  assert.ok(parsed && typeof parsed === "object" && !Array.isArray(parsed), `${label} must be a JSON object`);
+}

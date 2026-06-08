@@ -10,7 +10,11 @@
     "target": "ES2022"
   },
   "include": [
+    "src/config/provider-defaults.ts",
+    "src/data/prompt-templates.ts",
+    "src/data/templates.ts",
     "src/lib/settings-portability.ts",
+    "src/types/expo-env.d.ts",
     "src/types/client.ts"
   ]
 }

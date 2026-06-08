@@ -130,6 +130,8 @@ Run static checks:
 npm run verify:static
 ```
 
+`verify:logic` compiles and checks settings portability plus the built-in provider and prompt template contracts.
+
 Run Android native checks:
 
 ```bash
