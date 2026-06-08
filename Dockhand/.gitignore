@@ -1,0 +1,7 @@
+# Local secrets
+compose.env.local
+.env
+
+# Local data if mounts are changed into this directory
+data/
+backups/
