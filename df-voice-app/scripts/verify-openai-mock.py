@@ -128,6 +128,40 @@ def run_case(
         assert expected in export_text
 
 
+def run_auto_speak_case(page) -> None:
+    value = settings("chat_completions", stream=False)
+    value["autoSpeak"] = True
+    value["tts"]["extraHeadersJson"] = '{"x-df-voice-test":"tts"}'
+    value["tts"]["extraBodyJson"] = '{"provider_hint":"tts-extra"}'
+    page.evaluate(
+        """([settingsKey, workspaceKey, value]) => {
+            localStorage.setItem(settingsKey, JSON.stringify(value));
+            localStorage.setItem(workspaceKey, JSON.stringify({
+                transcript: "",
+                rawResult: "",
+                chatDraft: "",
+                messages: [],
+                customPromptTemplates: [],
+                customProviderTemplates: []
+            }));
+        }""",
+        [SETTINGS_KEY, WORKSPACE_KEY, value],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    page.get_by_role("button", name="對話").click()
+    page.get_by_placeholder("Type a message, or send the latest transcript.").fill("speak this")
+    with page.expect_response(
+        lambda response: "/v1/audio/speech" in response.url and response.status == 200
+    ):
+        page.get_by_role("button", name="Send").click()
+    expect(page.get_by_text("Mock chat response.")).to_be_visible(timeout=10000)
+    expect(page.get_by_text("TTS audio is playing.")).to_be_visible(timeout=10000)
+    expect(page.get_by_role("button", name="Save audio")).to_be_visible(timeout=10000)
+    page.get_by_role("button", name="Stop audio").click()
+    expect(page.get_by_text("TTS audio stopped.")).to_be_visible(timeout=10000)
+
+
 def run_cancel_case(page) -> None:
     page.evaluate(
         """([settingsKey, workspaceKey, value]) => {
@@ -407,6 +441,7 @@ def main() -> int:
         run_case(page, "responses", "Mock responses stream.")
         run_case(page, "responses", "Mock response text done.", variant="responses-text-done")
         run_case(page, "responses", "Mock completed response.", variant="responses-completed-only")
+        run_auto_speak_case(page)
         run_case(page, "chat_completions", "Mock chat response.", stream=False)
         run_case(page, "responses", "Mock responses output.", stream=False)
         browser.close()
