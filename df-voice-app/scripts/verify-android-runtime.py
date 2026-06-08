@@ -16,6 +16,7 @@ ANDROID_ROOT = ROOT / "android"
 APP_JSON = ROOT / "app.json"
 APK = ROOT / "android" / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk"
 ARTIFACTS = ROOT / "test-artifacts"
+DEFAULT_LAUNCH_WAIT_SECONDS = 25
 
 
 def run(command: list[str], *, check: bool = True, binary: bool = False) -> subprocess.CompletedProcess:
@@ -31,6 +32,14 @@ def run(command: list[str], *, check: bool = True, binary: bool = False) -> subp
 def android_package_name() -> str:
     app = json.loads(APP_JSON.read_text(encoding="utf-8"))
     return app["expo"]["android"]["package"]
+
+
+def report_failure(label: str, result: subprocess.CompletedProcess) -> None:
+    print(f"{label} failed with exit code {result.returncode}")
+    if result.stdout:
+        print(result.stdout.strip())
+    if result.stderr:
+        print(result.stderr.strip())
 
 
 def connected_device(adb: str) -> str | None:
@@ -66,6 +75,75 @@ def connected_device(adb: str) -> str | None:
     return None
 
 
+def install_apk(device_args: list[str]) -> bool:
+    result = run([*device_args, "install", "--no-streaming", "-r", str(APK)], check=False)
+    if result.returncode == 0:
+        return True
+
+    if "Unknown option: --no-streaming" in result.stderr or "Unknown option: --no-streaming" in result.stdout:
+        result = run([*device_args, "install", "-r", str(APK)], check=False)
+        if result.returncode == 0:
+            return True
+
+    report_failure("adb install", result)
+    return False
+
+
+def launch_app(device_args: list[str], package_name: str) -> bool:
+    monkey = run(
+        [
+            *device_args,
+            "shell",
+            "monkey",
+            "-p",
+            package_name,
+            "-c",
+            "android.intent.category.LAUNCHER",
+            "1",
+        ],
+        check=False,
+    )
+    if monkey.returncode == 0:
+        return True
+
+    resolved = run(
+        [
+            *device_args,
+            "shell",
+            "cmd",
+            "package",
+            "resolve-activity",
+            "--brief",
+            "-a",
+            "android.intent.action.MAIN",
+            "-c",
+            "android.intent.category.LAUNCHER",
+            "-p",
+            package_name,
+        ],
+        check=False,
+    )
+    component = next(
+        (
+            line.strip()
+            for line in reversed(resolved.stdout.splitlines())
+            if "/" in line and not line.startswith("priority=")
+        ),
+        None,
+    )
+    if not component:
+        report_failure("monkey launch", monkey)
+        report_failure("resolve launch activity", resolved)
+        return False
+
+    started = run([*device_args, "shell", "am", "start", "-n", component], check=False)
+    if started.returncode != 0:
+        report_failure("am start", started)
+        return False
+
+    return True
+
+
 def main() -> int:
     adb = find_adb(ANDROID_ROOT)
     if not adb:
@@ -85,18 +163,17 @@ def main() -> int:
 
     package_name = android_package_name()
     device_args = [adb, "-s", serial]
-    run([*device_args, "install", "-r", str(APK)])
-    run([
-        *device_args,
-        "shell",
-        "monkey",
-        "-p",
-        package_name,
-        "-c",
-        "android.intent.category.LAUNCHER",
-        "1",
-    ])
-    time.sleep(3)
+    if not install_apk(device_args):
+        return 1
+
+    run([*device_args, "reverse", "tcp:8081", "tcp:8081"], check=False)
+    run([*device_args, "shell", "am", "force-stop", package_name], check=False)
+    run([*device_args, "logcat", "-c"], check=False)
+    if not launch_app(device_args, package_name):
+        return 1
+
+    launch_wait_seconds = int(os.environ.get("ANDROID_LAUNCH_WAIT_SECONDS", DEFAULT_LAUNCH_WAIT_SECONDS))
+    time.sleep(launch_wait_seconds)
 
     pid = run([*device_args, "shell", "pidof", package_name], check=False).stdout.strip()
     if not pid:
@@ -111,6 +188,9 @@ def main() -> int:
 
     if "FATAL EXCEPTION" in logcat.stdout and package_name in logcat.stdout:
         print(f"{package_name} launched but logcat contains a fatal exception")
+        return 1
+    if 'ReactNativeJS: Running "main"' not in logcat.stdout:
+        print(f"{package_name} launched but React Native did not report JS startup")
         return 1
 
     print(f"android runtime verification passed on {serial}; pid={pid}")
