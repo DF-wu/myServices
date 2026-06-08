@@ -145,6 +145,7 @@ def run_cancel_case(page) -> None:
     page.get_by_role("button", name="對話").click()
     page.get_by_placeholder("Type a message, or send the latest transcript.").fill("cancel me")
     page.get_by_role("button", name="Send").click()
+    expect(page.get_by_role("button", name="Send")).to_be_disabled(timeout=10000)
     page.get_by_role("button", name="Cancel request").click()
     expect(page.get_by_text("Request cancelled.").first).to_be_visible(timeout=10000)
     page.wait_for_timeout(1200)

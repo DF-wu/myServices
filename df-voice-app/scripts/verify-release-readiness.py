@@ -227,6 +227,11 @@ def check_configurable_settings_contract() -> None:
             "Field label=\"Voice\"",
             "Segmented<SpeechFormat>",
             "Field label=\"Voice instructions\"",
+            "Cancel or finish the current request before recording.",
+            "Cancel or finish the current request before uploading audio.",
+            "Recording could not be started.",
+            "Recording could not be stopped.",
+            "disabled={requestBusy",
             "function NumericField",
             "function JsonField",
         ],
@@ -342,6 +347,7 @@ def check_verification_gates() -> None:
             "verify_missing_tts_settings",
             "verify_cancel_transcription",
             "verify_timeout_transcription",
+            "to_be_disabled",
         ],
         "ASR mock verifier",
     )
@@ -356,6 +362,7 @@ def check_verification_gates() -> None:
             "run_timeout_case",
             "run_missing_conversation_settings_case",
             "verify_export=True",
+            "to_be_disabled",
         ],
         "conversation mock verifier",
     )

@@ -283,35 +283,64 @@ export function AppShell() {
   }
 
   async function startRecording() {
-    setNotice("");
-    setBusy("record");
-    const permission = await requestRecordingPermissionsAsync();
-    if (!permission.granted) {
-      setBusy(null);
-      setNotice("Microphone permission was not granted.");
+    if (busy && busy !== "record") {
+      setNotice("Cancel or finish the current request before recording.");
       return;
     }
+    setNotice("");
+    setBusy("record");
+    let started = false;
+    try {
+      const permission = await requestRecordingPermissionsAsync();
+      if (!permission.granted) {
+        setNotice("Microphone permission was not granted.");
+        return;
+      }
 
-    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-    await recorder.prepareToRecordAsync();
-    recorder.record();
-    await haptic();
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      started = true;
+      await haptic();
+    } catch (error) {
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
+      setNotice(error instanceof Error ? error.message : "Recording could not be started.");
+    } finally {
+      if (!started) {
+        setBusy(null);
+      }
+    }
   }
 
   async function stopRecording() {
-    setBusy("transcribe");
-    await recorder.stop();
-    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
-    const uri = recorderState.url ?? recorder.uri;
-    if (!uri) {
-      setBusy(null);
-      setNotice("Recording stopped, but no audio file URI was returned.");
+    if (!recorderState.isRecording) {
+      setNotice("No active recording to stop.");
       return;
     }
-    await transcribe(recordingUriToAudio(uri));
+    setBusy("transcribe");
+    try {
+      await recorder.stop();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Recording could not be stopped.");
+      setBusy(null);
+      return;
+    } finally {
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
+    }
+    const uri = recorderState.url ?? recorder.uri;
+    if (uri) {
+      await transcribe(recordingUriToAudio(uri));
+      return;
+    }
+    setBusy(null);
+    setNotice("Recording stopped, but no audio file URI was returned.");
   }
 
   async function pickAudio() {
+    if (busy) {
+      setNotice("Cancel or finish the current request before uploading audio.");
+      return;
+    }
     setNotice("");
     const result = await DocumentPicker.getDocumentAsync({
       type: ["audio/*", "video/*"],
@@ -1257,6 +1286,7 @@ function CaptureView({
 }) {
   const seconds = Math.round(recorderState.durationMillis / 1000);
   const level = Math.max(0, Math.min(1, ((recorderState.metering ?? -60) + 60) / 60));
+  const requestBusy = busy !== null;
   return (
     <View style={{ gap: spacing.lg }}>
       <Surface>
@@ -1285,11 +1315,11 @@ function CaptureView({
 
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
             {recorderState.isRecording ? (
-              <CommandButton label="Stop" tone="danger" icon={Square} loading={busy === "transcribe"} onPress={onStopRecording} />
+              <CommandButton label="Stop" tone="danger" icon={Square} loading={busy === "transcribe"} disabled={busy === "transcribe"} onPress={onStopRecording} />
             ) : (
-              <CommandButton label="Record" tone="primary" icon={Mic} loading={busy === "record"} onPress={onStartRecording} />
+              <CommandButton label="Record" tone="primary" icon={Mic} loading={busy === "record"} disabled={requestBusy} onPress={onStartRecording} />
             )}
-            <CommandButton label="Upload" tone="secondary" icon={Upload} loading={busy === "transcribe"} onPress={onPickAudio} />
+            <CommandButton label="Upload" tone="secondary" icon={Upload} loading={busy === "transcribe"} disabled={requestBusy} onPress={onPickAudio} />
           </View>
         </View>
       </Surface>
@@ -1306,8 +1336,8 @@ function CaptureView({
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
               <IconOnly disabled={!transcript} icon={Copy} label="Copy" onPress={onCopy} />
               <IconOnly disabled={!transcript} icon={Download} label="Export transcript" onPress={onExport} />
-              <IconOnly disabled={!transcript} icon={Send} label="Send to chat" onPress={onSendToChat} />
-              <IconOnly disabled={!transcript} icon={Volume2} label="Speak" onPress={onSpeak} />
+              <IconOnly disabled={!transcript || requestBusy} icon={Send} label="Send to chat" onPress={onSendToChat} />
+              <IconOnly disabled={!transcript || requestBusy} icon={Volume2} label="Speak" onPress={onSpeak} />
               <IconOnly disabled={!transcript && !rawResult} icon={RotateCcw} label="Clear transcript" onPress={onClearTranscript} />
             </View>
           </View>
@@ -1354,6 +1384,7 @@ function ChatView({
   onSpeak: (text: string) => void;
   transcript: string;
 }) {
+  const requestBusy = busy !== null;
   return (
     <View style={{ gap: spacing.lg }}>
       <Surface>
@@ -1379,8 +1410,8 @@ function ChatView({
             style={inputStyle({ minHeight: 110, textAlignVertical: "top" })}
           />
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-            <CommandButton label="Send" tone="primary" icon={Send} loading={busy === "chat"} onPress={onSend} />
-            <CommandButton label="Use transcript" tone="secondary" icon={FileAudio} disabled={!transcript} onPress={onSendTranscript} />
+            <CommandButton label="Send" tone="primary" icon={Send} loading={busy === "chat"} disabled={requestBusy || !draft.trim()} onPress={onSend} />
+            <CommandButton label="Use transcript" tone="secondary" icon={FileAudio} disabled={!transcript || requestBusy} onPress={onSendTranscript} />
           </View>
         </View>
       </Surface>
@@ -1409,7 +1440,7 @@ function ChatView({
               <Text style={{ color: colors.ink, fontWeight: "800" }}>
                 {message.role === "assistant" ? "Assistant" : "User"}
               </Text>
-              {message.role === "assistant" ? <IconOnly icon={Volume2} label="Speak" onPress={() => onSpeak(message.content)} /> : null}
+              {message.role === "assistant" ? <IconOnly disabled={requestBusy} icon={Volume2} label="Speak" onPress={() => onSpeak(message.content)} /> : null}
             </View>
             <Text selectable style={{ color: colors.ink, lineHeight: 23 }}>
               {message.content || (message.role === "assistant" ? "Waiting for response..." : "")}
@@ -1448,6 +1479,7 @@ function SettingsView({
   settings: ClientSettings;
   wide: boolean;
 }) {
+  const requestBusy = busy !== null;
   const updateAsr = <K extends keyof AsrSettings>(key: K, value: AsrSettings[K]) =>
     onUpdate({ ...settings, asr: { ...settings.asr, [key]: value } });
   const updateConversation = <K extends keyof ConversationSettings>(key: K, value: ConversationSettings[K]) =>
@@ -1461,7 +1493,7 @@ function SettingsView({
         <View style={{ gap: spacing.md }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md, flexWrap: "wrap" }}>
             <PanelTitle icon={Wifi} eyebrow="Diagnostics" title="Provider checks" />
-            <CommandButton label="Check all" tone="secondary" icon={Wifi} loading={busy === "probe"} onPress={onProbeAll} />
+            <CommandButton label="Check all" tone="secondary" icon={Wifi} loading={busy === "probe"} disabled={requestBusy} onPress={onProbeAll} />
           </View>
           <View style={{ flexDirection: wide ? "row" : "column", gap: spacing.md }}>
             <ProviderProbeCard
@@ -1470,6 +1502,7 @@ function SettingsView({
               result={diagnostics.asr}
               onPress={() => onProbeProvider("asr")}
               onUseModel={(modelId) => onUseModel("asr", modelId)}
+              disabled={requestBusy}
               style={{ flex: 1 }}
             />
             <ProviderProbeCard
@@ -1478,6 +1511,7 @@ function SettingsView({
               result={diagnostics.conversation}
               onPress={() => onProbeProvider("conversation")}
               onUseModel={(modelId) => onUseModel("conversation", modelId)}
+              disabled={requestBusy}
               style={{ flex: 1 }}
             />
             <ProviderProbeCard
@@ -1486,6 +1520,7 @@ function SettingsView({
               result={diagnostics.tts}
               onPress={() => onProbeProvider("tts")}
               onUseModel={(modelId) => onUseModel("tts", modelId)}
+              disabled={requestBusy}
               style={{ flex: 1 }}
             />
           </View>
@@ -1611,6 +1646,7 @@ function SettingsView({
 }
 
 function ProviderProbeCard({
+  disabled,
   label,
   model,
   onPress,
@@ -1618,6 +1654,7 @@ function ProviderProbeCard({
   result,
   style,
 }: {
+  disabled?: boolean;
   label: string;
   model: string;
   onPress: () => void;
@@ -1649,7 +1686,7 @@ function ProviderProbeCard({
             {ok === undefined ? "Not checked" : ok ? "Reachable" : "Failed"}
           </Text>
         </View>
-        <IconOnly icon={Wifi} label={`Check ${label}`} onPress={onPress} />
+        <IconOnly disabled={disabled} icon={Wifi} label={`Check ${label}`} onPress={onPress} />
       </View>
       <Text selectable style={{ color: colors.muted, lineHeight: 20 }}>
         {result
@@ -1666,6 +1703,7 @@ function ProviderProbeCard({
                 accessibilityRole="button"
                 accessibilityLabel={`Use ${modelId} for ${label}`}
                 accessibilityState={{ selected }}
+                disabled={disabled}
                 onPress={() => onUseModel(modelId)}
                 style={({ pressed }) => ({
                   borderWidth: 1,
@@ -1674,7 +1712,7 @@ function ProviderProbeCard({
                   borderRadius: radii.small,
                   paddingHorizontal: spacing.sm,
                   paddingVertical: spacing.xs,
-                  opacity: pressed ? 0.75 : 1,
+                  opacity: disabled ? 0.45 : pressed ? 0.75 : 1,
                 })}
               >
                 <Text style={{ color: selected ? colors.white : colors.ink, fontSize: 12, fontWeight: "800" }}>
@@ -1721,6 +1759,7 @@ function TemplatesView({
   onSavePrompt: (draft: PromptTemplateDraft) => boolean;
   transcript: string;
 }) {
+  const requestBusy = busy !== null;
   const [providerDraft, setProviderDraft] = useState<ProviderTemplateDraft>(emptyProviderTemplateDraft);
   const [draft, setDraft] = useState<PromptTemplateDraft>(emptyPromptTemplateDraft);
   const promptLibrary = [...customPromptTemplates, ...promptTemplates];
@@ -1784,7 +1823,7 @@ function TemplatesView({
                     label="Run with transcript"
                     tone="primary"
                     icon={Send}
-                    disabled={!transcript.trim()}
+                    disabled={!transcript.trim() || requestBusy}
                     loading={busy === "chat"}
                     onPress={() => onRunPrompt(template)}
                   />

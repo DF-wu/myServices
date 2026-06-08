@@ -136,6 +136,7 @@ def verify_cancel_transcription(page, path: str) -> None:
     with page.expect_file_chooser() as chooser:
         page.get_by_role("button", name="Upload").click()
     chooser.value.set_files(path)
+    expect(page.get_by_role("button", name="Upload")).to_be_disabled(timeout=10000)
     page.get_by_role("button", name="Cancel request").click()
     expect(page.get_by_text("Request cancelled.")).to_be_visible(timeout=10000)
     page.wait_for_timeout(1200)
