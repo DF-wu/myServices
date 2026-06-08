@@ -116,6 +116,36 @@ def verify_response_format(page, path: str, response_format: str, expected_text:
     upload_audio(page, path, expected_text)
 
 
+def verify_empty_upload(page, path: str) -> None:
+    page.evaluate(
+        """([settingsKey, workspaceKey, value]) => {
+            localStorage.setItem(settingsKey, JSON.stringify(value));
+            localStorage.setItem(workspaceKey, JSON.stringify({
+                transcript: "",
+                rawResult: "",
+                chatDraft: "",
+                messages: [],
+                customPromptTemplates: [],
+                customProviderTemplates: []
+            }));
+        }""",
+        [SETTINGS_KEY, WORKSPACE_KEY, settings()],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Upload").click()
+    chooser.value.set_files(path)
+    expect(page.get_by_text("Selected file is empty.")).to_be_visible(timeout=10000)
+    expect(page.get_by_text("Transcribed")).not_to_be_visible()
+    stored = page.evaluate(
+        """(key) => JSON.parse(localStorage.getItem(key) || "{}")""",
+        WORKSPACE_KEY,
+    )
+    assert stored.get("transcript") == "", stored
+    assert stored.get("rawResult") == "", stored
+
+
 def verify_cancel_transcription(page, path: str) -> None:
     page.evaluate(
         """([settingsKey, workspaceKey, value]) => {
@@ -226,8 +256,9 @@ def verify_missing_tts_settings(page) -> None:
 
 def main() -> int:
     ARTIFACTS.mkdir(exist_ok=True)
-    with tempfile.NamedTemporaryFile(suffix=".wav") as audio:
+    with tempfile.NamedTemporaryFile(suffix=".wav") as audio, tempfile.NamedTemporaryFile(suffix=".wav") as empty_audio:
         write_wav(audio.name)
+        empty_audio.flush()
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page(viewport={"width": 1180, "height": 900})
@@ -297,6 +328,7 @@ def main() -> int:
             verify_response_format(page, audio.name, "text", "Mock ASR transcript.")
             verify_response_format(page, audio.name, "srt", "00:00:00,000 --> 00:00:01,000")
             verify_response_format(page, audio.name, "vtt", "WEBVTT")
+            verify_empty_upload(page, empty_audio.name)
             verify_missing_asr_settings(page, audio.name)
             verify_cancel_transcription(page, audio.name)
             verify_timeout_transcription(page, audio.name)

@@ -24,6 +24,7 @@ Standalone voice workbench for web, Android, and optional iOS. It records or upl
 - Cancel in-flight ASR, conversation, TTS, and provider diagnostic requests from the app shell
 - Report provider timeout errors separately from user-cancelled requests
 - Prevent overlapping provider actions while a request is active, and recover cleanly from recorder start/stop errors
+- Reject empty local uploads and block files over 512 MB before sending ASR requests
 
 ## Run
 
@@ -110,6 +111,7 @@ Advanced JSON fields are validated inline in Settings and merged into the outgoi
 Numeric provider settings are range-checked in the Settings tab. Stored settings, provider templates, and imported settings files keep the current device value when an incoming number is out of range, non-finite, or fractional where an integer is required.
 Long-running ASR, conversation, TTS, and model diagnostic requests expose a Cancel request control. Cancelled provider responses are ignored if they arrive later, so stale results cannot overwrite the current transcript or conversation. Provider timeouts report the configured timeout duration instead of being treated as user cancellations.
 Request-triggering controls are disabled while another provider action is active, so a recording, upload, chat call, TTS call, or model diagnostic cannot silently interrupt another in-flight request. Recorder start/stop failures reset the app audio mode and busy state before reporting the error.
+Local audio/video uploads are checked before ASR starts. Empty files are rejected, and files over 512 MB are blocked before any provider request is sent.
 
 Build-time provider defaults:
 

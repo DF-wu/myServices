@@ -125,6 +125,8 @@ const emptyWorkspaceSnapshot: WorkspaceSnapshot = {
   rawResult: "",
   transcript: "",
 };
+const maxUploadBytes = 512 * 1024 * 1024;
+const maxUploadLabel = "512 MB";
 
 function id() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -349,6 +351,11 @@ export function AppShell() {
       base64: false,
     });
     if (result.canceled || !result.assets?.[0]) {
+      return;
+    }
+    const validationError = validatePickedAudioFile(result.assets[0]);
+    if (validationError) {
+      setNotice(validationError);
       return;
     }
     setBusy("transcribe");
@@ -952,6 +959,20 @@ async function readPickedDocumentText(asset: {
     return asset.file.text();
   }
   return new File(asset.uri).text();
+}
+
+function validatePickedAudioFile(asset: { file?: Blob; name?: string; size?: number }) {
+  const size = typeof asset.size === "number" ? asset.size : asset.file?.size;
+  if (size === undefined) {
+    return null;
+  }
+  if (size <= 0) {
+    return "Selected file is empty.";
+  }
+  if (size > maxUploadBytes) {
+    return `Selected file is larger than ${maxUploadLabel}.`;
+  }
+  return null;
 }
 
 function ConfirmationDialog({
