@@ -132,6 +132,7 @@ Run static checks:
 npm run verify:static
 ```
 
+`verify:release` audits the release-readiness contract across platform config, provider client capabilities, customizable settings, templates, docs, CI, and verification gates.
 `verify:logic` compiles and checks settings portability plus the built-in provider and prompt template contracts.
 `verify:app-config` checks web install metadata, native identifiers, microphone permissions, EAS build profiles, and required image asset dimensions.
 
