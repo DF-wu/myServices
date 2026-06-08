@@ -169,6 +169,8 @@ Run the CI-equivalent local gate:
 npm run verify:ci
 ```
 
+The local CI gate includes the same high-severity `npm audit` check used by GitHub Actions.
+
 ## Security
 
 On Android and iOS, settings are stored with `expo-secure-store` when available, and the active workspace is stored as an app-private document JSON file. On web, both are stored in browser `localStorage`; avoid saving production cloud API keys or sensitive transcripts on shared machines. Custom provider templates in workspace storage redact API keys and extra headers, but still keep non-sensitive provider URLs, model names, prompts, and parameters. Use Settings -> Clear workspace to remove the current transcript, raw ASR response, draft, conversation, custom prompt templates, and custom provider templates from local workspace storage. Destructive workspace and custom template actions ask for confirmation before removal.
