@@ -327,6 +327,16 @@ def main() -> int:
                 }""",
                 timeout=10000,
             )
+            page.get_by_role("button", name="Stop audio").click()
+            expect(page.get_by_text("TTS audio stopped.")).to_be_visible(timeout=10000)
+            page.wait_for_function(
+                """() => {
+                    const urls = window.__dfVoiceUrls;
+                    return urls.created.length >= 2 && urls.revoked.includes(urls.created[1]);
+                }""",
+                timeout=10000,
+            )
+            expect(page.get_by_role("button", name="Stop audio")).not_to_be_visible()
             with page.expect_download() as download_info:
                 page.get_by_label("Export transcript").click()
             download = download_info.value

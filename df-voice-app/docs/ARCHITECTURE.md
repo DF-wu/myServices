@@ -27,7 +27,7 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 5. Conversation calls either `/v1/chat/completions` or `/v1/responses`; prompt workflow templates can wrap a transcript before sending.
 6. Streaming responses are parsed from server-sent events and appended into the assistant message. Responses API streams consume delta events first and fall back to completed payload text when a provider sends the final response without deltas.
 7. Individual conversation messages can be copied, and assistant messages can be sent to TTS.
-8. TTS calls `/v1/audio/speech`; web uses an object URL and native writes the returned bytes to cache. Web playback revokes the previous object URL when replacing audio or unmounting the app shell.
+8. TTS calls `/v1/audio/speech`; web uses an object URL and native writes the returned bytes to cache. Web playback revokes the previous object URL when replacing audio, stopping playback, or unmounting the app shell.
 
 Each provider request receives an abort signal from the app shell in addition to its configured timeout. Cancelling an in-flight ASR, conversation, TTS, or provider diagnostic request aborts the HTTP call and ignores any stale response path that resolves after cancellation. Timeout aborts are converted into explicit timeout messages so slow providers are distinguishable from user-cancelled requests.
 The app shell keeps request-triggering controls mutually exclusive while busy, which prevents a second user action from accidentally aborting or replacing a visible in-flight request. Recorder start/stop failures reset audio mode and busy state before surfacing an error notice.

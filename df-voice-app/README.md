@@ -10,6 +10,7 @@ Standalone voice workbench for web, Android, and optional iOS. It records or upl
 - Send transcript text to either `POST /v1/chat/completions` or `POST /v1/responses`
 - Stream Chat Completions and Responses replies over server-sent events
 - Generate speech with `POST /v1/audio/speech`
+- Stop generated speech playback and release the current web audio object URL
 - Export transcripts, raw ASR payloads, and conversations as Markdown
 - Edit transcripts before copy, export, chat, or TTS handoff
 - Copy individual conversation messages for direct reuse
@@ -110,7 +111,7 @@ Streaming is enabled per conversation profile. Chat Completions reads `choices[]
 
 Provider checks run independently for the ASR, conversation, and TTS base URLs. Each check reports HTTP status and model IDs returned by `/v1/models`; returned model IDs can be applied directly to that provider.
 
-ASR, conversation, TTS, and model diagnostic requests validate required base URLs and model fields at request time, so empty or malformed imported settings fail locally with a clear message before a malformed HTTP request is sent. TTS also requires a voice before speech synthesis begins.
+ASR, conversation, TTS, and model diagnostic requests validate required base URLs and model fields at request time, so empty or malformed imported settings fail locally with a clear message before a malformed HTTP request is sent. TTS also requires a voice before speech synthesis begins, and active generated speech can be stopped from the app shell without waiting for the audio to finish.
 Advanced JSON fields are validated inline in Settings and merged into the outgoing request after the built-in settings. They are intended for compatible providers that require custom headers, ASR fields such as timestamp options, or body fields such as `response_format`, `metadata`, `seed`, or vendor-specific flags.
 Numeric provider settings are range-checked in the Settings tab. Stored settings, provider templates, and imported settings files keep the current device value when an incoming number is out of range, non-finite, or fractional where an integer is required.
 Long-running ASR, conversation, TTS, and model diagnostic requests expose a Cancel request control. Cancelled provider responses are ignored if they arrive later, so stale results cannot overwrite the current transcript or conversation. Provider timeouts report the configured timeout duration instead of being treated as user cancellations.

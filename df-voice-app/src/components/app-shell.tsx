@@ -142,6 +142,7 @@ export function AppShell() {
   const [activeTab, setActiveTab] = useState<TabId>("capture");
   const [busy, setBusy] = useState<BusyState>(null);
   const [notice, setNotice] = useState<string>("");
+  const [ttsPlaybackReady, setTtsPlaybackReady] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [rawResult, setRawResult] = useState("");
   const [chatDraft, setChatDraft] = useState("");
@@ -160,7 +161,7 @@ export function AppShell() {
     return () => {
       activeRequestRef.current?.abort();
       activeRequestRef.current = null;
-      replaceAudioPlayer(null);
+      disposeAudioPlayer();
     };
   }, []);
 
@@ -271,11 +272,18 @@ export function AppShell() {
     return controller.signal.aborted || (error instanceof Error && error.name === "AbortError");
   }
 
-  function replaceAudioPlayer(nextPlayer: AudioPlayer | null, nextUri?: string) {
+  function disposeAudioPlayer() {
     playerRef.current?.remove();
-    playerRef.current = nextPlayer;
+    playerRef.current = null;
     releaseTtsObjectUrl(ttsObjectUrlRef.current);
+    ttsObjectUrlRef.current = null;
+  }
+
+  function replaceAudioPlayer(nextPlayer: AudioPlayer | null, nextUri?: string) {
+    disposeAudioPlayer();
+    playerRef.current = nextPlayer;
     ttsObjectUrlRef.current = nextUri && isObjectUrl(nextUri) ? nextUri : null;
+    setTtsPlaybackReady(Boolean(nextPlayer));
   }
 
   function releaseTtsObjectUrl(uri: string | null | undefined) {
@@ -502,6 +510,22 @@ export function AppShell() {
     } finally {
       finishRequest(controller);
     }
+  }
+
+  function stopAudioPlayback() {
+    const currentPlayer = playerRef.current;
+    if (!currentPlayer) {
+      setTtsPlaybackReady(false);
+      setNotice("No TTS audio is playing.");
+      return;
+    }
+
+    try {
+      currentPlayer.pause();
+    } finally {
+      replaceAudioPlayer(null);
+    }
+    setNotice("TTS audio stopped.");
   }
 
   async function exportTranscript() {
@@ -852,6 +876,14 @@ export function AppShell() {
               tone="danger"
               icon={Square}
               onPress={cancelRequest}
+            />
+          ) : null}
+          {ttsPlaybackReady ? (
+            <CommandButton
+              label="Stop audio"
+              tone="plain"
+              icon={Square}
+              onPress={stopAudioPlayback}
             />
           ) : null}
         </View>
