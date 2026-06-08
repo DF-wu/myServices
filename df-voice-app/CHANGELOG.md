@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added Save audio for the latest generated TTS output on web and native sharing targets.
+- Added configurable ASR upload limits, defaulting to CapsWriter HTTP API's 100 MB server limit.
 - Added container Android runtime verification support for headless environments without KVM.
 - Added the voice pipeline overview for desktop and mobile home screens.
 - Added redacted settings export/import for moving provider configurations across devices.
@@ -30,7 +31,7 @@
 - Added the high-severity dependency audit to the local CI-equivalent verification script.
 - Added explicit timeout errors for provider requests and model diagnostics.
 - Added request-time validation for missing or invalid provider base URLs, models, and TTS voices.
-- Added local upload validation for empty audio/video files and files over 512 MB.
+- Added local upload validation for empty audio/video files and files over the configured ASR upload limit.
 - Added Responses streaming fallback support for `response.output_text.done` and completed-response payloads.
 - Hardened recorder start/stop error recovery and disabled overlapping request actions while busy.
 - Released previous web TTS object URLs when replacing playback to avoid long-running session leaks.

@@ -131,8 +131,7 @@ const emptyWorkspaceSnapshot: WorkspaceSnapshot = {
   rawResult: "",
   transcript: "",
 };
-const maxUploadBytes = 512 * 1024 * 1024;
-const maxUploadLabel = "512 MB";
+const bytesPerMegabyte = 1024 * 1024;
 
 function id() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -382,7 +381,7 @@ export function AppShell() {
     if (result.canceled || !result.assets?.[0]) {
       return;
     }
-    const validationError = validatePickedAudioFile(result.assets[0]);
+    const validationError = validatePickedAudioFile(result.assets[0], settings.asr.maxUploadMb);
     if (validationError) {
       setNotice(validationError);
       return;
@@ -1044,7 +1043,10 @@ async function readPickedDocumentText(asset: {
   return new File(asset.uri).text();
 }
 
-function validatePickedAudioFile(asset: { file?: Blob; name?: string; size?: number }) {
+function validatePickedAudioFile(
+  asset: { file?: Blob; name?: string; size?: number },
+  maxUploadMb: number,
+) {
   const size = typeof asset.size === "number" ? asset.size : asset.file?.size;
   if (size === undefined) {
     return null;
@@ -1052,10 +1054,22 @@ function validatePickedAudioFile(asset: { file?: Blob; name?: string; size?: num
   if (size <= 0) {
     return "Selected file is empty.";
   }
-  if (size > maxUploadBytes) {
-    return `Selected file is larger than ${maxUploadLabel}.`;
+  if (size > uploadLimitBytes(maxUploadMb)) {
+    return `Selected file is larger than ${uploadLimitLabel(maxUploadMb)}.`;
   }
   return null;
+}
+
+function normalizedUploadLimitMb(maxUploadMb: number) {
+  return Number.isFinite(maxUploadMb) ? Math.max(1, Math.floor(maxUploadMb)) : 1;
+}
+
+function uploadLimitBytes(maxUploadMb: number) {
+  return normalizedUploadLimitMb(maxUploadMb) * bytesPerMegabyte;
+}
+
+function uploadLimitLabel(maxUploadMb: number) {
+  return `${normalizedUploadLimitMb(maxUploadMb)} MB`;
 }
 
 function ConfirmationDialog({
@@ -1692,6 +1706,7 @@ function SettingsView({
             <Field label="Prompt / vocabulary hint" value={settings.asr.prompt} multiline onChangeText={(value) => updateAsr("prompt", value)} />
             <NumericField label="Temperature" min={0} max={1} value={settings.asr.temperature} onChange={(value) => updateAsr("temperature", value)} />
             <NumericField label="Timeout seconds" min={1} integer value={settings.asr.timeoutSec} onChange={(value) => updateAsr("timeoutSec", value)} />
+            <NumericField label="Max upload MB" min={1} integer value={settings.asr.maxUploadMb} onChange={(value) => updateAsr("maxUploadMb", value)} />
             <JsonField label="Extra headers JSON" mode="headers" value={settings.asr.extraHeadersJson} onChangeText={(value) => updateAsr("extraHeadersJson", value)} />
             <JsonField label="Extra form fields JSON" mode="object" value={settings.asr.extraFormFieldsJson} onChangeText={(value) => updateAsr("extraFormFieldsJson", value)} />
           </View>
@@ -2677,6 +2692,7 @@ function isAsrSettings(value: unknown): value is AsrSettings {
     typeof value.prompt === "string" &&
     typeof value.temperature === "number" &&
     typeof value.timeoutSec === "number" &&
+    (!("maxUploadMb" in value) || typeof value.maxUploadMb === "number") &&
     typeof value.extraHeadersJson === "string" &&
     typeof value.extraFormFieldsJson === "string"
   );

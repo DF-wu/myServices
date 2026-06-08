@@ -22,7 +22,7 @@ DF Voice App is a single Expo Router application that targets web, Android, and 
 ## Data Flow
 
 1. User records audio with `expo-audio` or uploads audio/video through `expo-document-picker`.
-2. Empty local uploads and files over 512 MB are rejected before provider requests begin.
+2. Empty local uploads and files over ASR `maxUploadMb` are rejected before provider requests begin. The default is 100 MB to match CapsWriter HTTP API's `CAPSWRITER_HTTP_API_MAX_UPLOAD_MB` default.
 3. The app posts multipart form data to `/v1/audio/transcriptions`.
 4. Transcript text can be edited, copied, exported, sent to conversation, or sent to TTS.
 5. Conversation calls either `/v1/chat/completions` or `/v1/responses`; prompt workflow templates can wrap a transcript before sending.
@@ -46,6 +46,7 @@ Custom provider templates use the same credential sentinel before they are writt
 The importer applies a field allowlist with enum, number, string, and boolean checks. Unsupported keys and invalid values are ignored rather than persisted.
 Advanced JSON override fields are validated in the Settings UI before they are used by the provider client. The provider client still validates again at request time so direct state imports cannot bypass the JSON object and header-value constraints.
 Numeric provider settings are validated in the Settings UI before they are persisted. Stored settings, provider templates, and settings imports also reject out-of-range numbers, non-finite values, and fractional values for integer-only fields so persisted data cannot silently push invalid provider parameters into runtime requests.
+The ASR upload limit is part of the same settings contract, so web and native upload validation, imports, exports, and provider templates all use the current `maxUploadMb` value.
 
 ## Native Strategy
 

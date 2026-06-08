@@ -108,6 +108,31 @@ def main() -> int:
             arg="df-voice-app.settings.v1",
             timeout=10000,
         )
+        original_max_upload_mb = page.evaluate(
+            """(key) => JSON.parse(localStorage.getItem(key)).asr.maxUploadMb""",
+            "df-voice-app.settings.v1",
+        )
+        max_upload_mb = page.get_by_label("Max upload MB")
+        max_upload_mb.fill("0")
+        expect(page.get_by_text("Enter a whole number of at least 1.")).to_be_visible()
+        page.wait_for_function(
+            """([key, original]) => JSON.parse(localStorage.getItem(key)).asr.maxUploadMb === original""",
+            arg=["df-voice-app.settings.v1", original_max_upload_mb],
+            timeout=10000,
+        )
+        max_upload_mb.fill("1.5")
+        expect(page.get_by_text("Enter a whole number of at least 1.")).to_be_visible()
+        page.wait_for_function(
+            """([key, original]) => JSON.parse(localStorage.getItem(key)).asr.maxUploadMb === original""",
+            arg=["df-voice-app.settings.v1", original_max_upload_mb],
+            timeout=10000,
+        )
+        max_upload_mb.fill("128")
+        page.wait_for_function(
+            """(key) => JSON.parse(localStorage.getItem(key)).asr.maxUploadMb === 128""",
+            arg="df-voice-app.settings.v1",
+            timeout=10000,
+        )
         max_output_tokens = page.get_by_label("Max output tokens")
         max_output_tokens.fill("1.5")
         expect(page.get_by_text("Enter a whole number of at least 1.")).to_be_visible()

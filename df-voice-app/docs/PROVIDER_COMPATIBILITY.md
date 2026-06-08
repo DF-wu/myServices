@@ -32,7 +32,16 @@ DF Voice App targets OpenAI-compatible HTTP APIs and local providers that implem
 - Extra headers are merged before each request and are useful for gateways or vendor routing.
 - Extra JSON body fields are merged after built-in fields for conversation and TTS requests.
 - Extra ASR form fields are appended after built-in ASR fields for provider-specific options.
+- Local file uploads are checked against the ASR `maxUploadMb` setting before a multipart ASR request is sent.
 - Android emulators should use `10.0.2.2` when the provider runs on the host machine.
+
+## CapsWriter HTTP API
+
+CapsWriter exposes its original WebSocket server on `6016`. DF Voice App does not use that WebSocket endpoint directly; it uses CapsWriter's optional OpenAI Whisper-compatible HTTP API on `6017`.
+
+Enable the HTTP API with `CAPSWRITER_HTTP_API_ENABLE=true`, bind and expose `CAPSWRITER_HTTP_API_PORT=6017`, and use `http://HOST:6017/v1` as the ASR base URL. `GET /health` is available at the HTTP API root, while `GET /v1/models` and `POST /v1/audio/transcriptions` follow the OpenAI-compatible shape. `POST /v1/audio/translations` is not part of the supported app contract because CapsWriter returns `501` for that endpoint.
+
+CapsWriter's default HTTP upload limit is `CAPSWRITER_HTTP_API_MAX_UPLOAD_MB=100`, so DF Voice App defaults ASR `maxUploadMb` to `100`. Raise both the server environment variable and the app setting for larger uploads. CapsWriter currently controls the actual recognizer model through `CAPSWRITER_MODEL_TYPE`; OpenAI-compatible fields such as `model`, `prompt`, `temperature`, and `language` may be accepted for compatibility but are provider-limited.
 
 ## Known Audit Note
 

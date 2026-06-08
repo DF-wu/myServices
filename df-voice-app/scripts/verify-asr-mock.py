@@ -37,6 +37,7 @@ def settings(response_format: str = "verbose_json", *, delay_ms: int = 0, timeou
             "prompt": "mock vocabulary",
             "temperature": 0,
             "timeoutSec": timeout_sec,
+            "maxUploadMb": 100,
             "extraHeadersJson": json_dumps(asr_headers),
             "extraFormFieldsJson": '{"provider_hint":"asr-extra"}',
         },
@@ -160,6 +161,40 @@ def verify_empty_upload(page, path: str) -> None:
     assert stored.get("rawResult") == existing_raw, stored
 
 
+def verify_upload_limit(page, path: str) -> None:
+    existing_transcript = page.get_by_label("Transcript text").input_value()
+    existing_raw = page.evaluate(
+        """(key) => {
+            const stored = JSON.parse(localStorage.getItem(key) || "{}");
+            return stored.rawResult || "";
+        }""",
+        WORKSPACE_KEY,
+    )
+    assert existing_transcript, "upload limit test requires an existing transcript"
+    assert existing_raw, "upload limit test requires an existing raw result"
+    value = settings()
+    value["asr"]["maxUploadMb"] = 1
+    page.evaluate(
+        """([settingsKey, value]) => {
+            localStorage.setItem(settingsKey, JSON.stringify(value));
+        }""",
+        [SETTINGS_KEY, value],
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("text=DF Voice App")
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Upload").click()
+    chooser.value.set_files(path)
+    expect(page.get_by_text("Selected file is larger than 1 MB.")).to_be_visible(timeout=10000)
+    expect(page.get_by_text("Transcribed")).not_to_be_visible()
+    stored = page.evaluate(
+        """(key) => JSON.parse(localStorage.getItem(key) || "{}")""",
+        WORKSPACE_KEY,
+    )
+    assert stored.get("transcript") == existing_transcript, stored
+    assert stored.get("rawResult") == existing_raw, stored
+
+
 def verify_cancel_transcription(page, path: str) -> None:
     page.evaluate(
         """([settingsKey, workspaceKey, value]) => {
@@ -270,9 +305,15 @@ def verify_missing_tts_settings(page) -> None:
 
 def main() -> int:
     ARTIFACTS.mkdir(exist_ok=True)
-    with tempfile.NamedTemporaryFile(suffix=".wav") as audio, tempfile.NamedTemporaryFile(suffix=".wav") as empty_audio:
+    with (
+        tempfile.NamedTemporaryFile(suffix=".wav") as audio,
+        tempfile.NamedTemporaryFile(suffix=".wav") as empty_audio,
+        tempfile.NamedTemporaryFile(suffix=".wav") as large_audio,
+    ):
         write_wav(audio.name)
         empty_audio.flush()
+        large_audio.write(b"\0" * (1024 * 1024 + 1))
+        large_audio.flush()
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page(viewport={"width": 1180, "height": 900})
@@ -365,6 +406,7 @@ def main() -> int:
             verify_response_format(page, audio.name, "vtt", "WEBVTT")
             verify_transcript_edit(page, audio.name)
             verify_empty_upload(page, empty_audio.name)
+            verify_upload_limit(page, large_audio.name)
             verify_missing_asr_settings(page, audio.name)
             verify_cancel_transcription(page, audio.name)
             verify_timeout_transcription(page, audio.name)

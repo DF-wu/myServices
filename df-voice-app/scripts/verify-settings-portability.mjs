@@ -38,6 +38,7 @@ const current = {
     extraFormFieldsJson: "",
     extraHeadersJson: '{"x-route":"asr"}',
     language: "zh",
+    maxUploadMb: 100,
     model: "whisper-1",
     prompt: "terms",
     responseFormat: "verbose_json",
@@ -134,6 +135,7 @@ const sanitized = importSettingsText(
     settings: {
       autoSpeak: "yes",
       asr: {
+        maxUploadMb: 64,
         responseFormat: "docx",
         temperature: 1.5,
         timeoutSec: 1.5,
@@ -158,6 +160,7 @@ const sanitized = importSettingsText(
   }),
 );
 assert.equal(sanitized.autoSpeak, current.autoSpeak);
+assert.equal(sanitized.asr.maxUploadMb, 64);
 assert.equal(sanitized.asr.responseFormat, current.asr.responseFormat);
 assert.equal(sanitized.asr.temperature, current.asr.temperature);
 assert.equal(sanitized.asr.timeoutSec, current.asr.timeoutSec);
@@ -178,6 +181,7 @@ const stored = sanitizeSettings(current, {
   asr: {
     apiKey: "stored-asr-secret",
     extraHeadersJson: '{"x-stored":"asr"}',
+    maxUploadMb: 1.5,
     temperature: 0.75,
     timeoutSec: 0,
   },
@@ -191,6 +195,7 @@ const stored = sanitizeSettings(current, {
 });
 assert.equal(stored.asr.apiKey, "stored-asr-secret");
 assert.equal(stored.asr.extraHeadersJson, '{"x-stored":"asr"}');
+assert.equal(stored.asr.maxUploadMb, current.asr.maxUploadMb);
 assert.equal(stored.asr.temperature, 0.75);
 assert.equal(stored.asr.timeoutSec, current.asr.timeoutSec);
 assert.equal(stored.conversation.maxOutputTokens, 512);
@@ -282,6 +287,7 @@ function validateSettings(settings, label) {
   assertOneOf(settings.asr.responseFormat, ["json", "text", "verbose_json", "srt", "vtt"], `${label} ASR format`);
   assertNumberRange(settings.asr.temperature, 0, 1, `${label} ASR temperature`);
   assertIntegerAtLeast(settings.asr.timeoutSec, 1, `${label} ASR timeout`);
+  assertIntegerAtLeast(settings.asr.maxUploadMb, 1, `${label} ASR upload limit`);
   assertValidUrl(settings.asr.baseUrl, `${label} ASR base URL`);
   assertNonEmptyString(settings.asr.model, `${label} ASR model`);
   assertJsonObjectText(settings.asr.extraFormFieldsJson, `${label} ASR extra form fields`);

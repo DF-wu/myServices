@@ -110,6 +110,10 @@ function mergeAsrSettings(
     extraFormFieldsJson: stringValue(incoming.extraFormFieldsJson, current.extraFormFieldsJson),
     extraHeadersJson: stringValue(incoming.extraHeadersJson, current.extraHeadersJson),
     language: stringValue(incoming.language, current.language),
+    maxUploadMb: rangedNumberValue(incoming.maxUploadMb, current.maxUploadMb, {
+      integer: true,
+      min: 1,
+    }),
     model: stringValue(incoming.model, current.model),
     prompt: stringValue(incoming.prompt, current.prompt),
     responseFormat: enumValue<AsrResponseFormat>(

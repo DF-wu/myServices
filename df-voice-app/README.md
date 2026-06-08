@@ -27,7 +27,7 @@ Standalone voice workbench for web, Android, and optional iOS. It records or upl
 - Cancel in-flight ASR, conversation, TTS, and provider diagnostic requests from the app shell
 - Report provider timeout errors separately from user-cancelled requests
 - Prevent overlapping provider actions while a request is active, and recover cleanly from recorder start/stop errors
-- Reject empty local uploads and block files over 512 MB before sending ASR requests
+- Reject empty local uploads and block files over the configured ASR upload limit before sending requests
 
 ## Run
 
@@ -79,13 +79,22 @@ The native app id is `app.dfvoice.app`.
 
 ## CapsWriter ASR
 
+CapsWriter's default `6016` port is its upstream WebSocket service. DF Voice App uses the optional OpenAI Whisper-compatible HTTP API, which normally runs on `6017` and must be enabled separately.
+
 Start a CapsWriter HTTP API server separately:
 
 ```bash
 CAPSWRITER_HTTP_API_ENABLE=true \
 CAPSWRITER_HTTP_API_BIND=0.0.0.0 \
 CAPSWRITER_HTTP_API_PORT=6017 \
+CAPSWRITER_HTTP_API_KEY=sk-your-token \
 python start_server_docker.py
+```
+
+When using CapsWriter's Docker Compose setup, expose the HTTP API by uncommenting or adding the `6017:6017` port mapping. Verify the HTTP API before configuring the app:
+
+```bash
+curl http://YOUR_SERVER_IP:6017/health
 ```
 
 Then use this ASR base URL in DF Voice App:
@@ -93,6 +102,8 @@ Then use this ASR base URL in DF Voice App:
 ```text
 http://YOUR_SERVER_IP:6017/v1
 ```
+
+CapsWriter's HTTP API default upload limit is `CAPSWRITER_HTTP_API_MAX_UPLOAD_MB=100`, and DF Voice App's ASR `Max upload MB` default matches that value. Raise both the server variable and the app setting when larger local uploads are required.
 
 For Android emulators, `localhost` points at the emulator itself. Use your LAN IP or `10.0.2.2` when the server is on the host machine. The app includes an `Android Emulator Host` template that applies `10.0.2.2` to ASR, chat, and TTS providers.
 
@@ -102,7 +113,7 @@ Transcripts are editable after ASR returns, so provider output can be corrected 
 
 The app exposes the parameters users normally need to tune:
 
-- ASR: base URL, API key, model, `response_format`, language, prompt, temperature, timeout
+- ASR: base URL, API key, model, `response_format`, language, prompt, temperature, timeout, max upload MB
 - Conversation: base URL, API key, API mode, model, system prompt, temperature, top P, penalties, max output tokens, history, streaming, timeout
 - TTS: base URL, API key, model, voice, output format, speed, instructions, timeout
 - Advanced: per-provider extra headers, ASR extra form fields, and conversation/TTS extra JSON body fields
@@ -116,7 +127,7 @@ Advanced JSON fields are validated inline in Settings and merged into the outgoi
 Numeric provider settings are range-checked in the Settings tab. Stored settings, provider templates, and imported settings files keep the current device value when an incoming number is out of range, non-finite, or fractional where an integer is required.
 Long-running ASR, conversation, TTS, and model diagnostic requests expose a Cancel request control. Cancelled provider responses are ignored if they arrive later, so stale results cannot overwrite the current transcript or conversation. Provider timeouts report the configured timeout duration instead of being treated as user cancellations.
 Request-triggering controls are disabled while another provider action is active, so a recording, upload, chat call, TTS call, or model diagnostic cannot silently interrupt another in-flight request. Recorder start/stop failures reset the app audio mode and busy state before reporting the error.
-Local audio/video uploads are checked before ASR starts. Empty files are rejected, and files over 512 MB are blocked before any provider request is sent.
+Local audio/video uploads are checked before ASR starts. Empty files are rejected, and files over the ASR `Max upload MB` setting are blocked before any provider request is sent.
 
 Build-time provider defaults:
 

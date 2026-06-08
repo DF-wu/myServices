@@ -34,6 +34,7 @@ def settings(mode: str, *, stream: bool = True, variant: str | None = None) -> d
             "prompt": "",
             "temperature": 0,
             "timeoutSec": 30,
+            "maxUploadMb": 100,
             "extraHeadersJson": "",
             "extraFormFieldsJson": "",
         },
@@ -349,6 +350,7 @@ def run_settings_portability(page) -> None:
                 "settings": {
                     "autoSpeak": "yes",
                     "asr": {
+                        "maxUploadMb": 0,
                         "responseFormat": "docx",
                         "temperature": "hot",
                         "timeoutSec": -10,
@@ -380,6 +382,7 @@ def run_settings_portability(page) -> None:
     assert sanitized["asr"]["responseFormat"] == "verbose_json", sanitized
     assert sanitized["asr"]["temperature"] == 0, sanitized
     assert sanitized["asr"]["timeoutSec"] == 30, sanitized
+    assert sanitized["asr"]["maxUploadMb"] == 100, sanitized
     assert sanitized["conversation"]["mode"] == "responses", sanitized
     assert sanitized["conversation"]["maxOutputTokens"] == 64, sanitized
     assert sanitized["conversation"]["stream"] is True, sanitized

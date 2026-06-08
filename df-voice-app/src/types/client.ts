@@ -30,6 +30,7 @@ export type AsrSettings = {
   prompt: string;
   temperature: number;
   timeoutSec: number;
+  maxUploadMb: number;
   extraHeadersJson: string;
   extraFormFieldsJson: string;
 };

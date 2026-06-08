@@ -11,6 +11,7 @@ export const defaultSettings: ClientSettings = {
     prompt: "專有名詞、產品名、人名請優先保留原文。",
     temperature: 0,
     timeoutSec: 180,
+    maxUploadMb: 100,
     extraHeadersJson: "",
     extraFormFieldsJson: "",
   },
@@ -52,7 +53,7 @@ export const templates: ClientTemplate[] = [
     id: "capswriter-local",
     name: "CapsWriter 本機 ASR",
     description:
-      "ASR 走本機 CapsWriter OpenAI Whisper 相容端點；對話與 TTS 指向本機 OpenAI-compatible 服務。",
+      "ASR 走本機 CapsWriter OpenAI Whisper 相容 HTTP API；對話與 TTS 指向本機 OpenAI-compatible 服務。",
     tags: ["offline", "capswriter", "local-first"],
     settings: defaultSettings,
   },
