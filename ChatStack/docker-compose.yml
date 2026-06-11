@@ -809,12 +809,12 @@ services:
   # Lilac - Discord AI Agent Runtime (js-llmcord successor)
   # repo: https://github.com/DF-wu/lilac-mono
   # doc: https://github.com/stanley2058/lilac-mono/blob/main/PROJECT.md
-  # GHCR latest/claudia images use /home/Catalinna and /home/Claudia, not upstream /home/lilac.
+  # GHCR catalina/latest and claudia images use /home/Catalina and /home/Claudia, not upstream /home/lilac.
   # Runtime state now lives under /data, including XDG config, git config, gpg, and bun/npm state.
   # =============================================================================
-  lilac-Catalina:
-    container_name: lilac-mono-Catalina
-    image: ghcr.io/df-wu/lilac-mono
+  lilac-catalina:
+    container_name: lilac-mono-catalina
+    image: ghcr.io/df-wu/lilac-mono:catalina
     restart: unless-stopped
     environment:
       - TZ=Asia/Taipei
@@ -859,10 +859,10 @@ services:
 
     volumes:
       - /mnt/appdata/ChatStack/lilac-mono/data:/data
-      - /home/df/.agents:/home/Catalinna/.agents
-      - /mnt/appdata/ChatStack/lilac-mono/.ssh:/home/Catalinna/.ssh
-      # - /home/df/.ssh:/home/Catalinna/.ssh
-      - /mnt/appdata/ChatStack/lilac-mono/data/.cache:/home/Catalinna/.cache
+      - /home/df/.agents:/home/Catalina/.agents
+      - /mnt/appdata/ChatStack/lilac-mono/.ssh:/home/Catalina/.ssh
+      # - /home/df/.ssh:/home/Catalina/.ssh
+      - /mnt/appdata/ChatStack/lilac-mono/data/.cache:/home/Catalina/.cache
     depends_on:
       chatstack-unified-redis:
         condition: service_healthy
