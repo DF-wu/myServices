@@ -1,0 +1,95 @@
+# author: Catalina
+# prepared: 2026-06-15
+# description: cc-switch-web — 為 Claude Code / Codex / Gemini CLI / OpenCode / OMO 提供統一 Web UI 的設定管理工具。
+# upstream: https://github.com/Laliet/cc-switch-web
+# image: ghcr.io/laliet/cc-switch-web:v0.17.0
+#
+# 先說結論：這個服務不是單純的靜態網頁。
+# 它的 Docker 映像實際上跑的是 Rust / Tauri 的 web-server example（`cc-switch-server`），
+# 前端 React/Vite 靜態檔已在 build 階段嵌進去；常駐 runtime 並不是 Node.js。
+#
+# 為什麼 compose 這樣設計：
+# - image tag 鎖定到 v0.17.0，而不是 latest，避免上游 UI / DB schema / API 行為改動時無預警踩雷。
+# - host port 預設只綁 127.0.0.1：這個服務使用 Basic Auth；若直接公開 HTTP 到 LAN / Internet，
+#   upstream 程式在未設 `ALLOW_HTTP_BASIC_OVER_HTTP=1` 時甚至會直接拒絕啟動。
+# - 內部仍綁 `HOST=0.0.0.0`：這是 Docker port publish 的必要條件；若容器內只綁 127.0.0.1，host 端對映會失效。
+# - `ALLOW_HTTP_BASIC_OVER_HTTP=1` 預設打開：因為我們選擇「容器內 http + host loopback + 外層反代/TLS」這種部署模型。
+#   若你改成直接 public bind，請務必自己承擔明文 Basic Auth 風險，並至少放在 TLS 反代後面。
+# - `ENABLE_HSTS=false` 預設關閉：HSTS 應該由最外層正式 HTTPS 網域決定；若只在 loopback / 內網測試時打開，
+#   很容易把瀏覽器快取到奇怪狀態。等你真的掛正式網域，再從 `.env` 顯式開啟。
+# - runtime state 持久化到 `/mnt/appdata/cc-switch-web/data`：這裡會放 `cc-switch.db`、`web_password`、`web_env`、backups 等。
+# - 預設不直接掛 DF 的實際 CLI 設定目錄：這樣先把服務骨架建好，不會因 host 路徑或單一檔案不存在而導致第一次起不來。
+#   真正要接管 live CLI config 時，請看下方「可選掛載」與同目錄 README。
+#
+# upstream runtime / persistence 摘要（已交叉驗證 README + Dockerfile + Rust 原始碼）：
+# - Web login password: /home/ccswitch/.cc-switch/web_password
+# - CSRF token store:   /home/ccswitch/.cc-switch/web_env
+# - Runtime DB:         /home/ccswitch/.cc-switch/cc-switch.db
+# - Legacy snapshot:    /home/ccswitch/.cc-switch/config.json
+# - Settings:           /home/ccswitch/.cc-switch/settings.json
+# - Backups:            /home/ccswitch/.cc-switch/backups/
+#
+# 若未來要讓它真正管理「你主機上」的 Claude/Codex/Gemini/OpenCode 設定，
+# 請把 README 裡的 path override / bind mount 一起補齊，否則 Web UI 管理到的只會是容器內自己的副本。
+
+name: cc-switch-web
+
+services:
+  cc-switch-web:
+    image: ghcr.io/laliet/cc-switch-web:v0.17.0
+    container_name: cc-switch-web
+    restart: unless-stopped
+    init: true
+
+    ports:
+      # 預設只開 loopback，配合 Nginx Proxy Manager / Caddy / Cloudflare Tunnel 之類的外層入口。
+      # 如果你真的要 LAN 直連，可把 CC_SWITCH_WEB_BIND_IP 改成 0.0.0.0；但那代表 Basic Auth 會走明文 HTTP，
+      # 除非你另外做 TLS，否則不建議。
+      - "${CC_SWITCH_WEB_BIND_IP:-127.0.0.1}:${CC_SWITCH_WEB_PORT:-43064}:3000"
+
+    environment:
+      TZ: ${TZ:-Asia/Taipei}
+
+      # 容器內必須聽 0.0.0.0，Docker publish 才會從 host 轉進來。
+      HOST: 0.0.0.0
+      PORT: 3000
+
+      # upstream 在綁非 localhost / 0.0.0.0 時，若沒設這個旗標會拒絕啟動。
+      # 我們現在把對外暴露責任交給「host loopback + 外層反代 / tunnel」，所以這裡先顯式接受 http container hop。
+      ALLOW_HTTP_BASIC_OVER_HTTP: ${ALLOW_HTTP_BASIC_OVER_HTTP:-1}
+
+      # 只有在正式 HTTPS 網域下才建議打開；若只是 localhost / LAN 測試，先關閉避免瀏覽器 cache HSTS。
+      ENABLE_HSTS: ${ENABLE_HSTS:-false}
+
+      # 若未設 CORS_ALLOW_ORIGINS，upstream 預設以 same-origin 為主；
+      # 綁到 LAN 位址時還會自動開啟 private-origin allowlist。
+      # 這裡先不硬塞值，避免把跨域面開太大。要跨域再去 `.env` 顯式設定。
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
+      CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-}
+      ALLOW_LAN_CORS: ${ALLOW_LAN_CORS:-}
+
+    volumes:
+      # 這是 cc-switch-web 自己的 authoritative runtime store。
+      # 若不持久化，重建容器後 provider / prompt / skills / web password / CSRF token 都會重置。
+      - ${CC_SWITCH_WEB_DATA_DIR:-/mnt/appdata/cc-switch-web/data}:/home/ccswitch/.cc-switch
+
+      # ── 可選：真正接管 host 上的 CLI config（預設先不開，避免第一次部署就因 host 路徑缺失失敗） ──
+      # 啟用前請先確認 source path 真實存在，再取消註解。
+      #
+      # Claude Code 主要用這兩個位置：
+      # - ~/.claude/           （settings.json / CLAUDE.md 等）
+      # - ~/.claude.json       （部分設定 / MCP）
+      # - ${CLAUDE_DIR:-/home/df/.claude}:/home/ccswitch/.claude
+      # - ${CLAUDE_ROOT_FILE:-/home/df/.claude.json}:/home/ccswitch/.claude.json
+      #
+      # Codex：
+      # - ${CODEX_DIR:-/home/df/.codex}:/home/ccswitch/.codex
+      #
+      # Gemini CLI：
+      # - ${GEMINI_DIR:-/home/df/.gemini}:/home/ccswitch/.gemini
+      #
+      # OpenCode / OMO：
+      # - ${OPENCODE_DIR:-/home/df/.config/opencode}:/home/ccswitch/.config/opencode
+
+    # 這個服務不依賴資料庫 / Redis 等 sidecar；所有核心狀態都存在 SQLite + config files。
+    # 因此單容器即可成立，也更適合先作為 myServices 裡的獨立 stack 管理。
