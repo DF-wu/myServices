@@ -354,7 +354,7 @@ services:
       - /mnt/appdata/ChatStack/infinite-canvas/data:/app/data
     environment:
       - ADMIN_USERNAME=df
-      - ADMIN_PASSWORD=${DF_PASSWORD:-df}
+      - ADMIN_PASSWORD=${DF_PASSWORD:-passwd}
       - JWT_SECRET=${INFINITE_CANVAS_JWT_SECRET:-dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf}
       - JWT_EXPIRE_HOURS=168
       - STORAGE_DRIVER=postgres
