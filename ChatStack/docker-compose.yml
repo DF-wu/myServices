@@ -758,9 +758,12 @@ services:
     # ports:
     #   - "8317:8317"
     volumes:
+      # legacy config and logs
       - /mnt/appdata/CLIProxyAPI-plus/config.yaml:/CLIProxyAPI/config.yaml
       - /mnt/appdata/CLIProxyAPI-plus/auth:/root/.cli-proxy-api
       - /mnt/appdata/CLIProxyAPI-plus/logs:/CLIProxyAPI/logs
+      # new cpamc plus
+      - /mnt/appdata/CLIProxyAPI-plus/cpa-manager-plus-data:/data
 
   gluetun-proxy:
     image: qmcgaw/gluetun
