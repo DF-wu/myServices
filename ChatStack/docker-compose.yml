@@ -745,8 +745,8 @@ services:
   #     - /var/run/docker.sock:/var/run/docker.sock:ro
 
   cli-proxy-api:
-    #image: eceasy/cli-proxy-api:latest
-    image: ghcr.io/seakee/cpa-manager-plus
+    image: eceasy/cli-proxy-api:latest
+    # image: ghcr.io/seakee/cpa-manager-plus
     container_name: cli-proxy-api
     restart: unless-stopped
     network_mode: service:gluetun-proxy
@@ -763,7 +763,7 @@ services:
       - /mnt/appdata/CLIProxyAPI-plus/auth:/root/.cli-proxy-api
       - /mnt/appdata/CLIProxyAPI-plus/logs:/CLIProxyAPI/logs
       # new cpamc plus
-      - /mnt/appdata/CLIProxyAPI-plus/cpa-manager-plus-data:/data
+      # - /mnt/appdata/CLIProxyAPI-plus/cpa-manager-plus-data:/data
 
   gluetun-proxy:
     image: qmcgaw/gluetun
@@ -777,7 +777,7 @@ services:
       - 19000:8888/tcp # HTTP proxy
 
       # for CLIproxyAPI-plus
-      - 8317:18317
+      - 8317:8317
     volumes:
       - /mnt/appdata/gluetun:/gluetun
     environment:
