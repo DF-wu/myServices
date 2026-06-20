@@ -621,9 +621,9 @@
     - alist:
         id: photos-files-alist
         icon: /images/dracula-icons/alist.png
-        href: "http://axolotl.newhome:5222"
-        description: "Docker: alist/alist (xhofe/alist:latest)"
-        siteMonitor: "http://axolotl.newhome:5222"
+        href: "http://axolotl.newhome:5244"
+        description: "Docker: alist/alist (openlistteam/openlist:latest)"
+        siteMonitor: "http://axolotl.newhome:5244"
         server: local-docker
         container: "alist"
         showStats: true
@@ -738,8 +738,8 @@
         href: "https://adblock.dfder.tw"
         description: "Public reverse proxy route to http://homenas:3000"
         siteMonitor: "https://adblock.dfder.tw"
-    - Alist-Local:
-        id: photos-files-alist-local
+    - OpenList-Local:
+        id: photos-files-openlist-local
         icon: /images/dracula-icons/alist.png
         href: "http://axolotl:5244/"
         description: "Migrated from Heimdall safe export"

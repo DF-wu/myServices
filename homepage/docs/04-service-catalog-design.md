@@ -22,7 +22,7 @@ Generated private inventory is stored under `inventory/private/` and ignored by 
 | AI & LLM | Open WebUI, new-api, CRS, CCR, api-conversion, MetaMCP, n8n | Mostly cards + siteMonitor; widgets via customapi only if useful. |
 | Media | Jellyfin, Jellyseerr, MoonTV, Suwayomi | Widgets for Jellyfin/Seerr/Suwayomi when credentials are available. |
 | Downloads & Network | qBittorrent, Jackett, Gluetun proxies, Aria2 | Keep sensitive download tools protected; widget only for selected qBittorrent/Gluetun. |
-| Photos & Files | Nextcloud, Immich, PhotoPrism, AList | Good widget candidates. |
+| Photos & Files | Nextcloud, Immich, PhotoPrism, OpenList | Good widget candidates. |
 | Databases & Admin | MariaDB, phpMyAdmin, pgAdmin | Cards only; avoid exposing publicly. |
 | Backup & Maintenance | Backrest, Watchtower-like services | Backrest widget is useful. |
 | External Links | GitHub, external research tools, docs | Bookmarks, not services. |
