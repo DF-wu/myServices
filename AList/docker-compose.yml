@@ -1,6 +1,6 @@
 services:
   alist:
-    image: xhofe/alist:latest
+    image: openlistteam/openlist:latest
     restart: unless-stopped
     container_name: alist
     ports:
@@ -12,6 +12,6 @@ services:
       # download
       - /mnt/mydata/Alist_dir:/mnt/data
       # appdata config
-      - /mnt/appdata/alist:/opt/alist/data
+      - /mnt/appdata/alist:/opt/openlist/data
     environment:
       - TZ=Asia/Taipei
