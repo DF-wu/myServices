@@ -838,13 +838,17 @@ services:
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
       - GITHUB_WEBHOOK_PORT=${GITHUB_WEBHOOK_PORT:-8787}
       - GITHUB_WEBHOOK_PATH=${GITHUB_WEBHOOK_PATH:-/github/webhook}
-      # Provider: OpenAI 
+      # Provider: OpenAI / OpenAI-compatible / Anthropic-compatible
       - OPENAI_BASE_URL=${OPENAI_BASE_URL}
       - OPENAI_API_KEY=${OPENAI_API_KEY_CATALINA}
       - OPENAI_COMPATIBLE_BASE_URL=${OPENAI_COMPATIBLE_BASE_URL}
-      - OPENAI_COMPATIBLE_API_KEY=${OPENAI_COMPATIBLE_API_KEY}
-      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_COMPATIBLE_API_KEY=${OPENAI_COMPATIBLE_API_KEY_CATALINA}
+      # Anthropic-native requests are intentionally pointed at the same upstream base URL
+      # as OPENAI_COMPATIBLE_BASE_URL. This only works if that upstream/proxy also accepts
+      # Anthropic Messages API requests on the same base prefix.
+      - ANTHROPIC_BASE_URL=${OPENAI_COMPATIBLE_BASE_URL}
+      # Catalina uses its own OpenAI-compatible key as the Anthropic key as well.
+      - ANTHROPIC_API_KEY=${OPENAI_COMPATIBLE_API_KEY_CATALINA}
 
       # Discord bot token
       - DISCORD_TOKEN=${DISCORD_TOKEN}
@@ -906,13 +910,17 @@ services:
       - GITHUB_WEBHOOK_PORT=${GITHUB_WEBHOOK_PORT:-8787}
       - GITHUB_WEBHOOK_PATH=${GITHUB_WEBHOOK_PATH:-/github/webhook}
       - GITHUB_TOKEN=${GITHUB_TOKEN_CLAUDIA}
-      # Provider: OpenAI 
+      # Provider: OpenAI / OpenAI-compatible / Anthropic-compatible
       - OPENAI_BASE_URL=${OPENAI_BASE_URL}
       - OPENAI_API_KEY=${OPENAI_API_KEY_CLAUDIA}
       - OPENAI_COMPATIBLE_BASE_URL=${OPENAI_COMPATIBLE_BASE_URL}
       - OPENAI_COMPATIBLE_API_KEY=${OPENAI_COMPATIBLE_API_KEY_CLAUDIA}
-      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # Anthropic-native requests are intentionally pointed at the same upstream base URL
+      # as OPENAI_COMPATIBLE_BASE_URL. This only works if that upstream/proxy also accepts
+      # Anthropic Messages API requests on the same base prefix.
+      - ANTHROPIC_BASE_URL=${OPENAI_COMPATIBLE_BASE_URL}
+      # Claudia uses her own OpenAI-compatible key as the Anthropic key as well.
+      - ANTHROPIC_API_KEY=${OPENAI_COMPATIBLE_API_KEY_CLAUDIA}
 
       # Discord bot token
       - DISCORD_TOKEN=${DISCORD_TOKEN_CLAUDIA}
