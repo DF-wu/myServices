@@ -1,0 +1,128 @@
+services:
+  ddns-init:
+    image: ghcr.io/df-wu/ddns-openvpn-proxy-watcher
+    restart: no
+    volumes:
+      - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
+      - ${STATE_DIR:-./state}:/gluetun/state
+    env_file:
+      - .env
+    environment:
+      TZ: ${TZ:-UTC}
+      OPENVPN_SOURCE_CONFIG: ${OPENVPN_SOURCE_CONFIG:-}
+      OPENVPN_SOURCE_DIR: /gluetun/source/openvpn
+      OPENVPN_RENDERED_CONFIG: /gluetun/state/openvpn/current.ovpn
+      DDNS_HOSTNAME: ${DDNS_HOSTNAME:-}
+      DDNS_POLL_SECONDS: ${DDNS_POLL_SECONDS:-60}
+      DDNS_COOLDOWN_SECONDS: ${DDNS_COOLDOWN_SECONDS:-15}
+      DDNS_RESOLVER: ${DDNS_RESOLVER:-}
+      DDNS_OVERRIDE_IP: ${DDNS_OVERRIDE_IP:-}
+      STATE_DIR: /gluetun/state
+    entrypoint: ["/app/scripts/ddns-init.sh"]
+
+  gluetun:
+    image: ${GLUETUN_IMAGE:-qmcgaw/gluetun:latest}
+    container_name: ${GLUETUN_CONTAINER_NAME:-ddns-openvpn-proxy}
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      ddns-init:
+        condition: service_completed_successfully
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${HTTP_PROXY_PORT:-28888}:8888/tcp"
+      # SOCKS5 proxy 端口映射：vproxy sidecar 共享 gluetun 網路命名空間，
+      # 因此端口必須在 gluetun 服務上宣告，才能從主機訪問。
+      - "${SOCKS5_PROXY_PORT:-21080}:1080/tcp"
+    volumes:
+      - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
+      - ${STATE_DIR:-./state}:/gluetun/state
+    environment:
+      TZ: ${TZ:-UTC}
+      VPN_SERVICE_PROVIDER: custom
+      VPN_TYPE: openvpn
+      OPENVPN_CUSTOM_CONFIG: /gluetun/state/openvpn/current.ovpn
+      HTTPPROXY: on
+      HTTPPROXY_LISTENING_ADDRESS: :8888
+      HTTPPROXY_USER: ${HTTPPROXY_USER:-}
+      HTTPPROXY_PASSWORD: ${HTTPPROXY_PASSWORD:-}
+      HTTPPROXY_STEALTH: on
+
+  # vproxy sidecar：提供 SOCKS5 proxy，與 gluetun 共用網路命名空間
+  # 所有 SOCKS5 流量會自動走 VPN tunnel 出去
+  vproxy:
+    # 建議固定版本，避免 upstream 改行為
+    image: ghcr.io/0x676e67/vproxy:v2.5.5
+    container_name: ddns-vpn-proxy-vproxy
+    restart: unless-stopped
+    init: true
+
+    # 共享 gluetun 網路命名空間，因此 SOCKS5 流量自動走 VPN tunnel
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_started
+
+    # 安全強化
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+
+    entrypoint: ["/bin/sh", "-c"]
+    # 認證邏輯：vproxy 要求 username + password 同時給或同時不給；
+    # 只給一個會導致 clap 報錯並立即退出。用 if/else 安全處理。
+    command:
+      - |
+        if [ -n "$${SOCKS5_USER}" ] && [ -n "$${SOCKS5_PASSWORD}" ]; then
+          exec vproxy run -b 0.0.0.0:1080 -c "$${VPROXY_CONCURRENT:-1024}" -t "$${VPROXY_CONNECT_TIMEOUT:-300}" socks5 -u "$${SOCKS5_USER}" -p "$${SOCKS5_PASSWORD}"
+        else
+          exec vproxy run -b 0.0.0.0:1080 -c "$${VPROXY_CONCURRENT:-1024}" -t "$${VPROXY_CONNECT_TIMEOUT:-300}" socks5
+        fi
+
+    # 簡單健康檢查：確認 1080 有在 listen
+    healthcheck:
+      test: ["CMD-SHELL", "ss -ltn | grep -q ':1080'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # 避免 json-file log 無限長大
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ddns-watcher:
+    image: ${WATCHER_IMAGE:-ghcr.io/df-wu/ddns-openvpn-proxy-watcher:latest}
+    restart: unless-stopped
+    depends_on:
+      gluetun:
+        condition: service_started
+    volumes:
+      - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
+      - ${STATE_DIR:-./state}:/gluetun/state
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .env
+    environment:
+      TZ: ${TZ:-UTC}
+      OPENVPN_SOURCE_CONFIG: ${OPENVPN_SOURCE_CONFIG:-}
+      OPENVPN_SOURCE_DIR: /gluetun/source/openvpn
+      OPENVPN_RENDERED_CONFIG: /gluetun/state/openvpn/current.ovpn
+      DDNS_HOSTNAME: ${DDNS_HOSTNAME:-}
+      DDNS_POLL_SECONDS: ${DDNS_POLL_SECONDS:-60}
+      DDNS_COOLDOWN_SECONDS: ${DDNS_COOLDOWN_SECONDS:-15}
+      DDNS_RESOLVER: ${DDNS_RESOLVER:-}
+      DDNS_OVERRIDE_IP: ${DDNS_OVERRIDE_IP:-}
+      GLUETUN_CONTAINER_NAME: ${GLUETUN_CONTAINER_NAME:-ddns-openvpn-proxy}
+      STATE_DIR: /gluetun/state
