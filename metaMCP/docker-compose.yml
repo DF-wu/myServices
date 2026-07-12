@@ -35,6 +35,10 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    volumes:
+      # Persist uv cache across container recreates so uvx STDIO servers
+      # do not cold-install on every recreate (avoids crash-detector ERROR).
+      - uv_cache:/home/nextjs/.cache/uv
     networks:
       - metamcp-network
 
@@ -63,6 +67,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  uv_cache:
     driver: local
 
 networks:
