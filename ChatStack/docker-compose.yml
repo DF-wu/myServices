@@ -15,7 +15,6 @@
 # - 43004 | astrbot
 # - 43020 | chatstack-postgres17-pgvector
 # - 43056 | claude-code-router
-# - 43057 | claude-relay-service
 # - 43061 | api-conversion
 # - 43062 | sub2api
 # - 43063 | infinite-canvas
@@ -81,7 +80,6 @@ services:
   # - Database 1: open-webui (WebSocket 支援)
   # - Database 2: new-api (API distributor; DB name kept as veloera_db)
   # - Database 3: searxng (搜尋引擎快取) - TODO: 需配置 searxng settings.yml
-  # - Database 4: claude-relay-service (Claude 中繼服務)
   # - Database 5: lilac-mono
   # - Database 6: sub2api (CRS 2.0)
   # - Database 7: lilac-mono-claudia
@@ -242,48 +240,6 @@ services:
     environment:
       - TZ=Asia/Taipei
 
-  # Claude relay service used as an API-compatible converter.
-  claude-relay-service:
-    image: weishaw/claude-relay-service:latest
-    container_name: claude-relay-service
-    restart: unless-stopped
-    ports:
-      - "43057:3000"
-    environment:
-      - PGID=3000
-      - PUID=3000
-      - JWT_SECRET=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
-      - ENCRYPTION_KEY=dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf
-      - REDIS_HOST=crs-redis
-      - ADMIN_USERNAME=df
-      - ADMIN_PASSWORD=df
-    volumes:
-      - /mnt/appdata/ChatStack/claudeRelayService/logs:/app/logs
-      - /mnt/appdata/ChatStack/claudeRelayService/data:/app/data
-    depends_on:
-      - crs-redis
-
-  crs-redis:
-    image: docker.io/valkey/valkey:8-alpine
-    container_name: claude-relay-redis
-    user: 3000:3000
-    environment:
-      - PUID=3000
-      - PGID=3000
-    restart: unless-stopped
-    expose:
-      - 6379
-    volumes:
-      # Persist Redis data because CRS stores operational state there.
-      - /mnt/appdata/ChatStack/claudeRelayService/redis:/data
-    command: redis-server --save 60 1 --appendonly yes --appendfsync everysec
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # next-gen CRS: sub2api (migrate from claude-relay-service)
   # doc: https://github.com/Wei-Shaw/sub2api
   sub2api:
     # Faster than dockerhub wei-shaw/sub2api
