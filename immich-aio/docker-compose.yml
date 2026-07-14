@@ -25,7 +25,6 @@ services:
       - REDIS_PASSWORD= #optional
       - MACHINE_LEARNING_HOST=0.0.0.0 #optional
       - MACHINE_LEARNING_PORT=3003 #optional
-      - MACHINE_LEARNING_WORKERS= #optional
       - MACHINE_LEARNING_WORKER_TIMEOUT=120 #optional
     volumes:
       - /mnt/appdata/immich-aio/config:/config
@@ -73,11 +72,10 @@ services:
       - 6379:6379
     container_name: immich-aio-redis
   # PostgreSQL 14:
-  # don't upgrade until offically supported
-  # issue: https://github.com/immich-app/immich/discussions/11091
   immich-aio-postgres14:
     restart: unless-stopped
-    image: tensorchord/pgvecto-rs:pg14-v0.2.1
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    shm_size: 128mb
     ports:
       - 5432:5432
     container_name: immich-aio-postgres14
