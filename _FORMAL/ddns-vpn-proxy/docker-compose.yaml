@@ -1,6 +1,7 @@
 services:
   ddns-init:
-    image: ghcr.io/df-wu/ddns-openvpn-proxy-watcher
+    # Immutable compatibility image containing the fail-safe DDNS watcher.
+    image: ghcr.io/df-wu/ddns-openvpn-proxy-watcher:compat-ca5200d28ac992c8c71200fe49c7d24f850133b3
     restart: no
     volumes:
       - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
@@ -95,9 +96,14 @@ services:
           -u "$${SOCKS5_USER}" \
           -p "$${SOCKS5_PASSWORD}"
 
-    # 簡單健康檢查：確認 1080 有在 listen
+    # 同時確認 listener、VPN interface 與出口 route，避免舊 namespace 假健康。
     healthcheck:
-      test: ["CMD-SHELL", "ss -ltn | grep -q ':1080'"]
+      test:
+        - CMD-SHELL
+        - >-
+          ss -ltn | grep -q ':1080' &&
+          test -d /sys/class/net/tun0 &&
+          ip -4 route get 1.1.1.1 2>/dev/null | grep -q ' dev tun0 '
       interval: 30s
       timeout: 5s
       retries: 3
@@ -111,11 +117,13 @@ services:
         max-file: "3"
 
   ddns-watcher:
-    image: ${WATCHER_IMAGE:-ghcr.io/df-wu/ddns-openvpn-proxy-watcher:latest}
+    image: ghcr.io/df-wu/ddns-openvpn-proxy-watcher:compat-ca5200d28ac992c8c71200fe49c7d24f850133b3
     restart: unless-stopped
     depends_on:
       gluetun:
         condition: service_started
+      vproxy:
+        condition: service_healthy
     volumes:
       - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
       - ${STATE_DIR:-./state}:/gluetun/state
@@ -133,4 +141,6 @@ services:
       DDNS_RESOLVER: ${DDNS_RESOLVER:-}
       DDNS_OVERRIDE_IP: ${DDNS_OVERRIDE_IP:-}
       GLUETUN_CONTAINER_NAME: ${GLUETUN_CONTAINER_NAME:-ddns-openvpn-proxy}
+      VPROXY_CONTAINER_NAME: ddns-vpn-proxy-vproxy
+      GLUETUN_HEALTH_TIMEOUT_SECONDS: 120
       STATE_DIR: /gluetun/state
