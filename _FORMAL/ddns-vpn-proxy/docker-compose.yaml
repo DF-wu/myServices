@@ -76,16 +76,24 @@ services:
     cap_drop:
       - ALL
 
+    # Portainer Stack variables are interpolation inputs only; explicitly pass
+    # SOCKS5 credentials into the container. Required expansion makes the
+    # deployment fail closed instead of starting an anonymous public proxy.
+    environment:
+      SOCKS5_USER: ${SOCKS5_USER:?SOCKS5_USER is required}
+      SOCKS5_PASSWORD: ${SOCKS5_PASSWORD:?SOCKS5_PASSWORD is required}
+      VPROXY_CONCURRENT: ${VPROXY_CONCURRENT:-1024}
+      VPROXY_CONNECT_TIMEOUT: ${VPROXY_CONNECT_TIMEOUT:-300}
+
     entrypoint: ["/bin/sh", "-c"]
-    # 認證邏輯：vproxy 要求 username + password 同時給或同時不給；
-    # 只給一個會導致 clap 報錯並立即退出。用 if/else 安全處理。
     command:
       - |
-        if [ -n "$${SOCKS5_USER}" ] && [ -n "$${SOCKS5_PASSWORD}" ]; then
-          exec vproxy run -b 0.0.0.0:1080 -c "$${VPROXY_CONCURRENT:-1024}" -t "$${VPROXY_CONNECT_TIMEOUT:-300}" socks5 -u "$${SOCKS5_USER}" -p "$${SOCKS5_PASSWORD}"
-        else
-          exec vproxy run -b 0.0.0.0:1080 -c "$${VPROXY_CONCURRENT:-1024}" -t "$${VPROXY_CONNECT_TIMEOUT:-300}" socks5
-        fi
+        exec vproxy run -b 0.0.0.0:1080 \
+          -c "$${VPROXY_CONCURRENT}" \
+          -t "$${VPROXY_CONNECT_TIMEOUT}" \
+          socks5 \
+          -u "$${SOCKS5_USER}" \
+          -p "$${SOCKS5_PASSWORD}"
 
     # 簡單健康檢查：確認 1080 有在 listen
     healthcheck:
