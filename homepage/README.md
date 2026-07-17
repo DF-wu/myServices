@@ -34,9 +34,20 @@ A future agent should treat these files as the canonical handoff package and beg
 | `docs/18-requirements-and-delivery-plan.md` | Consolidated owner requirements, delivery plan, implemented state, and remaining work. |
 | `docs/19-rename-hompage-to-homepage.md` | Rename report for correcting the original `hompage` directory typo. |
 | `docs/14-df-decisions.md` | DF decisions already applied to Phase 2 planning. |
+| `docs/20-2026-07-01-worklog.md` | Track 1 (Homepage widget wiring + dedupe) and Track 2 (Glance) session worklog. |
+| `docs/21-cloudflare-ingress-runbook.md` | Deferred public-ingress runbook for `hp.dfder.tw` + `glance.dfder.tw`. |
+| `docs/22-known-issues-and-followups.md` | **Master checklist** of all known issues + remaining config for both dashboards. |
 | `config-template/` | Homepage compose and config templates; intentionally placeholder-based. |
 | `scripts/` | Read-only audit/export helpers. They avoid exporting secrets by default. |
 | `inventory/private/` | Generated local inventory. Private; ignored by git. |
+
+## Sibling service: Glance
+
+A second dashboard, **Glance**, is deployed alongside Homepage at
+`~/workspace/myServices/glance` (host port `33081`). It is a personal start page +
+live ops board with owner-selectable community themes. See `../glance/README.md` and
+`../glance/WORKLOG.md`. Public ingress for it is covered by the same runbook,
+`docs/21-cloudflare-ingress-runbook.md`.
 
 ## Path note
 

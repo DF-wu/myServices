@@ -330,22 +330,6 @@
         server: local-docker
         container: "chatstack-unified-redis"
         showStats: true
-    - claude-relay-redis:
-        id: ai-llm-claude-relay-redis
-        icon: /images/dracula-icons/docker.png
-        description: "Docker: chatstack/crs-redis (docker.io/valkey/valkey:8-alpine)"
-        server: local-docker
-        container: "claude-relay-redis"
-        showStats: true
-    - claude-relay-service:
-        id: ai-llm-claude-relay-service
-        icon: mdi-docker
-        href: "https://crs.dfder.tw"
-        description: "Docker: chatstack/claude-relay-service (weishaw/claude-relay-service:latest)"
-        siteMonitor: "https://crs.dfder.tw"
-        server: local-docker
-        container: "claude-relay-service"
-        showStats: true
     - ClaudeCodeRouter:
         id: ai-llm-claudecoderouter
         icon: mdi-docker
@@ -373,14 +357,14 @@
         server: local-docker
         container: "infinite-canvas"
         showStats: true
-    - lilac-mono-Catalina:
+    - lilac-mono-catalina:
         id: ai-llm-lilac-mono-catalina
         icon: mdi-docker
         href: "https://github-catalinna-webhook.dfder.tw"
-        description: "Docker: chatstack/lilac-Catalina (ghcr.io/df-wu/lilac-mono)"
+        description: "Docker: chatstack/lilac-catalina (ghcr.io/df-wu/lilac-mono:catalina)"
         siteMonitor: "https://github-catalinna-webhook.dfder.tw"
         server: local-docker
-        container: "lilac-mono-Catalina"
+        container: "lilac-mono-catalina"
         showStats: true
     - lilac-mono-claudia:
         id: ai-llm-lilac-mono-claudia
@@ -460,15 +444,6 @@
         siteMonitor: "https://sub2api.dfder.tw"
         server: local-docker
         container: "sub2api"
-        showStats: true
-    - telegram-chatbot:
-        id: ai-llm-telegram-chatbot
-        icon: mdi-docker
-        href: "https://tgbot.dfder.tw"
-        description: "Docker: chatstack/telegram-chatbot (yym68686/chatgpt:latest)"
-        siteMonitor: "https://tgbot.dfder.tw"
-        server: local-docker
-        container: "telegram-chatbot"
         showStats: true
     - tika:
         id: ai-llm-tika
@@ -839,13 +814,6 @@
         server: local-docker
         container: "qd"
         showStats: true
-    - teslamate-mosquitto-1:
-        id: backup-maintenance-teslamate-mosquitto-1
-        icon: mdi-docker
-        description: "Docker: teslamate/mosquitto (eclipse-mosquitto:2)"
-        server: local-docker
-        container: "teslamate-mosquitto-1"
-        showStats: true
     - teslamate-teslamate-1:
         id: backup-maintenance-teslamate-teslamate-1
         icon: mdi-docker
@@ -870,4 +838,3 @@
         href: "http://backrest.dfder.tw"
         description: "Migrated from Heimdall safe export"
         siteMonitor: "http://backrest.dfder.tw"
-
