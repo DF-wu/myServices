@@ -35,13 +35,13 @@ services:
     container_name: vits-hf2api
     network_mode: "container:gluetun-proxy"
     volumes:
-      - /home/df/workspace/hf2api/vits-hf2api:/app
+      - /home/df/workspace/hf2api/vits-tts-hf2api:/app
     working_dir: /app
     entrypoint: ["sh", "-c"]
     command:
       - |
         pip install --no-cache-dir -q . &&
-        exec python -m vits_hf2api
+        exec python -m vits_tts_hf2api
     environment:
       BASE_URL: https://ikechan8370-vits-uma-genshin-honkai.hf.space
       FALLBACK_BASE_URL: https://zomehwh-vits-uma-genshin-honkai.hf.space
