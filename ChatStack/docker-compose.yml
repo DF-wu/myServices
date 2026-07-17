@@ -322,13 +322,7 @@ services:
       chatstack-postgres17-pgvector:
         condition: service_started
     healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/login"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -740,15 +734,13 @@ services:
       # 基本 VPN 設定 (必填)
       - VPN_SERVICE_PROVIDER=surfshark
       - VPN_TYPE=wireguard
-      - OPENVPN_USER=${OPENVPN_USER}
-      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
       - WIREGUARD_PRIVATE_KEY=${SURFSHARK_WIREGUARD_PRIVATE_KEY}
       - WIREGUARD_ADDRESSES=10.14.0.2/16
       # - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/se-sto.prod.surfshark.com_udp.ovpn
       # - SERVER_COUNTRIES=Sweden
       - SERVER_CITIES=Phoenix
       # 系統設定
-      - TZ=${TZ}
+      - TZ=${TZ:-Asia/Taipei}
       - UMASK=000
       # ===== 修復 1: 關掉 DNS-over-TLS，改用 plaintext =====
       # DoT 通過高延遲 VPN 隧道 (台灣→Sweden ~340ms) TLS handshake 經常 reset
