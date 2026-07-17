@@ -1,5 +1,29 @@
 portainer-ce/data
-.env.local
+
+# Local environment files and secrets.
+.env
+.env.*
+*.env.local
+!.env.example
+!.env.*.example
+
+# Runtime logs and operational backups do not belong in this public repo.
+*.log
+*.bck
+*.bak
+*.bak-*
+*.backup
+backups/
+
+# Local agent/editor indexes and session state.
+.codegraph
+.omo/
+.opencode/
+.serena/
+
+# Standalone upstream source checkouts; services consume published images.
+/claude-relay-service/
+/sub2api_weishaw/
 
 _ARCHIVE/.DS_Store
 .DS_Store
