@@ -1,0 +1,8 @@
+# 真正的 VPN/proxy credentials 與每區 runtime env 不進版控。
+.env
+.env.common
+env/*.env
+
+# 保留可提交、無 secrets 的範例。
+!.env.common.example
+!env/*.env.example
