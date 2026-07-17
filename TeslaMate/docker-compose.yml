@@ -8,8 +8,6 @@
 # The ${DF_PASSWORD} is environment variable that I set in my portainer
 
 
-version: "3"
-
 services:
   teslamate:
     image: teslamate/teslamate:latest
@@ -21,7 +19,11 @@ services:
       - DATABASE_PASS=${DF_PASSWORD} # password injecy from my portainer
       - DATABASE_NAME=teslamate
       - DATABASE_HOST=database
-      - MQTT_HOST=mosquitto
+      # Home Assistant Mosquitto App on df-ha.newhome.
+      - MQTT_HOST=192.168.11.201
+      - MQTT_PORT=1883
+      - MQTT_USERNAME=teslamate_ha
+      - MQTT_PASSWORD=${TESLAMATE_MQTT_PASSWORD}
     ports:
       - 54000:4000
     volumes:
@@ -60,24 +62,7 @@ services:
     volumes:
       - teslamate-grafana-data:/var/lib/grafana
 
-  mosquitto:
-    image: eclipse-mosquitto:2
-    restart: always
-    environment:
-      - TZ=Asia/Taipei
-    command: mosquitto -c /mosquitto-no-auth.conf
-    # ports:
-    #   - 1883:1883
-    volumes:
-      - mosquitto-conf:/mosquitto/config
-      - mosquitto-data:/mosquitto/data
-
-
-
-
 
 volumes:
   teslamate-db:
   teslamate-grafana-data:
-  mosquitto-conf:
-  mosquitto-data:
