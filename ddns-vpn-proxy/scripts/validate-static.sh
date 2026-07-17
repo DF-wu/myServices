@@ -37,6 +37,9 @@ grep -Fq 'http-request deny' "$repo_root/docker/socket-proxy-haproxy.cfg.tmpl"
 
 for region in jp romania uk
 do
+  # 用 subshell 隔離每一區 source/export 的變數；否則 shell environment 會在下一輪
+  # 優先於 --env-file，導致 Romania/UK 被上一區的 project 值污染。
+  (
   region_env=$repo_root/env/$region.env.example
   model=$tmpdir/$region.json
 
@@ -80,7 +83,8 @@ do
       (any(.services.gluetun.ports[]; .target == 1080 and (.published | tostring) == $socks and .protocol == "tcp")) and
       (any(.services.gluetun.ports[]; .target == 8388 and (.published | tostring) == $ss_tcp and .protocol == "tcp")) and
       (any(.services.gluetun.ports[]; .target == 8388 and (.published | tostring) == $ss_udp and .protocol == "udp")) and
-      (all(.services[]; (.image | test("(:latest|:edge|:main|:master)$")) | not))
+      (all(.services[]; (.image | test("(:latest|:edge|:main|:master)$")) | not)) and
+      (all(.services[]; .image | test("@sha256:[0-9a-f]{64}$")))
     ' "$model" >/dev/null
 
   profile=$VPN_CONFIG_DIR/$VPN_CONFIG_FILE
@@ -112,6 +116,9 @@ do
 
   printf 'ok - %s: compose model, compatibility contract and profile (%s)\n' \
     "$region" "$remote_host"
+  )
 done
+
+sh "$repo_root/tests/consumer-coordination.sh"
 
 printf 'Static validation passed; no container lifecycle action was performed.\n'

@@ -41,6 +41,7 @@ ddns-vpn-proxy/
 ├── docker/socket-proxy-haproxy.cfg.tmpl
 ├── scripts/ddns-openvpn.sh
 ├── scripts/validate-static.sh
+├── tests/consumer-coordination.sh
 ├── FEASIBILITY.md
 └── MIGRATION.md
 ```
@@ -78,7 +79,8 @@ Gluetun。若只需本機使用，可改成 `PROXY_BIND_ADDRESS=127.0.0.1`，並
 
 ## 安全與來源
 
-- Gluetun 固定 `qmcgaw/gluetun:v3.41.1`；其他 images 也全部固定版本，不用 `latest`。
+- Gluetun 固定 `qmcgaw/gluetun:v3.41.1`；所有 images 都以版本 tag 加 multi-arch index
+  digest 雙重固定，不用 `latest`。
 - watcher 不直接掛 Docker socket；internal HAProxy policy 只允許精確 inspect/restart path。
 - VPN profile 全程 read-only；runtime state 是可重新產生的 per-project named volume。
 - 非 Gluetun services 全部 `cap_drop: ALL`、`read_only`（適用處）與
