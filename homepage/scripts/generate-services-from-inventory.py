@@ -54,7 +54,12 @@ ICON_MAP = {
     'speedtest': '/images/dracula-icons/speedtest.png',
     'alist': '/images/dracula-icons/alist.png',
 }
-WEB_PORT_HINTS = {'80', '81', '443', '3000', '3001', '5000', '5001', '5055', '5678', '8080', '8181', '8443', '9000', '9443', '9898', '12008'}
+WEB_PORT_HINTS = {
+    '80', '81', '2342', '3000', '3001', '3456', '4000', '5000', '5001',
+    '5055', '5244', '5572', '5678', '58080', '6185', '6888', '7892',
+    '8000', '8080', '8096', '8117', '8181', '8191', '8787', '8788',
+    '9000', '9117', '9321', '9898', '9998', '12008', '19999',
+}
 
 
 def norm(s): return (s or '').strip()
@@ -84,13 +89,15 @@ def first_host_port(ports):
     for container_port, bindings in ports.items():
         if not bindings: continue
         portnum = container_port.split('/')[0]
+        if portnum not in WEB_PORT_HINTS:
+            continue
         for b in bindings:
             hp = b.get('HostPort')
             if not hp: continue
-            candidates.append((0 if portnum in WEB_PORT_HINTS else 1, portnum, hp))
+            candidates.append((int(portnum), hp))
     if not candidates: return None
     candidates.sort()
-    return candidates[0][2]
+    return candidates[0][1]
 def public_url_key(url):
     u = url.rstrip('/').lower()
     return u

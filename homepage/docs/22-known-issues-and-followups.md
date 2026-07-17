@@ -61,7 +61,10 @@ Jellyfin port fix. If you re-run it: (a) back up `services.yaml` first, then re-
 the widget blocks, **or** (b) extend the generator to merge/keep an overrides file.
 The curated snapshot lives in `config-template/config/services.yaml`.
 
-### A4 (P2) — Catalog still rough (from the auto-generation)
+### A4 (P2) — Catalog polish still open (from the auto-generation)
+- Resolved 2026-07-18: the generator now allowlists actual HTTP container ports;
+  DB, Redis, SOCKS, Shadowsocks, RPC-only, and unreachable control ports remain
+  stat-only cards without `href` / `siteMonitor`.
 - More near-duplicates remain (public-route card + Docker card for the same app, e.g.
   Open WebUI, API Conversion, AutoBangumi/Ani, TrueNAS/Truenas). Merge to one card
   with the best `href` + `siteMonitor` + `widget`.
@@ -69,8 +72,6 @@ The curated snapshot lives in `config-template/config/services.yaml`.
   or move them to a collapsed "Internal" group — they add stat cards but no UI to open.
 - Replace remaining generic `icon: mdi-docker` with proper icons
   (`/images/dracula-icons/*` or `di:<name>` / `sh:<name>`).
-- Some hrefs point at non-HTTP ports (DB `:3306/:5432`, redis `:6379`) — keep as
-  stat-only cards (drop `href`/`siteMonitor`) since they aren't browsable.
 
 ### A5 (P1) — `axolotl.newhome` name resolution inside the container
 Widgets and `siteMonitor` requests are made **from the Homepage container**. If

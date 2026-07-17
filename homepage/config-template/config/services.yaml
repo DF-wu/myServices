@@ -7,18 +7,16 @@
     - capswriter-server:
         id: core-infrastructure-capswriter-server
         icon: mdi-docker
-        href: "http://axolotl.newhome:6016"
         description: "Docker: capswriter/capswriter-server (ghcr.io/df-wu/capswriter-offline-server:latest)"
-        siteMonitor: "http://axolotl.newhome:6016"
         server: local-docker
         container: "capswriter-server"
         showStats: true
     - heimdall:
         id: core-infrastructure-heimdall
         icon: mdi-docker
-        href: "http://axolotl.newhome:50443"
+        href: "http://axolotl.newhome:50080"
         description: "Docker: heimdall/heimdall (lscr.io/linuxserver/heimdall)"
-        siteMonitor: "http://axolotl.newhome:50443"
+        siteMonitor: "http://axolotl.newhome:50080"
         server: local-docker
         container: "heimdall"
         showStats: true
@@ -62,7 +60,6 @@
         icon: mdi-docker
         href: "https://192.168.11.200/"
         description: "Migrated from Heimdall safe export"
-        siteMonitor: "https://192.168.11.200/"
     - df Github:
         id: core-infrastructure-df-github
         icon: /images/dracula-icons/github.png
@@ -90,9 +87,9 @@
     - HomeAssistant:
         id: core-infrastructure-homeassistant
         icon: /images/dracula-icons/homeassistant.png
-        href: "http://df-ha.local:8123"
+        href: "http://192.168.11.201:8123"
         description: "Migrated from Heimdall safe export"
-        siteMonitor: "http://df-ha.local:8123"
+        siteMonitor: "http://192.168.11.201:8123"
     - Kuma:
         id: core-infrastructure-kuma
         icon: mdi-docker
@@ -110,7 +107,6 @@
         icon: mdi-docker
         href: "https://nctest.dfder.tw"
         description: "Public reverse proxy route to http://192.168.10.10:11000"
-        siteMonitor: "https://nctest.dfder.tw"
     - PicX-github圖床:
         id: core-infrastructure-picx-github
         icon: /images/dracula-icons/github.png
@@ -128,27 +124,22 @@
         icon: mdi-docker
         href: "https://192.168.10.1/protect/dashboard"
         description: "Migrated from Heimdall safe export"
-        siteMonitor: "https://192.168.10.1/protect/dashboard"
     - UniFi-Local:
         id: core-infrastructure-unifi-local
         icon: mdi-docker
         href: "http://192.168.10.1"
         description: "Migrated from Heimdall safe export"
-        siteMonitor: "http://192.168.10.1"
     - 觀影-Linux.do:
         id: core-infrastructure-linux-do
         icon: mdi-docker
         href: "https://yingmiwo.cloudns.be/index"
         description: "Migrated from Heimdall safe export"
-        siteMonitor: "https://yingmiwo.cloudns.be/index"
 
 - Network & Ingress:
     - bt-gluetun:
         id: network-ingress-bt-gluetun
         icon: mdi-docker
-        href: "http://axolotl.newhome:51001"
         description: "Docker: qbtstack/bt-gluetun (qmcgaw/gluetun)"
-        siteMonitor: "http://axolotl.newhome:51001"
         server: local-docker
         container: "bt-gluetun"
         showStats: true
@@ -178,9 +169,7 @@
     - gluetun-jp:
         id: network-ingress-gluetun-jp
         icon: mdi-docker
-        href: "http://axolotl.newhome:19011"
         description: "Docker: gluetun/gluetun-jp (qmcgaw/gluetun)"
-        siteMonitor: "http://axolotl.newhome:19011"
         server: local-docker
         container: "gluetun-jp"
         showStats: true
@@ -196,18 +185,14 @@
     - gluetun-romania:
         id: network-ingress-gluetun-romania
         icon: mdi-docker
-        href: "http://axolotl.newhome:19016"
         description: "Docker: gluetun/gluetun-romania (qmcgaw/gluetun)"
-        siteMonitor: "http://axolotl.newhome:19016"
         server: local-docker
         container: "gluetun-romania"
         showStats: true
     - gluetun-uk:
         id: network-ingress-gluetun-uk
         icon: mdi-docker
-        href: "http://axolotl.newhome:19021"
         description: "Docker: gluetun/gluetun-uk (qmcgaw/gluetun)"
-        siteMonitor: "http://axolotl.newhome:19021"
         server: local-docker
         container: "gluetun-uk"
         showStats: true
@@ -246,18 +231,16 @@
     - vproxy-home:
         id: network-ingress-vproxy-home
         icon: /images/dracula-icons/nginx-proxy-manager.png
-        href: "http://axolotl.newhome:32480"
         description: "Docker: vproxy/vproxy (ghcr.io/0x676e67/vproxy:v2.5.5)"
-        siteMonitor: "http://axolotl.newhome:32480"
         server: local-docker
         container: "vproxy-home"
         showStats: true
     - Nginx Proxy Manager-Local:
         id: network-ingress-nginx-proxy-manager-local
         icon: /images/dracula-icons/nginx-proxy-manager.png
-        href: "http://truenas:7818/"
+        href: "http://192.168.10.12:7818/"
         description: "Migrated from Heimdall safe export"
-        siteMonitor: "http://truenas:7818/"
+        siteMonitor: "http://192.168.10.12:7818/"
 
 - Observability:
     - netdata:
@@ -265,7 +248,6 @@
         icon: /images/dracula-icons/netdata.png
         href: "http://axolotl.newhome:19999"
         description: "Docker: netdata/netdata — real-time host metrics"
-        siteMonitor: "http://axolotl.newhome:19999"
         server: local-docker
         container: "netdata"
         showStats: true
@@ -326,9 +308,7 @@
     - chatstack-postgres17-pgvector:
         id: ai-llm-chatstack-postgres17-pgvector
         icon: mdi-docker
-        href: "http://axolotl.newhome:43020"
         description: "Docker: chatstack/chatstack-postgres17-pgvector (pgvector/pgvector:pg17)"
-        siteMonitor: "http://axolotl.newhome:43020"
         server: local-docker
         container: "chatstack-postgres17-pgvector"
         showStats: true
@@ -396,9 +376,7 @@
     - metamcp-pg:
         id: ai-llm-metamcp-pg
         icon: mdi-docker
-        href: "http://axolotl.newhome:9433"
         description: "Docker: metamcp/postgres (postgres:16-alpine)"
-        siteMonitor: "http://axolotl.newhome:9433"
         server: local-docker
         container: "metamcp-pg"
         showStats: true
@@ -573,9 +551,7 @@
     - aria2_pro:
         id: downloads-network-aria2-pro
         icon: mdi-docker
-        href: "http://axolotl.newhome:46800"
         description: "Docker: aria2pro/aria2_pro (p3terx/aria2-pro)"
-        siteMonitor: "http://axolotl.newhome:46800"
         server: local-docker
         container: "aria2_pro"
         showStats: true
@@ -626,18 +602,14 @@
     - immich-aio-postgres14:
         id: photos-files-immich-aio-postgres14
         icon: /images/dracula-icons/immich.png
-        href: "http://axolotl.newhome:5432"
-        description: "Docker: immich-aio/immich-aio-postgres14 (tensorchord/pgvecto-rs:pg14-v0.2.1)"
-        siteMonitor: "http://axolotl.newhome:5432"
+        description: "Docker: immich-aio/immich-aio-postgres14 (ghcr.io/immich-app/postgres:14-vectorchord0.4.3)"
         server: local-docker
         container: "immich-aio-postgres14"
         showStats: true
     - immich-aio-redis:
         id: photos-files-immich-aio-redis
         icon: /images/dracula-icons/immich.png
-        href: "http://axolotl.newhome:6379"
         description: "Docker: immich-aio/immich-aio-redis (redis)"
-        siteMonitor: "http://axolotl.newhome:6379"
         server: local-docker
         container: "immich-aio-redis"
         showStats: true
@@ -681,9 +653,7 @@
     - nextcloud-aio-mastercontainer:
         id: photos-files-nextcloud-aio-mastercontainer
         icon: /images/dracula-icons/nextcloud.png
-        href: "http://axolotl.newhome:53080"
         description: "Docker: nextcloud-aio/nextcloud-aio-mastercontainer (ghcr.io/nextcloud-releases/all-in-one:latest)"
-        siteMonitor: "http://axolotl.newhome:53080"
         server: local-docker
         container: "nextcloud-aio-mastercontainer"
         showStats: true
@@ -750,9 +720,7 @@
     - mariadb:
         id: databases-admin-mariadb
         icon: /images/dracula-icons/mariadb.png
-        href: "http://axolotl.newhome:3306"
         description: "Docker: mariadb/mariadb (lscr.io/linuxserver/mariadb)"
-        siteMonitor: "http://axolotl.newhome:3306"
         server: local-docker
         container: "mariadb"
         showStats: true
