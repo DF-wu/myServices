@@ -1,0 +1,21 @@
+# Secret config (contains OCI/TG credentials)
+config/client_config
+
+# Keys (OCI API private keys - keep secret)
+keys/
+
+# Runtime data directory (binaries, logs, task files)
+data/*
+!data/
+!data/sh_client_bot.sh
+
+# Logs
+logs/
+
+# Docker volumes / sensitive
+*.pem
+*.key
+.env
+
+# Agent workflow metadata
+.sisyphus/
