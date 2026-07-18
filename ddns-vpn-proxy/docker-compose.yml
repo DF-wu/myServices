@@ -1,8 +1,8 @@
 # DDNS-aware Gluetun 單地區模板。
 #
-# 這份 Compose 會搭配 env/jp.env、env/romania.env、env/uk.env 各執行一次，
-# 形成三個彼此隔離的 Compose project。這樣可以共用同一份已驗證模板，又能讓每個
-# 地區各自擁有 network、runtime volume、watcher 與 socket proxy。
+# 這份 Compose 會由 Portainer 搭配 portainer/{jp,romania,uk}.env.example 的其中一份
+# 合併 env 各部署一次，形成三個彼此隔離的 Compose project。這樣可以共用同一份
+# 已驗證模板，又能讓每個地區各自擁有 network、runtime volume 與 watcher。
 #
 # 重要：GLUETUN_CONTAINER_NAME 與舊部署相同，host ports 也刻意保留；因此舊
 # /home/df/workspace/myServices/Gluetun stack 還在執行時，絕對不能啟動本 Compose。
@@ -16,14 +16,16 @@ x-logging: &default-logging
     max-size: ${LOG_MAX_SIZE:-10m}
     max-file: ${LOG_MAX_FILE:-3}
 
-# ddns-init 與 ddns-watcher 使用相同的 stock Docker CLI image 與 helper script。
+# ddns-init 與 ddns-watcher 使用 digest-pinned Alpine，並掛載 installer 已驗證的 helper。
+# helper 直接呼叫受限的 HTTP API，不需要完整 Docker CLI 或額外的 private registry。
 # helper 只讀來源 profile；唯一可寫位置是該地區自己的 vpn-state named volume。
 x-ddns-common: &ddns-common
-  image: ${DDNS_HELPER_IMAGE:-docker:29.6.1-cli-alpine3.24@sha256:862099ada15c669000bef53aa4cb9d821262829f45b0dda2159ccb276443043b}
+  image: alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+  pull_policy: always
   read_only: true
   cap_drop:
     - ALL
-  # 只加回讀取 host 上 0600/0700 profile 所需的最小 capability。
+  # 只加回讀取 host 上 0400/0500 profile 所需的最小 capability。
   cap_add:
     - DAC_READ_SEARCH
   security_opt:
@@ -32,58 +34,111 @@ x-ddns-common: &ddns-common
     - /tmp:size=8m,mode=1777
   logging: *default-logging
   volumes:
-    # 既有 Surfshark profile 目錄唯讀掛載；helper 不會修改舊 Gluetun 資料。
-    - ${VPN_CONFIG_DIR:?請設定該地區的 VPN_CONFIG_DIR}:/source:ro
+    # Host 只提供 manifest-pinned 的 helper 與單一地區 profile。
+    # 缺少時 create_host_path:false 會直接拒絕部署，不會默默建立空檔案。
+    - type: bind
+      source: /home/df/.local/share/ddns-vpn-proxy/assets/2026-07-18.5/ddns-openvpn.sh
+      target: /usr/local/bin/ddns-openvpn.sh
+      read_only: true
+      bind:
+        create_host_path: false
+    - type: bind
+      source: /home/df/.local/share/ddns-vpn-proxy/assets/2026-07-18.5/profiles/${VPN_CONFIG_FILE:?請設定該地區的 VPN_CONFIG_FILE}
+      target: /opt/ddns-profile/client.ovpn
+      read_only: true
+      bind:
+        create_host_path: false
     # runtime profile、last IP、fingerprint 與 heartbeat 都按 Compose project 隔離。
     - vpn-state:/state
-    # 固定於本部署目錄的 DDNS adapter，不在啟動時下載或 build 程式。
-    - ./scripts/ddns-openvpn.sh:/opt/ddns/ddns-openvpn.sh:ro
   environment: &ddns-environment
     TZ: ${TZ:-Asia/Taipei}
     VPN_TYPE: ${VPN_TYPE:-openvpn}
-    VPN_SOURCE_CONFIG: /source/${VPN_CONFIG_FILE:?請設定該地區的 VPN_CONFIG_FILE}
+    VPN_SOURCE_CONFIG: /opt/ddns-profile/client.ovpn
+    VPN_SOURCE_SHA256: ${VPN_SOURCE_SHA256:?請設定該地區的 VPN_SOURCE_SHA256}
     VPN_RENDERED_CONFIG: /state/runtime/vpn.conf
     STATE_DIR: /state
-    # 留空會從 OpenVPN remote（或 WireGuard Endpoint）自動取得 hostname。
+    # 留空會從 OpenVPN remote 自動取得 hostname。
     DDNS_HOSTNAME: ${DDNS_HOSTNAME:-}
     DDNS_RESOLVER: ${DDNS_RESOLVER:-}
     DDNS_POLL_SECONDS: ${DDNS_POLL_SECONDS:-60}
     DDNS_INIT_RETRY_SECONDS: ${DDNS_INIT_RETRY_SECONDS:-5}
+    DDNS_INIT_TIMEOUT_SECONDS: ${DDNS_INIT_TIMEOUT_SECONDS:-120}
     DDNS_OVERRIDE_IPS: ${DDNS_OVERRIDE_IPS:-}
-    # helper 只收到「是否已設定」旗標，不會拿到 VPN/proxy 明文密碼。
-    OPENVPN_USER_CONFIGURED: ${OPENVPN_USER:+1}
-    OPENVPN_PASSWORD_CONFIGURED: ${OPENVPN_PASSWORD:+1}
+    # Credentials are host-staged 0400 files; no secret value enters Config.Env.
+    OPENVPN_USER_CONFIGURED: "1"
+    OPENVPN_PASSWORD_CONFIGURED: "1"
     HTTPPROXY_ENABLED: ${HTTPPROXY:-on}
-    HTTPPROXY_USER_CONFIGURED: ${HTTPPROXY_USER:+1}
-    HTTPPROXY_PASSWORD_CONFIGURED: ${HTTPPROXY_PASSWORD:+1}
-    SOCKS5_USER_CONFIGURED: ${SOCKS5_USER:+1}
-    SOCKS5_PASSWORD_CONFIGURED: ${SOCKS5_PASSWORD:+1}
+    HTTPPROXY_USER_CONFIGURED: "1"
+    HTTPPROXY_PASSWORD_CONFIGURED: "1"
+    # GOST SOCKS5 is deliberately unauthenticated and must remain
+    # host-loopback-only; no proxy credential enters argv or Docker metadata.
+    SOCKS5_USER_CONFIGURED: "0"
+    SOCKS5_PASSWORD_CONFIGURED: "0"
     SHADOWSOCKS_ENABLED: ${SHADOWSOCKS:-on}
-    SHADOWSOCKS_PASSWORD_CONFIGURED: ${SHADOWSOCKS_PASSWORD:+1}
+    SHADOWSOCKS_PASSWORD_CONFIGURED: "1"
     PROXY_BIND_ADDRESS: ${PROXY_BIND_ADDRESS:-127.0.0.1}
-    GLUETUN_CONTAINER_NAME: ${GLUETUN_CONTAINER_NAME:?請設定相容的 Gluetun 容器名稱}
-    VPROXY_CONTAINER_NAME: ${VPROXY_CONTAINER_NAME:?請設定唯一的 vproxy 容器名稱}
-    # 只允許一個已確認的 network_mode:container consumer；空值代表沒有。
-    DEPENDENT_CONTAINER_NAME: ${DEPENDENT_CONTAINER_NAME:-}
-    GLUETUN_RESTART_TIMEOUT_SECONDS: ${GLUETUN_RESTART_TIMEOUT_SECONDS:-20}
     GLUETUN_HEALTH_TIMEOUT_SECONDS: ${GLUETUN_HEALTH_TIMEOUT_SECONDS:-120}
     GLUETUN_HEALTHCHECK_URL: http://gluetun:9999
+    GLUETUN_CONTROL_API_KEY_FILE: /run/ddns-private/control-api-key
+    GLUETUN_CONTROL_AUTH_CONFIG_FILEPATH: /run/ddns-private/control-auth.toml
+    GLUETUN_CONTROL_DEFAULT_ROLE_FILE: /run/ddns-private/control-default-role.json
+    OPENVPN_USER_SECRETFILE: /run/ddns-private/openvpn-user
+    OPENVPN_PASSWORD_SECRETFILE: /run/ddns-private/openvpn-password
+    HTTPPROXY_USER_SECRETFILE: /run/ddns-private/httpproxy-user
+    HTTPPROXY_PASSWORD_SECRETFILE: /run/ddns-private/httpproxy-password
+    SHADOWSOCKS_PASSWORD_SECRETFILE: /run/ddns-private/shadowsocks-password
   entrypoint:
     - /bin/sh
-    - /opt/ddns/ddns-openvpn.sh
+    - /usr/local/bin/ddns-openvpn.sh
 
 services:
   # 啟動 gate：先驗證 profile/帳密/安全設定、解析 DDNS 並原子產生 IP-based profile。
   # 只有 exit 0 後 Gluetun 才能啟動；永久設定錯誤會 fail closed。
   ddns-init:
     <<: *ddns-common
+    volumes:
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/assets/2026-07-18.5/ddns-openvpn.sh
+        target: /usr/local/bin/ddns-openvpn.sh
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/assets/2026-07-18.5/profiles/${VPN_CONFIG_FILE:?請設定該地區的 VPN_CONFIG_FILE}
+        target: /opt/ddns-profile/client.ovpn
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/control-api-key
+        target: /run/ddns-private/control-api-key
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/control-auth.toml
+        target: /run/ddns-private/control-auth.toml
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/control-default-role.json
+        target: /run/ddns-private/control-default-role.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - vpn-state:/state
     command:
       - init
     restart: "no"
 
   # VPN、kill switch、health server、HTTP proxy 與相容用 Shadowsocks 都由 Gluetun 提供。
   gluetun:
-    image: ${GLUETUN_IMAGE:-qmcgaw/gluetun:v3.41.1@sha256:1a5bf4b4820a879cdf8d93d7ef0d2d963af56670c9ebff8981860b6804ebc8ab}
+    image: ddns-vpn-gluetun:v3.41.1-patched-20260718
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: docker/gluetun.Dockerfile
     # JP/RO/UK 分別保留 gluetun-jp、gluetun-romania、gluetun-uk，讓現有
     # network_mode: container:<name> 與 Homepage Docker integration 不必改名。
     container_name: ${GLUETUN_CONTAINER_NAME:?請設定相容的 Gluetun 容器名稱}
@@ -92,12 +147,33 @@ services:
     depends_on:
       ddns-init:
         condition: service_completed_successfully
+    read_only: true
+    cap_drop:
+      - ALL
     cap_add:
       - NET_ADMIN
+      - CHOWN
+      - DAC_OVERRIDE
+      - KILL
+      - SETGID
+      - SETUID
     devices:
       - /dev/net/tun:/dev/net/tun
     security_opt:
       - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /etc/openvpn:size=4m,mode=0755
+      - /gluetun:size=8m,mode=0755
+    healthcheck:
+      test:
+        - CMD
+        - /gluetun-entrypoint
+        - healthcheck
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging: *default-logging
     ports:
       # 既有 HTTP proxy host port：JP 19010、RO 19015、UK 19020。
@@ -109,7 +185,63 @@ services:
       - "${PROXY_BIND_ADDRESS:-127.0.0.1}:${SHADOWSOCKS_TCP_PORT:?請設定 SHADOWSOCKS_TCP_PORT}:8388/tcp"
       - "${PROXY_BIND_ADDRESS:-127.0.0.1}:${SHADOWSOCKS_UDP_PORT:?請設定 SHADOWSOCKS_UDP_PORT}:8388/udp"
     volumes:
-      - ${VPN_CONFIG_DIR:?請設定該地區的 VPN_CONFIG_DIR}:/source:ro
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/control-api-key
+        target: /run/ddns-private/control-api-key
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/control-auth.toml
+        target: /run/ddns-private/control-auth.toml
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/control-default-role.json
+        target: /run/ddns-private/control-default-role.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/openvpn-user
+        target: /run/ddns-private/openvpn-user
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/openvpn-password
+        target: /run/ddns-private/openvpn-password
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/httpproxy-user
+        target: /run/ddns-private/httpproxy-user
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/httpproxy-password
+        target: /run/ddns-private/httpproxy-password
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/shadowsocks-password
+        target: /run/ddns-private/shadowsocks-password
+        read_only: true
+        bind:
+          create_host_path: false
+      # Docker makes its generated resolv.conf read-only with ReadonlyRootfs.
+      # The installer creates this one non-secret, region-scoped writable file;
+      # no directory or other host file is writable by the container.
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/runtime/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/resolv.conf
+        target: /etc/resolv.conf
+        read_only: false
+        bind:
+          create_host_path: false
       # Gluetun 只讀取 helper 產生的衍生 profile，不可回寫 watcher state。
       - vpn-state:/state:ro
     environment:
@@ -117,39 +249,83 @@ services:
       VPN_SERVICE_PROVIDER: custom
       VPN_TYPE: ${VPN_TYPE:-openvpn}
       OPENVPN_CUSTOM_CONFIG: /state/runtime/vpn.conf
-      OPENVPN_USER: ${OPENVPN_USER:-}
-      OPENVPN_PASSWORD: ${OPENVPN_PASSWORD:-}
+      OPENVPN_USER_SECRETFILE: /run/ddns-private/openvpn-user
+      OPENVPN_PASSWORD_SECRETFILE: /run/ddns-private/openvpn-password
       OPENVPN_VERBOSITY: ${OPENVPN_VERBOSITY:-1}
-      # WireGuard 未來可沿用同一模板；目前三個相容設定皆選 OpenVPN。
-      WIREGUARD_CONF_SECRETFILE: /state/runtime/vpn.conf
-      WIREGUARD_ALLOWED_IPS: ${WIREGUARD_ALLOWED_IPS:-0.0.0.0/0}
-      WIREGUARD_PERSISTENT_KEEPALIVE_INTERVAL: ${WIREGUARD_PERSISTENT_KEEPALIVE_INTERVAL:-0}
-      WIREGUARD_MTU: ${WIREGUARD_MTU:-1320}
-      WIREGUARD_IMPLEMENTATION: ${WIREGUARD_IMPLEMENTATION:-auto}
+      OPENVPN_FLAGS: --group nonrootuser --cipher AES-256-GCM --data-ciphers AES-256-GCM
       HEALTH_RESTART_VPN: "on"
+      HEALTH_SMALL_CHECK_TYPE: dns
       HEALTH_SERVER_ADDRESS: :9999
+      HTTP_CONTROL_SERVER_ADDRESS: :8000
+      HTTP_CONTROL_SERVER_AUTH_CONFIG_FILEPATH: /run/ddns-private/control-auth.toml
+      # Patched v3.41.1 uses the same default-role behavior as upstream. The
+      # wrapper below exact-validates both auth files immediately before launch.
       # Gluetun 內建 HTTP CONNECT proxy。
       HTTPPROXY: ${HTTPPROXY:-on}
       HTTPPROXY_LISTENING_ADDRESS: :8888
-      HTTPPROXY_USER: ${HTTPPROXY_USER:-}
-      HTTPPROXY_PASSWORD: ${HTTPPROXY_PASSWORD:-}
+      HTTPPROXY_USER_SECRETFILE: /run/ddns-private/httpproxy-user
+      HTTPPROXY_PASSWORD_SECRETFILE: /run/ddns-private/httpproxy-password
       HTTPPROXY_STEALTH: ${HTTPPROXY_STEALTH:-off}
       # 保留舊 8388/tcp+udp 的 Shadowsocks 協定，避免把舊 port 偷換成 SOCKS5。
       SHADOWSOCKS: ${SHADOWSOCKS:-on}
       SHADOWSOCKS_LOG: ${SHADOWSOCKS_LOG:-off}
       SHADOWSOCKS_LISTENING_ADDRESS: :8388
-      SHADOWSOCKS_PASSWORD: ${SHADOWSOCKS_PASSWORD:-}
+      SHADOWSOCKS_PASSWORD_SECRETFILE: /run/ddns-private/shadowsocks-password
       SHADOWSOCKS_CIPHER: ${SHADOWSOCKS_CIPHER:-chacha20-ietf-poly1305}
-      # vproxy 與 watcher health server 都在 Gluetun namespace 內，必須明確放行。
-      FIREWALL_INPUT_PORTS: "1080,8388,9999"
+      # vproxy、health 與受 API key 保護的 control server 只在 project network 內使用。
+      FIREWALL_INPUT_PORTS: "8888,1080,8388,8000,9999"
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        set -eu
+        test -f /etc/resolv.conf
+        test ! -L /etc/resolv.conf
+        test "$$(stat -c '%a' /etc/resolv.conf)" = 600
+        test "$$(stat -c '%u:%g' /etc/resolv.conf)" = 1000:1000
+        test "$$(stat -c '%h' /etc/resolv.conf)" = 1
+        test "$$(wc -l </etc/resolv.conf)" -eq 1
+        test "$$(cat /etc/resolv.conf)" = 'nameserver 127.0.0.1'
+        for control_file in \
+          /run/ddns-private/control-api-key \
+          /run/ddns-private/control-auth.toml \
+          /run/ddns-private/control-default-role.json
+        do
+          test -f "$${control_file}"
+          test ! -L "$${control_file}"
+          test "$$(stat -c '%a' "$${control_file}")" = 400
+        done
+        control_key=$$(sed -n '1p' /run/ddns-private/control-api-key)
+        test "$$(wc -l </run/ddns-private/control-api-key)" -eq 1
+        test "$$(wc -c </run/ddns-private/control-api-key)" -eq 65
+        test "$${#control_key}" -eq 64
+        case "$${control_key}" in *[!0-9a-f]*|'') exit 64;; esac
+        default_role=$$(cat /run/ddns-private/control-default-role.json)
+        test "$$(wc -l </run/ddns-private/control-default-role.json)" -eq 1
+        default_key=$$(printf '%s\n' "$${default_role}" | sed -n 's/^{"name":"deny-default","auth":"apikey","apikey":"\([0-9a-f]*\)"}$$/\1/p')
+        test "$${#default_key}" -eq 64
+        test "$${default_key}" != "$${control_key}"
+        test "$${default_role}" = "{\"name\":\"deny-default\",\"auth\":\"apikey\",\"apikey\":\"$${default_key}\"}"
+        export HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE="$${default_role}"
+        expected_auth=$$(printf '[[roles]]\nname = "ddns-watcher"\nauth = "apikey"\napikey = "%s"\nroutes = ["PUT /v1/vpn/status"]\n' "$${control_key}")
+        actual_auth=$$(cat /run/ddns-private/control-auth.toml)
+        test "$${actual_auth}" = "$${expected_auth}"
+        exec /gluetun-entrypoint
 
-  # SOCKS5 sidecar 共用 Gluetun network namespace；所有流量自然經 VPN tunnel。
-  # Gluetun restart 會產生新的 namespace，所以 watcher 會在 VPN healthy 後重啟它。
+  # GOST sidecar 共用 Gluetun network namespace；所有流量自然經 VPN tunnel。
+  # watcher 只重載 Gluetun 內部 VPN loop，container namespace 不會更換。
   vproxy:
-    image: ${VPROXY_IMAGE:-ghcr.io/0x676e67/vproxy:v2.5.5@sha256:5cb1dd9ba37e56bc5a07bba452fe46c724b444f390fb1f52db198b53dd14da0d}
+    image: ddns-vpn-gost:3.3.0-5a01aa4-alpine3.24.1
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: docker/gost.Dockerfile
     container_name: ${VPROXY_CONTAINER_NAME:?請設定唯一的 vproxy 容器名稱}
+    user: "65532:65532"
     network_mode: service:gluetun
     restart: unless-stopped
+    stop_grace_period: 10s
     depends_on:
       gluetun:
         condition: service_healthy
@@ -160,142 +336,72 @@ services:
       - no-new-privileges:true
     tmpfs:
       - /tmp:size=8m,mode=1777
+    pids_limit: 64
+    mem_limit: 128m
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 1024
     logging: *default-logging
-    environment:
-      VPN_TYPE: ${VPN_TYPE:-openvpn}
-      SOCKS5_USER: ${SOCKS5_USER:-}
-      SOCKS5_PASSWORD: ${SOCKS5_PASSWORD:-}
-      VPROXY_LOG: ${VPROXY_LOG:-info}
     entrypoint:
-      - /bin/sh
-      - -ec
+      - /usr/local/bin/gost
     command:
-      - |
-        if [ -n "$${SOCKS5_USER}" ] && [ -n "$${SOCKS5_PASSWORD}" ]; then
-          exec /bin/vproxy run --bind 0.0.0.0:1080 socks5 -u "$${SOCKS5_USER}" -p "$${SOCKS5_PASSWORD}"
-        elif [ -z "$${SOCKS5_USER}" ] && [ -z "$${SOCKS5_PASSWORD}" ]; then
-          exec /bin/vproxy run --bind 0.0.0.0:1080 socks5
-        else
-          echo "ERROR: SOCKS5_USER and SOCKS5_PASSWORD must both be set or both be empty" >&2
-          exit 64
-        fi
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - >-
-          interface=tun0;
-          [ "$${VPN_TYPE}" != wireguard ] || interface=wg0;
-          nc -z 127.0.0.1 1080 &&
-          wget -q --spider -T 2 http://127.0.0.1:9999 &&
-          test -d "/sys/class/net/$${interface}" &&
-          ip -4 route get 1.1.1.1 2>/dev/null | grep -q " dev $${interface} "
-      interval: 10s
-      timeout: 3s
-      retries: 3
-      start_period: 5s
-
-  # 唯一掛載 host Docker socket 的服務。自訂 HAProxy policy 只允許：
-  # 1) ping；2) 精確 Gluetun/vproxy restart；3) 一個已確認 consumer 的 inspect/restart。
-  # 其他 container 與 start/stop/kill/remove/exec API 全部拒絕。
-  docker-socket-proxy:
-    image: ${SOCKET_PROXY_IMAGE:-ghcr.io/tecnativa/docker-socket-proxy:v0.4.2@sha256:1f3a6f303320723d199d2316a3e82b2e2685d86c275d5e3deeaf182573b47476}
-    restart: unless-stopped
-    read_only: true
-    cap_drop:
-      - ALL
-    cap_add:
-      - DAC_READ_SEARCH
-    security_opt:
-      - no-new-privileges:true
-    tmpfs:
-      - /run:size=8m,mode=0755
-      - /tmp:size=8m,mode=1777
-    logging: *default-logging
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./docker/socket-proxy-haproxy.cfg.tmpl:/usr/local/etc/haproxy/restart-only.cfg.tmpl:ro
-    environment:
-      LOG_LEVEL: warning
-      GLUETUN_CONTAINER_NAME: ${GLUETUN_CONTAINER_NAME:?請設定相容的 Gluetun 容器名稱}
-      VPROXY_CONTAINER_NAME: ${VPROXY_CONTAINER_NAME:?請設定唯一的 vproxy 容器名稱}
-      # 空值會轉成一個不存在的安全 sentinel，policy 不會因此開放任意路徑。
-      DEPENDENT_CONTAINER_NAME: ${DEPENDENT_CONTAINER_NAME:-}
-    command:
-      - /bin/sh
-      - -ec
-      - |
-        dependent="$${DEPENDENT_CONTAINER_NAME:-ddns-vpn-no-dependent}"
-        for name in "$${GLUETUN_CONTAINER_NAME}" "$${VPROXY_CONTAINER_NAME}" "$${dependent}"; do
-          case "$${name}" in
-            ""|*[!a-zA-Z0-9_.-]*)
-              echo "ERROR: invalid restart container name" >&2
-              exit 64
-              ;;
-          esac
-        done
-        [ "$${GLUETUN_CONTAINER_NAME}" != "$${VPROXY_CONTAINER_NAME}" ] &&
-        [ "$${GLUETUN_CONTAINER_NAME}" != "$${dependent}" ] &&
-        [ "$${VPROXY_CONTAINER_NAME}" != "$${dependent}" ] || {
-          echo "ERROR: restart container names must be different" >&2
-          exit 64
-        }
-        sed \
-          -e "s/@GLUETUN_CONTAINER_NAME@/$${GLUETUN_CONTAINER_NAME}/g" \
-          -e "s/@VPROXY_CONTAINER_NAME@/$${VPROXY_CONTAINER_NAME}/g" \
-          -e "s/@DEPENDENT_CONTAINER_NAME@/$${dependent}/g" \
-          /usr/local/etc/haproxy/restart-only.cfg.tmpl \
-          > /tmp/restart-only.cfg
-        exec haproxy -W -db -f /tmp/restart-only.cfg
-    networks:
-      - docker-api
+      - -L
+      - "socks5://0.0.0.0:1080?handler.bind=false&handler.notls=true&handler.readTimeout=5s&handler.udp=false&service.dialTimeout=10s"
     healthcheck:
       test:
         - CMD
-        - wget
-        - -q
-        - --spider
-        - http://127.0.0.1:2375/_ping
+        - /usr/local/bin/gost-healthcheck
       interval: 10s
       timeout: 3s
       retries: 3
       start_period: 5s
 
   # 長駐 watcher：DNS/profile 不變時不動 tunnel；暫時 DNS 失敗時保留現有連線。
-  # IP/profile 改變時依序重啟 Gluetun、等待 healthy、重啟 vproxy，再重新附掛一個
-  # 已確認的 network_mode:container consumer（僅在該 consumer 原本正在執行時）。
+  # IP/profile 改變時透過 API key 保護的 Gluetun control API 原地重載 VPN loop，
+  # container network namespace 保持不變，不需要 Docker socket 或 consumer restart。
   ddns-watcher:
     <<: *ddns-common
+    volumes:
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/assets/2026-07-18.5/ddns-openvpn.sh
+        target: /usr/local/bin/ddns-openvpn.sh
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/assets/2026-07-18.5/profiles/${VPN_CONFIG_FILE:?請設定該地區的 VPN_CONFIG_FILE}
+        target: /opt/ddns-profile/client.ovpn
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/df/.local/share/ddns-vpn-proxy/private/2026-07-18.5/${PRIVATE_REGION:?請設定 PRIVATE_REGION}/control-api-key
+        target: /run/ddns-private/control-api-key
+        read_only: true
+        bind:
+          create_host_path: false
+      - vpn-state:/state
     command:
       - watch
     restart: unless-stopped
     depends_on:
       gluetun:
-        condition: service_started
-      vproxy:
         condition: service_healthy
-      docker-socket-proxy:
+      vproxy:
         condition: service_healthy
     environment:
       <<: *ddns-environment
-      DOCKER_HOST: tcp://docker-socket-proxy:2375
-    networks:
-      - default
-      - docker-api
     healthcheck:
       test:
         - CMD
         - /bin/sh
-        - /opt/ddns/ddns-openvpn.sh
+        - /usr/local/bin/ddns-openvpn.sh
         - healthcheck
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 30s
-
-networks:
-  # Docker API 沒有 published port，且不同地區各有自己的 internal network/policy。
-  docker-api:
-    internal: true
 
 volumes:
   # 每個 COMPOSE_PROJECT_NAME 會得到獨立 named volume，避免三地區互相覆寫 current profile。

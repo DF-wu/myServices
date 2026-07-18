@@ -1,95 +1,120 @@
-# DDNS VPN Proxy（Gluetun 多地區遷移）
+# DDNS VPN Proxy
 
-這是舊 `myServices/Gluetun` 的**獨立、可預先驗證**替代部署。它用 DDNS-aware helper
-把 hostname-based OpenVPN profile 原子轉成 Gluetun 可接受的 IP-based runtime profile，
-並在 A record/profile 改變時協調 Gluetun、vproxy 與已知 network namespace consumer。
+這是給 Portainer Repository Stack 使用的三區 Gluetun 模板。日本、羅馬尼亞、英國各自
+建立一個 Stack，共用同一份 `docker-compose.yml`，但使用不同的 env、container 名稱、
+ports 與 state volume。
 
-目前狀態：部署檔已建立；舊服務未被修改、啟動、停止或重啟。完整判定見
-[`FEASIBILITY.md`](FEASIBILITY.md)，未來人工切換見 [`MIGRATION.md`](MIGRATION.md)。
+DDNS hostname 變更時，`ddns-watcher` 只會透過 Gluetun 的受限 control API 重載 VPN，
+不會掛 Docker socket，也不會重建 Gluetun 或外部 consumer。DNS 初始化、profile hash、
+credentials 或 control role 不符合預期時會直接失敗。
 
-## 地區與相容契約
+## Portainer 設定
 
-| 地區 | 保留的 Gluetun 名稱 | HTTP | Shadowsocks TCP/UDP | 新 SOCKS5/TCP | 已知 namespace consumer |
-| --- | --- | ---: | ---: | ---: | --- |
-| 日本 | `gluetun-jp` | 19010 | 19011 / 19011 | 19110 | `oci-bot-client` |
-| 羅馬尼亞 | `gluetun-romania` | 19015 | 19016 / 19017 | 19115 | 無 |
-| 英國 | `gluetun-uk` | 19020 | 19021 / 19021 | 19120 | `codex-runner`（若存在且 running） |
+| 欄位 | 值 |
+| --- | --- |
+| Repository URL | `https://github.com/DF-wu/myServices.git` |
+| Repository reference | `refs/heads/master` |
+| Compose path | `ddns-vpn-proxy/docker-compose.yml` |
+| Auto update / webhook | disabled |
+| Relative path volumes | disabled |
 
-SOCKS5 使用新 port，因為既有 19011/19016/19017/19021 是 Shadowsocks 契約；兩種協定
-不可只靠沿用 port 假裝相容。Homepage 與外部 `container:<name>` 引用可繼續使用原名稱。
+三區 Stack Name 與 env 必須一一對應：
 
-## 為何一份 Compose 執行三次
+| 地區 | Stack Name | env 範例 | HTTP | Shadowsocks TCP/UDP | SOCKS5 |
+| --- | --- | --- | ---: | ---: | ---: |
+| 日本 | `ddns-vpn-proxy-jp` | `portainer/jp.env.example` | 19010 | 19011 / 19011 | 19110 |
+| 羅馬尼亞 | `ddns-vpn-proxy-romania` | `portainer/romania.env.example` | 19015 | 19016 / 19017 | 19115 |
+| 英國 | `ddns-vpn-proxy-uk` | `portainer/uk.env.example` | 19020 | 19021 / 19021 | 19120 |
 
-上游 DDNS stack 的可靠性/安全檢查是以單一 VPN endpoint 為單位。這裡保留同一份
-`docker-compose.yml`，再以三個 region env 建立三個 Compose project。結果是：
+所有 proxy port 固定綁在 host `127.0.0.1`。不要把 `PROXY_BIND_ADDRESS` 改成
+`0.0.0.0`；跨主機使用請走受控 tunnel。
 
-- helper/script 只有一份，不會出現三份手抄 Compose 漂移；
-- 每區有自己的 default network、internal Docker API network 與 `vpn-state` volume；
-- 每個 socket proxy 只允許自己的 Gluetun、vproxy 及至多一個已知 consumer；
-- 三區仍可各自維護、回滾，不會共用 `current.ovpn`。
+Portainer 拉取 repo 後會從 `docker/gluetun.Dockerfile` 與
+`docker/gost.Dockerfile` 建置兩個本機 image。來源 revision、archive checksum、builder、
+runtime base 與 Go module checksums 都已固定，不需要 GHCR package 或 registry credential。
+目前已在此 Portainer host 的 `linux/amd64` Docker Engine 驗證。
 
-## 檔案
+## Host 準備
+
+Repository Stack 仍需要 host 上的 Surfshark profiles 與 credentials；秘密不會放進 Git
+或 Portainer environment。
+
+預設 profile 來源：
 
 ```text
-ddns-vpn-proxy/
-├── docker-compose.yml
-├── .env.common.example
-├── env/
-│   ├── jp.env.example
-│   ├── romania.env.example
-│   └── uk.env.example
-├── docker/socket-proxy-haproxy.cfg.tmpl
-├── scripts/ddns-openvpn.sh
-├── scripts/validate-static.sh
-├── tests/consumer-coordination.sh
-├── FEASIBILITY.md
-└── MIGRATION.md
+/mnt/appdata/gluetun/surfshark-ovpn
 ```
 
-## 不啟動容器的驗證
+先建立以下每區五個檔案，每個檔案只能有一行值，mode 必須是 `0600` 或 `0400`：
 
-以下命令只執行 shell syntax、Compose render/model 與 host profile contract 檢查：
+```text
+/home/df/.config/ddns-vpn-proxy/credentials/{jp,romania,uk}/openvpn-user
+/home/df/.config/ddns-vpn-proxy/credentials/{jp,romania,uk}/openvpn-password
+/home/df/.config/ddns-vpn-proxy/credentials/{jp,romania,uk}/httpproxy-user
+/home/df/.config/ddns-vpn-proxy/credentials/{jp,romania,uk}/httpproxy-password
+/home/df/.config/ddns-vpn-proxy/credentials/{jp,romania,uk}/shadowsocks-password
+```
+
+從已 checkout 的 `master` 執行：
+
+```bash
+cd ddns-vpn-proxy
+sh scripts/install-portainer-assets.sh
+install -d -m 0700 /home/df/.local/share/ddns-vpn-proxy/portainer-env
+install -m 0600 portainer/jp.env.example \
+  /home/df/.local/share/ddns-vpn-proxy/portainer-env/jp.env
+install -m 0600 portainer/romania.env.example \
+  /home/df/.local/share/ddns-vpn-proxy/portainer-env/romania.env
+install -m 0600 portainer/uk.env.example \
+  /home/df/.local/share/ddns-vpn-proxy/portainer-env/uk.env
+```
+
+Installer 會建立 hash 驗證過的 helper/profile、每區獨立 control key、status-only role、
+deny-default role、private credential copies 與 fail-closed resolver。既有版本若遭修改，
+installer 會拒絕覆寫。
+
+## 部署前驗證
 
 ```bash
 sh scripts/validate-static.sh
+sh scripts/validate-portainer-env.sh jp ddns-vpn-proxy-jp \
+  /home/df/.local/share/ddns-vpn-proxy/portainer-env/jp.env
+sh scripts/validate-portainer-env.sh romania ddns-vpn-proxy-romania \
+  /home/df/.local/share/ddns-vpn-proxy/portainer-env/romania.env
+sh scripts/validate-portainer-env.sh uk ddns-vpn-proxy-uk \
+  /home/df/.local/share/ddns-vpn-proxy/portainer-env/uk.env
 ```
 
-它不會 pull/build image，也不會 create/start/stop/restart/remove container。
+`validate-static.sh` 只檢查檔案、Compose model 與測試，不會啟停任何 container。
 
-## 準備實際 env（本次未執行）
+## 切換注意
 
-```bash
-cp .env.common.example .env.common
-cp env/jp.env.example env/jp.env
-cp env/romania.env.example env/romania.env
-cp env/uk.env.example env/uk.env
-chmod 600 .env.common env/*.env
+新 Stack 沿用 `gluetun-jp`、`gluetun-romania`、`gluetun-uk` 與既有 host ports，
+因此舊 Gluetun 還在執行時不能直接按 Deploy。請依 [`MIGRATION.md`](MIGRATION.md)
+在維護窗口一次切一區，保留舊 container 作回滾點。
+
+Portainer 顯示部署完成後，仍要確認：
+
+- `ddns-init` 是 exited (0)。
+- `gluetun`、`vproxy`、`ddns-watcher` 都是 healthy。
+- 8000 control port 與 9999 health port沒有發布到 host。
+- HTTP、Shadowsocks、SOCKS5 的出口 IP 與地區正確。
+- 外部 `network_mode: container:<gluetun-name>` consumer 已 force recreate 到新的
+  Gluetun container ID。
+
+本次 repo 準備不會部署 Stack，也不會停止、重啟或重建現行服務。
+
+## 主要檔案
+
+```text
+docker-compose.yml
+portainer/{jp,romania,uk}.env.example
+docker/gluetun.Dockerfile
+docker/gost.Dockerfile
+scripts/ddns-openvpn.sh
+scripts/install-portainer-assets.sh
+scripts/validate-portainer-env.sh
+scripts/validate-static.sh
+security/*.openvex.json
+tests/*.sh
 ```
-
-至少填入 `.env.common` 的：
-
-- `OPENVPN_USER` / `OPENVPN_PASSWORD`
-- `HTTPPROXY_USER` / `HTTPPROXY_PASSWORD`
-- `SOCKS5_USER` / `SOCKS5_PASSWORD`
-- `SHADOWSOCKS_PASSWORD`
-
-範例保留舊服務的 `0.0.0.0` LAN bind；缺少任何必要認證時 `ddns-init` 會拒絕啟動
-Gluetun。若只需本機使用，可改成 `PROXY_BIND_ADDRESS=127.0.0.1`，並另外用 host firewall
-限制實際可連入的來源。
-
-## 安全與來源
-
-- Gluetun 固定 `qmcgaw/gluetun:v3.41.1`；所有 images 都以版本 tag 加 multi-arch index
-  digest 雙重固定，不用 `latest`。
-- watcher 不直接掛 Docker socket；internal HAProxy policy 只允許精確 inspect/restart path。
-- VPN profile 全程 read-only；runtime state 是可重新產生的 per-project named volume。
-- 非 Gluetun services 全部 `cap_drop: ALL`、`read_only`（適用處）與
-  `no-new-privileges:true`。
-- helper 來自 `DF-wu/ddns-openvpn-proxy` production Compose 核心 commit
-  `8e2523978acb19e3f8aec7485db6de932918b76b`；評估時官方 main 是
-  `ca5200d28ac992c8c71200fe49c7d24f850133b3`，後兩個 commits 只新增/發布另一個
-  compatibility image，未改此核心。部署副本差異只有已知 consumer namespace 協調與
-  legacy Shadowsocks 安全 gate。
-
-目前契約只涵蓋單一 hostname、IPv4 A record、單一 OpenVPN `remote`（或未來的單一
-WireGuard peer）。多 remote、IPv6 endpoint、SOCKS5 UDP 不在支援範圍。
