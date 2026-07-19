@@ -100,3 +100,26 @@ Tradeoff: less visually polished.
 Start with **Option A — Obsidian Glass**. It is the safest default for a large service catalog: polished enough to feel good, restrained enough to stay readable, and does not require custom assets.
 
 If DF later wants stronger atmosphere, move from Option A to Option D by adding a background image and a slightly more decorative `custom.css`.
+
+## Preset switcher
+
+The options above are now packaged as repeatable presets so they can be
+compared without hand-editing the runtime YAML. The current Dracula files are
+preserved exactly; the other presets use a shared accessible card/layout CSS
+base with palette-specific variables.
+
+The production instance is a Portainer Git stack. Keep the existing stack
+variables (paths, allowed hosts, and widget credentials), add or change
+`HOMEPAGE_THEME=obsidian`, then use **Pull and redeploy**. To roll back, set
+`HOMEPAGE_THEME=dracula` and pull/redeploy again. Portainer CE does not need
+relative-path volume support; the stack runs a one-shot preset initializer
+before Homepage starts.
+
+For local Compose only, `./scripts/switch-theme.sh list` lists presets and
+`./scripts/switch-theme.sh obsidian` applies one directly to appdata.
+
+Available IDs: `dracula`, `obsidian`, `nord`, `cyber`, `minimal`, `graphite`,
+`rose-pine`, `daylight`, `paper`, and `high-contrast`. Switching preserves
+`services.yaml`, widgets, bookmarks, layout groups, and Portainer secrets; only
+`settings.yaml` visual fields and `custom.css` are changed. Full Portainer steps
+are in `../config-template/themes/README.md`.

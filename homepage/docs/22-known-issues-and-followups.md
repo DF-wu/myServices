@@ -4,6 +4,13 @@ Master checklist of everything not yet done, every known rough edge, and every
 credential/route still to configure, across both dashboards. Priorities:
 **P0** = do before/at public launch · **P1** = quality/reliability · **P2** = polish.
 
+Theme preset switching is implemented for the Portainer Git stack via its
+`HOMEPAGE_THEME` environment variable. The compose file maps existing
+`HOMEPAGE_VAR_*` stack variables explicitly because Portainer's Git checkout
+does not contain the local `.env`. It does not alter the service catalog or
+widget credentials. See `config-template/themes/README.md` for the available
+palettes and rollback steps. `scripts/switch-theme.sh` is the local-only path.
+
 Cross-references: session worklog `20-2026-07-01-worklog.md`, ingress runbook
 `21-cloudflare-ingress-runbook.md`, widget syntax `10-widget-recipes.md`,
 Glance service `../../glance/README.md` + `../../glance/WORKLOG.md`.

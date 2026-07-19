@@ -1,0 +1,161 @@
+/* Shared structure for non-Dracula Homepage presets. Palette values are
+   supplied by the preset's theme.css, which is appended by switch-theme.sh. */
+
+:root {
+  --hp-page-bg: #0f172a;
+  --hp-surface: #1e293b;
+  --hp-surface-alt: #172033;
+  --hp-surface-hover: #334155;
+  --hp-border: #475569;
+  --hp-text: #f8fafc;
+  --hp-muted: #cbd5e1;
+  --hp-heading: #a7f3d0;
+  --hp-accent: #34d399;
+  --hp-accent-strong: #6ee7b7;
+  --hp-info: #67e8f9;
+  --hp-card-blur: 0px;
+  --hp-shadow: 0 8px 24px rgba(2, 6, 23, 0.24);
+}
+
+html,
+body {
+  background-color: var(--hp-page-bg) !important;
+  color: var(--hp-text) !important;
+}
+
+body {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
+#information-widgets {
+  border-color: var(--hp-border) !important;
+}
+
+#information-widgets * {
+  color: var(--hp-info);
+}
+
+.resource-usage {
+  background-color: var(--hp-surface-alt) !important;
+}
+
+.resource-usage > div {
+  background-color: var(--hp-accent) !important;
+}
+
+.service-group-icon > div {
+  background: var(--hp-heading) !important;
+}
+
+.service-group-name,
+.bookmark-group-name {
+  color: var(--hp-heading) !important;
+}
+
+.services-group > button > svg {
+  color: var(--hp-heading) !important;
+}
+
+.service-card {
+  background-color: var(--hp-surface) !important;
+  border: 1px solid var(--hp-border) !important;
+  box-shadow: var(--hp-shadow);
+  backdrop-filter: blur(var(--hp-card-blur));
+}
+
+.service-card:hover {
+  background-color: var(--hp-surface-hover) !important;
+  border-color: var(--hp-accent) !important;
+}
+
+.service-name.text-sm {
+  color: var(--hp-text) !important;
+  font-size: 0.95rem;
+}
+
+.service-description.text-xs {
+  color: var(--hp-muted) !important;
+  font-size: 0.75rem;
+}
+
+.service img {
+  border-radius: 8px;
+}
+
+.service-block {
+  background-color: var(--hp-surface-alt) !important;
+}
+
+.service-block .uppercase {
+  color: var(--hp-accent-strong) !important;
+}
+
+.service-block .font-thin {
+  color: var(--hp-text) !important;
+}
+
+li.bookmark > a {
+  background-color: var(--hp-surface) !important;
+  border: 1px solid var(--hp-border) !important;
+  box-shadow: var(--hp-shadow);
+}
+
+li.bookmark > a:hover {
+  background-color: var(--hp-surface-hover) !important;
+  border-color: var(--hp-accent) !important;
+}
+
+.bookmark-icon {
+  background-color: var(--hp-surface-alt) !important;
+}
+
+.bookmark-name.text-xs {
+  color: var(--hp-text) !important;
+}
+
+input[type="search"] {
+  background-color: var(--hp-surface) !important;
+  border: 1px solid var(--hp-border) !important;
+  color: var(--hp-text) !important;
+}
+
+input[type="search"]::placeholder {
+  color: var(--hp-muted) !important;
+}
+
+[role="tab"] {
+  color: var(--hp-muted) !important;
+}
+
+[role="tab"][aria-selected="true"] {
+  background-color: var(--hp-surface-hover) !important;
+  color: var(--hp-text) !important;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--hp-accent) !important;
+  outline-offset: 2px;
+}
+
+#footer svg {
+  color: var(--hp-accent-strong) !important;
+}
+
+* {
+  --scrollbar-thumb: var(--hp-border);
+  --scrollbar-track: var(--hp-page-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

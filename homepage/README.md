@@ -38,7 +38,8 @@ A future agent should treat these files as the canonical handoff package and beg
 | `docs/21-cloudflare-ingress-runbook.md` | Deferred public-ingress runbook for `hp.dfder.tw` + `glance.dfder.tw`. |
 | `docs/22-known-issues-and-followups.md` | **Master checklist** of all known issues + remaining config for both dashboards. |
 | `config-template/` | Homepage compose and config templates; intentionally placeholder-based. |
-| `scripts/` | Read-only audit/export helpers. They avoid exporting secrets by default. |
+| `config-template/themes/` | Theme presets plus Portainer and local switching instructions. |
+| `scripts/` | Audit/export helpers plus validated local theme switching utilities. |
 | `inventory/private/` | Generated local inventory. Private; ignored by git. |
 
 ## Sibling service: Glance

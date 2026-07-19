@@ -19,17 +19,58 @@ services:
     container_name: homepage
     restart: unless-stopped
     depends_on:
-      - dockerproxy
+      dockerproxy:
+        condition: service_started
+      theme-init:
+        condition: service_completed_successfully
     ports:
       - "${HOMEPAGE_HOST_PORT:-33080}:3000"
-    env_file:
-      - .env
     environment:
-      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS:?set HOMEPAGE_ALLOWED_HOSTS in .env}
+      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS:?set HOMEPAGE_ALLOWED_HOSTS in Portainer stack variables or .env}
+      # Theme preset: change HOMEPAGE_THEME in Portainer, then Pull and redeploy.
+      # Options (the mode is shown in parentheses):
+      # dracula       - purple/pink Dracula with the existing background (dark)
+      # obsidian      - slate glass with emerald/cyan accents; daily use (dark)
+      # nord          - calm arctic blue-gray for low-fatigue operations (dark)
+      # cyber         - near-black cyan/lime NOC console (dark)
+      # minimal       - neutral zinc with low decoration and fast scanning (dark)
+      # graphite      - charcoal with amber focus for dense catalogs (dark)
+      # rose-pine     - warm mauve, rose, gold, and foam palette (dark)
+      # daylight      - bright white with blue navigation and green status (light)
+      # paper         - light neutral catalog with cobalt/coral accents (light)
+      # high-contrast - black/white with cyan/yellow maximum legibility (dark)
+      HOMEPAGE_THEME_PRESET: ${HOMEPAGE_THEME:-dracula}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_TARGETS: ${LOG_TARGETS:-both}
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
+      HOMEPAGE_VAR_PORTAINER_KEY: ${HOMEPAGE_VAR_PORTAINER_KEY:-}
+      HOMEPAGE_VAR_NPM_USERNAME: ${HOMEPAGE_VAR_NPM_USERNAME:-}
+      HOMEPAGE_VAR_NPM_PASSWORD: ${HOMEPAGE_VAR_NPM_PASSWORD:-}
+      HOMEPAGE_VAR_ADGUARD_USERNAME: ${HOMEPAGE_VAR_ADGUARD_USERNAME:-}
+      HOMEPAGE_VAR_ADGUARD_PASSWORD: ${HOMEPAGE_VAR_ADGUARD_PASSWORD:-}
+      HOMEPAGE_VAR_JELLYFIN_API_KEY: ${HOMEPAGE_VAR_JELLYFIN_API_KEY:-}
+      HOMEPAGE_VAR_IMMICH_API_KEY: ${HOMEPAGE_VAR_IMMICH_API_KEY:-}
+      HOMEPAGE_VAR_NEXTCLOUD_TOKEN: ${HOMEPAGE_VAR_NEXTCLOUD_TOKEN:-}
+      HOMEPAGE_VAR_PHOTOPRISM_KEY: ${HOMEPAGE_VAR_PHOTOPRISM_KEY:-}
+      HOMEPAGE_VAR_PHOTOPRISM_USERNAME: ${HOMEPAGE_VAR_PHOTOPRISM_USERNAME:-admin}
+      HOMEPAGE_VAR_PHOTOPRISM_PASSWORD: ${HOMEPAGE_VAR_PHOTOPRISM_PASSWORD:-}
+      HOMEPAGE_VAR_QBITTORRENT_USERNAME: ${HOMEPAGE_VAR_QBITTORRENT_USERNAME:-}
+      HOMEPAGE_VAR_QBITTORRENT_PASSWORD: ${HOMEPAGE_VAR_QBITTORRENT_PASSWORD:-}
+      HOMEPAGE_VAR_HOMEASSISTANT_TOKEN: ${HOMEPAGE_VAR_HOMEASSISTANT_TOKEN:-}
+      HOMEPAGE_VAR_TRUENAS_API_KEY: ${HOMEPAGE_VAR_TRUENAS_API_KEY:-}
+      HOMEPAGE_VAR_TAILSCALE_API_KEY: ${HOMEPAGE_VAR_TAILSCALE_API_KEY:-}
+      HOMEPAGE_VAR_BACKREST_USERNAME: ${HOMEPAGE_VAR_BACKREST_USERNAME:-}
+      HOMEPAGE_VAR_BACKREST_PASSWORD: ${HOMEPAGE_VAR_BACKREST_PASSWORD:-}
+      HOMEPAGE_VAR_UPTIME_KUMA_SLUG: ${HOMEPAGE_VAR_UPTIME_KUMA_SLUG:-all}
+      HOMEPAGE_VAR_SPEEDTEST_API_KEY: ${HOMEPAGE_VAR_SPEEDTEST_API_KEY:-}
+      HOMEPAGE_VAR_CLOUDFLARED_ACCOUNT_ID: ${HOMEPAGE_VAR_CLOUDFLARED_ACCOUNT_ID:-}
+      HOMEPAGE_VAR_CLOUDFLARED_TUNNEL_ID: ${HOMEPAGE_VAR_CLOUDFLARED_TUNNEL_ID:-}
+      HOMEPAGE_VAR_CLOUDFLARED_API_TOKEN: ${HOMEPAGE_VAR_CLOUDFLARED_API_TOKEN:-}
+      HOMEPAGE_VAR_GRAFANA_USERNAME: ${HOMEPAGE_VAR_GRAFANA_USERNAME:-}
+      HOMEPAGE_VAR_GRAFANA_PASSWORD: ${HOMEPAGE_VAR_GRAFANA_PASSWORD:-}
+      HOMEPAGE_VAR_SUWAYOMI_USERNAME: ${HOMEPAGE_VAR_SUWAYOMI_USERNAME:-}
+      HOMEPAGE_VAR_SUWAYOMI_PASSWORD: ${HOMEPAGE_VAR_SUWAYOMI_PASSWORD:-}
     volumes:
       - ${HOMEPAGE_CONFIG_DIR:-/mnt/appdata/homepage/config}:/app/config
       - ${HOMEPAGE_IMAGES_DIR:-/mnt/appdata/homepage/images}:/app/public/images
@@ -40,6 +81,45 @@ services:
       - /mnt/fastpool:/mnt/fastpool:ro
     networks:
       - homepage-internal
+      - homepage-egress
+
+  # Portainer CE cannot expose its Git checkout as a host bind path. This
+  # one-shot service fetches and applies the selected preset before Homepage starts.
+  theme-init:
+    image: python:3.13-alpine
+    container_name: homepage-theme-init
+    restart: "no"
+    environment:
+      HOMEPAGE_THEME: ${HOMEPAGE_THEME:-dracula}
+      HOMEPAGE_THEME_REF: ${HOMEPAGE_THEME_REF:-master}
+      HOMEPAGE_THEME_REPOSITORY: ${HOMEPAGE_THEME_REPOSITORY:-DF-wu/myServices}
+      PIP_ROOT_USER_ACTION: ignore
+    command:
+      - /bin/sh
+      - -ceu
+      - |
+        case "$${HOMEPAGE_THEME_REF}" in
+          ""|*[!A-Za-z0-9._-]*)
+            echo "Invalid HOMEPAGE_THEME_REF" >&2
+            exit 1
+            ;;
+        esac
+        case "$${HOMEPAGE_THEME_REPOSITORY}" in
+          ""|*[!A-Za-z0-9._/-]*|/*|*/|*/*/*)
+            echo "Invalid HOMEPAGE_THEME_REPOSITORY" >&2
+            exit 1
+            ;;
+        esac
+        script_url="https://raw.githubusercontent.com/$${HOMEPAGE_THEME_REPOSITORY}/$${HOMEPAGE_THEME_REF}/homepage/scripts/apply-theme-preset.py"
+        theme_base="https://raw.githubusercontent.com/$${HOMEPAGE_THEME_REPOSITORY}/$${HOMEPAGE_THEME_REF}/homepage/config-template/themes"
+        wget -q -O /tmp/apply-theme-preset.py "$$script_url"
+        python -m pip install --disable-pip-version-check --no-cache-dir 'PyYAML==6.0.3'
+        exec python /tmp/apply-theme-preset.py "$$HOMEPAGE_THEME" \
+          --config-dir /app/config \
+          --github-raw-base "$$theme_base"
+    volumes:
+      - ${HOMEPAGE_CONFIG_DIR:-/mnt/appdata/homepage/config}:/app/config
+    networks:
       - homepage-egress
 
 networks:

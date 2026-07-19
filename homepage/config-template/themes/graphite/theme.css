@@ -1,0 +1,15 @@
+:root {
+  --hp-page-bg: #17191c;
+  --hp-surface: #22262b;
+  --hp-surface-alt: #1d2125;
+  --hp-surface-hover: #2d3339;
+  --hp-border: #47505a;
+  --hp-text: #f1f5f9;
+  --hp-muted: #cbd5e1;
+  --hp-heading: #fde68a;
+  --hp-accent: #f59e0b;
+  --hp-accent-strong: #fbbf24;
+  --hp-info: #38bdf8;
+  --hp-card-blur: 0px;
+  --hp-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
