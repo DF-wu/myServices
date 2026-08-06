@@ -1,0 +1,42 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/DF-wu/myServices/security/gluetun-go-2026-5932/v1",
+  "author": "DF-wu/myServices maintainers",
+  "role": "Project Maintainer",
+  "timestamp": "2026-07-18T13:41:51Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "GO-2026-5932"
+      },
+      "products": [
+        {
+          "@id": "pkg:golang/github.com/qdm12/gluetun",
+          "hashes": {
+            "sha-256": "ce96a5240795bdbc663fef6c1f1a211c92dbe8c32c3576a8532e0818da7b448c"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto@v0.53.0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/github.com/qdm12/gluetun",
+          "hashes": {
+            "sha-256": "1007a1fc6c0b8286dff959ee3f25242e8994c7022ba28be6886e1d74126dbe7c"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto@v0.53.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The affected golang.org/x/crypto/openpgp package family is absent from both reviewed binaries. OpenPGP symbols in the binaries belong only to the separately maintained github.com/ProtonMail/go-crypto fork."
+    }
+  ]
+}

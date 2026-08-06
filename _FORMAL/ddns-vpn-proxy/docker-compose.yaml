@@ -1,6 +1,7 @@
 services:
   ddns-init:
-    image: ghcr.io/df-wu/ddns-openvpn-proxy-watcher
+    # Immutable compatibility image containing the fail-safe DDNS watcher.
+    image: ghcr.io/df-wu/ddns-openvpn-proxy-watcher:compat-ca5200d28ac992c8c71200fe49c7d24f850133b3
     restart: no
     volumes:
       - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
@@ -76,20 +77,33 @@ services:
     cap_drop:
       - ALL
 
+    # Portainer Stack variables are interpolation inputs only; explicitly pass
+    # SOCKS5 credentials into the container. Required expansion makes the
+    # deployment fail closed instead of starting an anonymous public proxy.
+    environment:
+      SOCKS5_USER: ${SOCKS5_USER:?SOCKS5_USER is required}
+      SOCKS5_PASSWORD: ${SOCKS5_PASSWORD:?SOCKS5_PASSWORD is required}
+      VPROXY_CONCURRENT: ${VPROXY_CONCURRENT:-1024}
+      VPROXY_CONNECT_TIMEOUT: ${VPROXY_CONNECT_TIMEOUT:-300}
+
     entrypoint: ["/bin/sh", "-c"]
-    # 認證邏輯：vproxy 要求 username + password 同時給或同時不給；
-    # 只給一個會導致 clap 報錯並立即退出。用 if/else 安全處理。
     command:
       - |
-        if [ -n "$${SOCKS5_USER}" ] && [ -n "$${SOCKS5_PASSWORD}" ]; then
-          exec vproxy run -b 0.0.0.0:1080 -c "$${VPROXY_CONCURRENT:-1024}" -t "$${VPROXY_CONNECT_TIMEOUT:-300}" socks5 -u "$${SOCKS5_USER}" -p "$${SOCKS5_PASSWORD}"
-        else
-          exec vproxy run -b 0.0.0.0:1080 -c "$${VPROXY_CONCURRENT:-1024}" -t "$${VPROXY_CONNECT_TIMEOUT:-300}" socks5
-        fi
+        exec vproxy run -b 0.0.0.0:1080 \
+          -c "$${VPROXY_CONCURRENT}" \
+          -t "$${VPROXY_CONNECT_TIMEOUT}" \
+          socks5 \
+          -u "$${SOCKS5_USER}" \
+          -p "$${SOCKS5_PASSWORD}"
 
-    # 簡單健康檢查：確認 1080 有在 listen
+    # 同時確認 listener、VPN interface 與出口 route，避免舊 namespace 假健康。
     healthcheck:
-      test: ["CMD-SHELL", "ss -ltn | grep -q ':1080'"]
+      test:
+        - CMD-SHELL
+        - >-
+          ss -ltn | grep -q ':1080' &&
+          test -d /sys/class/net/tun0 &&
+          ip -4 route get 1.1.1.1 2>/dev/null | grep -q ' dev tun0 '
       interval: 30s
       timeout: 5s
       retries: 3
@@ -103,11 +117,13 @@ services:
         max-file: "3"
 
   ddns-watcher:
-    image: ${WATCHER_IMAGE:-ghcr.io/df-wu/ddns-openvpn-proxy-watcher:latest}
+    image: ghcr.io/df-wu/ddns-openvpn-proxy-watcher:compat-ca5200d28ac992c8c71200fe49c7d24f850133b3
     restart: unless-stopped
     depends_on:
       gluetun:
         condition: service_started
+      vproxy:
+        condition: service_healthy
     volumes:
       - ${OPENVPN_CONFIG_DIR:-./config}:/gluetun/source:ro
       - ${STATE_DIR:-./state}:/gluetun/state
@@ -125,4 +141,6 @@ services:
       DDNS_RESOLVER: ${DDNS_RESOLVER:-}
       DDNS_OVERRIDE_IP: ${DDNS_OVERRIDE_IP:-}
       GLUETUN_CONTAINER_NAME: ${GLUETUN_CONTAINER_NAME:-ddns-openvpn-proxy}
+      VPROXY_CONTAINER_NAME: ddns-vpn-proxy-vproxy
+      GLUETUN_HEALTH_TIMEOUT_SECONDS: 120
       STATE_DIR: /gluetun/state

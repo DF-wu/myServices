@@ -1,0 +1,15 @@
+services:
+  oci-bot-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oci-bot-client
+    restart: unless-stopped
+    # Route all traffic through gluetun-jp VPN (Japan exit node).
+    # gluetun-jp must be running first.
+    network_mode: "container:gluetun-jp"
+    environment:
+      TZ: Asia/Taipei
+    volumes:
+      - ./config/client_config:/app/client_config:ro
+      - ./keys:/app/keys:ro

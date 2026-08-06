@@ -8,13 +8,13 @@ services:
     container_name: qwen3-hf2api
     network_mode: "container:gluetun-proxy"
     volumes:
-      - /home/df/workspace/hf2api/qwen3-hf2api:/app
+      - /home/df/workspace/hf2api/qwen3-asr-tts-hf2api:/app
     working_dir: /app
     entrypoint: ["sh", "-c"]
     command:
       - |
         pip install --no-cache-dir -q . &&
-        exec python -m qwen3_hf2api
+        exec python -m qwen3_asr_tts_hf2api
     environment:
       TTS_BASE_URL: https://qwen-qwen3-tts-demo.hf.space
       ASR_BASE_URL: https://qwen-qwen3-asr.hf.space
@@ -24,7 +24,7 @@ services:
       REQUEST_TIMEOUT: "300"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8820/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8820/health', timeout=5)"]
       interval: 30s
       timeout: 5s
       start_period: 15s
@@ -35,13 +35,13 @@ services:
     container_name: vits-hf2api
     network_mode: "container:gluetun-proxy"
     volumes:
-      - /home/df/workspace/hf2api/vits-hf2api:/app
+      - /home/df/workspace/hf2api/vits-tts-hf2api:/app
     working_dir: /app
     entrypoint: ["sh", "-c"]
     command:
       - |
         pip install --no-cache-dir -q . &&
-        exec python -m vits_hf2api
+        exec python -m vits_tts_hf2api
     environment:
       BASE_URL: https://ikechan8370-vits-uma-genshin-honkai.hf.space
       FALLBACK_BASE_URL: https://zomehwh-vits-uma-genshin-honkai.hf.space
@@ -52,7 +52,7 @@ services:
       REQUEST_TIMEOUT: "120"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8830/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8830/health', timeout=5)"]
       interval: 30s
       timeout: 5s
       start_period: 15s

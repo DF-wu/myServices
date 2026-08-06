@@ -1,0 +1,50 @@
+name: glance
+
+# DF Glance — secondary homelab + personal start page.
+# Deployed side-by-side with Homepage (:33080) and Heimdall (:50080).
+# Docker access is via a read-only docker-socket-proxy, mirroring the
+# Homepage security posture: the Glance UI container never touches the
+# raw /var/run/docker.sock directly.
+
+services:
+  glance-dockerproxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:latest
+    container_name: glance-dockerproxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      SERVICES: 1
+      TASKS: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - glance-internal
+
+  glance:
+    image: glanceapp/glance:latest
+    container_name: glance
+    restart: unless-stopped
+    depends_on:
+      - glance-dockerproxy
+    ports:
+      - "${GLANCE_HOST_PORT:-33081}:8080"
+    env_file:
+      - .env
+    environment:
+      TZ: ${TZ:-Asia/Taipei}
+    volumes:
+      - ./config:/app/config
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - glance-internal
+      - glance-egress
+
+networks:
+  # Private link between Glance and its docker-socket-proxy. No internet.
+  glance-internal:
+    internal: true
+  # Internet egress for weather / rss / reddit / github widgets.
+  glance-egress:
+    driver: bridge

@@ -1,0 +1,279 @@
+# DF Glance configuration
+# Docs: https://github.com/glanceapp/glance/blob/main/docs/configuration.md
+#
+# Two pages:
+#   - Home  : personal start page (clock, weather, search, news, markets, bookmarks)
+#   - Infra : homelab ops (docker containers, server stats, service monitors)
+#
+# Theme:
+#   Default = Dracula (matches the Homepage dashboard).
+#   The theme picker (top-right) lets you switch between the bundled community
+#   presets below at runtime — your choice is remembered per-browser.
+
+server:
+  host: 0.0.0.0
+  port: 8080
+  # Set for when this sits behind the Cloudflare tunnel / a reverse proxy later,
+  # so client IPs are read from X-Forwarded-For.
+  proxied: true
+
+branding:
+  app-name: DF Glance
+
+theme:
+  disable-picker: false
+  # ---- Active default theme: Dracula ----
+  background-color: 231 15 21
+  primary-color: 265 89 79
+  positive-color: 135 94 66
+  negative-color: 0 100 67
+  contrast-multiplier: 1.2
+
+  # ---- Community presets (Top picks). Switch live via the picker. ----
+  presets:
+    dracula:
+      background-color: 231 15 21
+      primary-color: 265 89 79
+      positive-color: 135 94 66
+      negative-color: 0 100 67
+      contrast-multiplier: 1.2
+    catppuccin-mocha:
+      background-color: 240 21 15
+      primary-color: 217 92 83
+      positive-color: 115 54 76
+      negative-color: 347 70 65
+      contrast-multiplier: 1.2
+    catppuccin-macchiato:
+      background-color: 232 23 18
+      primary-color: 220 83 75
+      positive-color: 105 48 72
+      negative-color: 351 74 73
+      contrast-multiplier: 1.2
+    gruvbox-dark:
+      background-color: 0 0 16
+      primary-color: 43 59 81
+      positive-color: 61 66 44
+      negative-color: 6 96 59
+    kanagawa-dark:
+      background-color: 240 13 14
+      primary-color: 51 33 68
+      negative-color: 358 100 68
+      contrast-multiplier: 1.2
+    # ---- Bonus popular presets (community HSL values; tweak to taste) ----
+    nord:
+      background-color: 220 16 22
+      primary-color: 213 32 52
+      positive-color: 92 28 65
+      negative-color: 354 42 56
+      contrast-multiplier: 1.1
+    tokyo-night:
+      background-color: 235 19 15
+      primary-color: 220 87 74
+      positive-color: 158 51 62
+      negative-color: 349 89 71
+      contrast-multiplier: 1.2
+
+pages:
+  # ==================== HOME ====================
+  - name: Home
+    slug: home
+    columns:
+      - size: small
+        widgets:
+          - type: clock
+            hour-format: 24h
+            timezones:
+              - timezone: America/Los_Angeles
+                label: US Pacific
+              - timezone: Europe/London
+                label: London
+              - timezone: UTC
+                label: UTC
+          - type: calendar
+            first-day-of-week: monday
+          - type: weather
+            location: Taipei, Taiwan
+            units: metric
+            hour-format: 24h
+
+      - size: full
+        widgets:
+          - type: search
+            search-engine: duckduckgo
+            autofocus: true
+            new-tab: true
+            bangs:
+              - title: YouTube
+                shortcut: "!yt"
+                url: https://www.youtube.com/results?search_query={QUERY}
+              - title: GitHub
+                shortcut: "!gh"
+                url: https://github.com/search?q={QUERY}
+          - type: group
+            widgets:
+              - type: hacker-news
+              - type: reddit
+                subreddit: selfhosted
+              - type: reddit
+                subreddit: homelab
+              - type: reddit
+                subreddit: LocalLLaMA
+          - type: rss
+            title: Tech News
+            style: horizontal-cards
+            limit: 20
+            collapse-after: 6
+            feeds:
+              - url: https://hnrss.org/frontpage
+                title: Hacker News
+              - url: https://www.theverge.com/rss/index.xml
+                title: The Verge
+              - url: https://feeds.arstechnica.com/arstechnica/index
+                title: Ars Technica
+
+      - size: small
+        widgets:
+          - type: markets
+            markets:
+              - symbol: SPY
+                name: S&P 500
+              - symbol: "^TWII"
+                name: TAIEX
+              - symbol: NVDA
+                name: NVIDIA
+              - symbol: TSLA
+                name: Tesla
+              - symbol: BTC-USD
+                name: Bitcoin
+              - symbol: ETH-USD
+                name: Ethereum
+          - type: releases
+            token: ${GLANCE_GITHUB_TOKEN}
+            repositories:
+              - gethomepage/homepage
+              - glanceapp/glance
+              - immich-app/immich
+              - jellyfin/jellyfin
+              - portainer/portainer
+              - Suwayomi/Suwayomi-Server
+          - type: bookmarks
+            groups:
+              - title: Homelab
+                links:
+                  - title: Homepage
+                    url: http://axolotl.newhome:33080
+                    icon: di:homepage
+                  - title: Heimdall
+                    url: http://axolotl.newhome:50080
+                    icon: di:heimdall
+                  - title: Portainer
+                    url: http://axolotl.newhome:9000
+                    icon: di:portainer
+                  - title: Netdata
+                    url: http://axolotl.newhome:19999
+                    icon: di:netdata
+                  - title: TrueNAS
+                    url: https://truenas.dfder.tw
+                    icon: di:truenas-scale
+              - title: Media & Photos
+                links:
+                  - title: Jellyfin
+                    url: http://axolotl.newhome:8096
+                    icon: di:jellyfin
+                  - title: Immich
+                    url: https://immich.dfder.tw
+                    icon: di:immich
+                  - title: PhotoPrism
+                    url: https://photo.dfder.tw
+                    icon: di:photoprism
+                  - title: MoonTV
+                    url: https://moontv.dfder.tw
+                    icon: di:jellyfin
+                  - title: Suwayomi
+                    url: https://manga.dfder.tw
+                    icon: di:tachiyomi
+              - title: AI & LLM
+                links:
+                  - title: Open WebUI
+                    url: https://chat.dfder.tw
+                    icon: di:open-webui
+                  - title: SillyTavern
+                    url: https://tarven.dfder.tw
+                    icon: si:openai
+                  - title: new-api
+                    url: https://llm-api.dfder.tw
+                    icon: si:openai
+                  - title: Claude Relay
+                    url: https://crs.dfder.tw
+                    icon: si:anthropic
+
+  # ==================== INFRA ====================
+  - name: Infra
+    slug: infra
+    columns:
+      - size: small
+        widgets:
+          - type: server-stats
+            servers:
+              - type: local
+                name: Axolotl (Glance host)
+          - type: monitor
+            title: Core Infra
+            cache: 1m
+            sites:
+              - title: Homepage
+                url: http://axolotl.newhome:33080
+                icon: di:homepage
+              - title: Heimdall
+                url: http://axolotl.newhome:50080
+                icon: di:heimdall
+              - title: Portainer
+                url: http://axolotl.newhome:9000
+                icon: di:portainer
+              - title: Netdata
+                url: http://axolotl.newhome:19999
+                icon: di:netdata
+              - title: TrueNAS
+                url: https://truenas.dfder.tw
+                icon: di:truenas-scale
+              - title: Vaultwarden
+                url: https://pass.dfder.tw
+                icon: di:vaultwarden
+
+      - size: full
+        widgets:
+          - type: docker-containers
+            title: Docker Containers
+            sock-path: tcp://glance-dockerproxy:2375
+            hide-by-default: false
+
+      - size: small
+        widgets:
+          - type: monitor
+            title: Apps & Media
+            cache: 1m
+            sites:
+              - title: Jellyfin
+                url: http://axolotl.newhome:8096
+                icon: di:jellyfin
+              - title: Immich
+                url: https://immich.dfder.tw
+                icon: di:immich
+              - title: PhotoPrism
+                url: https://photo.dfder.tw
+                icon: di:photoprism
+              - title: Nextcloud
+                url: https://nc.dfder.tw
+                icon: di:nextcloud
+              - title: n8n
+                url: https://n8n.dfder.tw
+                icon: di:n8n
+              - title: Suwayomi
+                url: https://manga.dfder.tw
+                icon: di:tachiyomi
+              - title: qBittorrent
+                url: http://axolotl.newhome:58079
+                icon: di:qbittorrent
+              - title: Open WebUI
+                url: https://chat.dfder.tw
+                icon: di:open-webui

@@ -1,0 +1,43 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/DF-wu/myServices/security/vex/gost-go-2026-5932",
+  "author": "DF-wu/myServices maintainers",
+  "role": "Project Maintainer",
+  "timestamp": "2026-07-18T13:40:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "@id": "https://pkg.go.dev/vuln/GO-2026-5932",
+        "name": "GO-2026-5932"
+      },
+      "products": [
+        {
+          "@id": "pkg:golang/github.com/go-gost/gost",
+          "hashes": {
+            "sha-256": "412114ba8a1303867a51b5f7d81a3710eac1736efd944149344e978f540f8281"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto@v0.53.0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/github.com/go-gost/gost",
+          "hashes": {
+            "sha-256": "40493ede4634bd958ddad9798837e512c86462b6f4356d6840b4a5ce0d0b262d"
+          },
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto@v0.53.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The affected golang.org/x/crypto/openpgp package family is not linked into either reviewed GOST binary. The release gate verifies the exact binary SHA-256, the linked symbol and string tables, and govulncheck v1.6.0 module-only output before applying this statement."
+    }
+  ]
+}

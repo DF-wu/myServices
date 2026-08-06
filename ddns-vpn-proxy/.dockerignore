@@ -1,0 +1,13 @@
+**
+!docker/gost.Dockerfile
+!docker/gost-healthcheck.sh
+!docker/gost/
+!docker/gost/go.mod
+!docker/gost/go.sum
+!docker/gluetun.Dockerfile
+!docker/gluetun/
+!docker/gluetun/go.mod
+!docker/gluetun/go.sum
+!docker/gluetun/users.go
+!docker/gluetun/users_regression_test.go
+!scripts/ddns-openvpn.sh

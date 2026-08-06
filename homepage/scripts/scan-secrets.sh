@@ -32,6 +32,7 @@ allowed_line_markers = [
     'your-secret-here',
     'apikeyapikeyapikey',
     'yourembyapikeyhere',
+    'GLANCE_PW_HASH',
     'secret-bearing widgets',
     'secret scan',
     'Secret scan',

@@ -11,6 +11,11 @@ If you are the next agent, begin here.
 7. Only after local success, add a protected reverse proxy route.
 8. Do not stop Heimdall during Phase 2.
 
+For the production Portainer Git stack, switch presets by changing
+`HOMEPAGE_THEME` in the stack environment and using **Pull and redeploy**. See
+`config-template/themes/README.md`. `scripts/switch-theme.sh` is for local
+Compose deployments only.
+
 The complete implementation checklist is `docs/08-implementation-checklist.md`; rollback/debug is `docs/11-validation-and-rollback.md`.
 
 ## Current recovery note
