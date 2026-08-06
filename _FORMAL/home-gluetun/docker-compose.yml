@@ -52,7 +52,7 @@ services:
       - /home/df/appdata/gluetun:/gluetun
     environment:
       # 基本 VPN 設定 (必填)
-
+      - VPN_TYPE=openvpn
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
       - SERVER_COUNTRIES=
