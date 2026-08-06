@@ -38,6 +38,8 @@ services:
     image: qmcgaw/gluetun
     container_name: gluetun-home
     restart: unless-stopped
+    env_file:
+      - .env
     cap_add:
       - NET_ADMIN
     devices:
