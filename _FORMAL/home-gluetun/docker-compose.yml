@@ -62,6 +62,10 @@ services:
       - TZ=${TZ}
       - UMASK=000
       - UPDATER_PERIOD=24h
+      - HTTPPROXY=on
+      - HTTPPROXY_USER=${HTTPPROXY_USER}
+      - HTTPPROXY_PASSWORD=${HTTPPROXY_PASSWORD}
+      - HTTPPROXY_STEALTH=on
       # 伺服器選擇 (可選)
       # - SERVER_REGIONS="București"
       # - SERVER_CITIES="Bucharest"
