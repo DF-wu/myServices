@@ -36,7 +36,7 @@ services:
 ## updater is here
   gluetun-home:
     image: qmcgaw/gluetun
-    container_name: gluetun-jp
+    container_name: gluetun-home
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
