@@ -55,14 +55,13 @@ services:
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
-      - SERVER_COUNTRIES=
+
       - OPENVPN_CUSTOM_CONFIG=/gluetun/home.ovpn
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
       - UPDATER_PERIOD=24h
       # 伺服器選擇 (可選)
-      - SERVER_COUNTRIES=Japan
       # - SERVER_REGIONS="București"
       # - SERVER_CITIES="Bucharest"
       # - SERVER_HOSTNAMES="ro2-auto-udp.ptoserver.com"
