@@ -55,7 +55,7 @@ services:
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
       - SERVER_COUNTRIES=
-      - OPENVPN_CUSTOM_CONFIG=/gluetun/surfshark-ovpn/home.ovpn
+      - OPENVPN_CUSTOM_CONFIG=/gluetun/home.ovpn
       # 系統設定
       - TZ=${TZ}
       - UMASK=000
