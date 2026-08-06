@@ -53,6 +53,7 @@ services:
     environment:
       # 基本 VPN 設定 (必填)
       - VPN_TYPE=openvpn
+      - VPN_SERVICE_PROVIDER=custom
       - OPENVPN_USER=${OPENVPN_USER}
       - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
 
