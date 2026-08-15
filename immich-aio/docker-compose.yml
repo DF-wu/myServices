@@ -39,15 +39,17 @@ services:
       # this is immich library data. !!! remember do not overrider your data!!
       - /mnt/mydata/immich-aio/photos/library:/photos/library
 
+
+
       # this is for external library
-      - /mnt/fastpool/HomePhotos:/libraries/HomePhotos:ro #optional
+      - /mnt/appdata/FASTPOOL/HomePhotos:/libraries/HomePhotos:ro #optional
       # this is for mount my legacy google photos
-      - /mnt/fastpool/GooglePhotos:/libraries/GooglePhotos:ro #optional
+      - /mnt/appdata/FASTPOOL/GooglePhotos:/libraries/GooglePhotos:ro #optional
       # dad photos imports
-      - /mnt/fastpool/immichUserMount/dadPhotos:/libraries/dadPhotos:ro #optional
+      - /mnt/appdata/FASTPOOL/immichUserMount/dadPhotos:/libraries/dadPhotos:ro #optional
 
       #my old phots
-      - /mnt/fastpool/immichUserMount/dfPhotos:/libraries/dfPhotos:ro #optional
+      - /mnt/appdata/FASTPOOL/immichUserMount/dfPhotos:/libraries/dfPhotos:ro #optional
 
     ports:
       - 38080:8080

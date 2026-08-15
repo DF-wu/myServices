@@ -78,7 +78,7 @@ services:
       - /sys:/sys:ro
       - /mnt/appdata:/mnt/appdata:ro
       - /mnt/mydata:/mnt/mydata:ro
-      - /mnt/fastpool:/mnt/fastpool:ro
+      - /mnt/appdata/FASTPOOL:/mnt/fastpool:ro
     networks:
       - homepage-internal
       - homepage-egress
