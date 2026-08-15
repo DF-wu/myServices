@@ -20,7 +20,7 @@ services:
       - DATABASE_NAME=teslamate
       - DATABASE_HOST=database
       # Home Assistant Mosquitto App on df-ha.newhome.
-      - MQTT_HOST=192.168.11.201
+      - MQTT_HOST=df-ha.newhome
       - MQTT_PORT=1883
       - MQTT_USERNAME=teslamate_ha
       - MQTT_PASSWORD=${TESLAMATE_MQTT_PASSWORD}
