@@ -1,18 +1,25 @@
-version: "3"
-
 services:
   idrac-fan-control:
-    container_name: idrac-fan-control
     image: ghcr.io/df-wu/idrac-fan-control:latest
+    container_name: idrac-fan-control
+    init: true
     environment:
-      - TZ=Asia/Taipei
+      TZ: ${TZ:-Asia/Taipei}
+      TEMPERATURE_SOURCES: linux_disk,remote_gpu
+      WITH_GPU_TEMP: "false"
+      LINUX_DISK_DEVICES: /dev/nvme1
+      LINUX_DISK_NOCHECK: never
+      REMOTE_GPU_HOSTS: ${REMOTE_GPU_HOSTS:-axolotl}
+      REMOTE_GPU_USERNAME: ${REMOTE_GPU_USERNAME:-root}
+      REMOTE_GPU_PASSWORD: ${REMOTE_GPU_PASSWORD:-}
+      REMOTE_GPU_SSH_KEY: ${REMOTE_GPU_SSH_KEY:-/run/secrets/axolotl_ed25519}
+      REMOTE_GPU_SSH_PORT: ${REMOTE_GPU_SSH_PORT:-22}
+      SSH_STRICT_HOST_KEY_CHECKING: ${SSH_STRICT_HOST_KEY_CHECKING:-accept-new}
     env_file:
       - .env
-    restart: always
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    volumes:
+      - ${IDRAC_FAN_LOG_DIR:-/mnt/appdata/idrac-fan-control/logs}:/var/log/fan-control
+      - ${IDRAC_FAN_SECRETS_DIR:-/mnt/appdata/idrac-fan-control/secrets}:/run/secrets:ro
+    devices:
+      - ${TRUENAS_CD6_DEVICE:-/dev/nvme1}:/dev/nvme1
+    restart: unless-stopped
