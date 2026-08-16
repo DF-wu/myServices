@@ -1,3 +1,8 @@
+# TrueNAS SCALE 部署前準備：
+# 1. 在本檔同目錄建立未納入 Git 的 .env，填入 iDRAC 帳密與風扇曲線。
+# 2. 確認 CD6 的 TrueNAS 裝置路徑；若不是 /dev/nvme1，設定 TRUENAS_CD6_DEVICE。
+# 3. 建立 /mnt/appdata/idrac-fan-control/{logs,secrets}，並把 axolotl SSH 私鑰放進 secrets。
+# 4. SSH 帳號必須能免互動登入 axolotl，且能執行 nvidia-smi。
 services:
   idrac-fan-control:
     image: ghcr.io/df-wu/idrac-fan-control:latest
@@ -5,21 +10,39 @@ services:
     init: true
     environment:
       TZ: ${TZ:-Asia/Taipei}
+
+      # TrueNAS 本機讀取 CD6；Tesla P4 則透過 SSH 從 axolotl 讀取。
       TEMPERATURE_SOURCES: linux_disk,remote_gpu
+      # 關閉舊版的本機 GPU 開關，避免 TrueNAS 被要求提供 NVIDIA runtime。
       WITH_GPU_TEMP: "false"
+
+      # 這是容器內固定路徑。只需在下方 devices 修改 TrueNAS 主機端來源。
       LINUX_DISK_DEVICES: /dev/nvme1
+      # NVMe 不使用待機檢查，避免 smartctl 略過溫度讀值。
       LINUX_DISK_NOCHECK: never
+
+      # 可在 .env 覆寫主機、帳號、認證方式與連接埠。
       REMOTE_GPU_HOSTS: ${REMOTE_GPU_HOSTS:-axolotl}
       REMOTE_GPU_USERNAME: ${REMOTE_GPU_USERNAME:-root}
+      # 建議留空並使用下方 SSH 私鑰；不要把密碼直接寫進此 YAML。
       REMOTE_GPU_PASSWORD: ${REMOTE_GPU_PASSWORD:-}
       REMOTE_GPU_SSH_KEY: ${REMOTE_GPU_SSH_KEY:-/run/secrets/axolotl_ed25519}
       REMOTE_GPU_SSH_PORT: ${REMOTE_GPU_SSH_PORT:-22}
       SSH_STRICT_HOST_KEY_CHECKING: ${SSH_STRICT_HOST_KEY_CHECKING:-accept-new}
+
+    # .env 含 iDRAC 機密與風扇參數，必須存在於部署主機且不可提交到 Git。
     env_file:
       - .env
+
     volumes:
+      # 日誌保留在 TrueNAS appdata；路徑可透過 .env 覆寫。
       - ${IDRAC_FAN_LOG_DIR:-/mnt/appdata/idrac-fan-control/logs}:/var/log/fan-control
+      # 預設私鑰主機路徑：/mnt/appdata/idrac-fan-control/secrets/axolotl_ed25519
       - ${IDRAC_FAN_SECRETS_DIR:-/mnt/appdata/idrac-fan-control/secrets}:/run/secrets:ro
+
     devices:
+      # 僅映射 CD6，不需 privileged。冒號右側必須保持 /dev/nvme1。
       - ${TRUENAS_CD6_DEVICE:-/dev/nvme1}:/dev/nvme1
+
+    # 控制器只需對外連線 iDRAC UDP 623 與 axolotl SSH，不需發布連接埠。
     restart: unless-stopped
