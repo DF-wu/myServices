@@ -12,7 +12,7 @@
 | Docker Compose | `v2.38.1` |
 | Kioxia CD6 | `KCD61LUL7T68`, serial `61J0A02CT7C8` |
 | CD6 controller device | `/dev/nvme0` |
-| iDRAC | `192.168.10.9` |
+| iDRAC | `192.168.10.8` (`idrac-r730xd.newhome`) |
 | axolotl | `192.168.10.13` |
 | Tesla P4 | `GPU-82dd964b-0c4c-78d4-8bd3-f7067e8cb29f` |
 | Controller image | `ghcr.io/df-wu/idrac-fan-control@sha256:0b67b5ea85e3d3c5de2c05eb73179a6c1adf1a5249642904db051ae47687a279` |
@@ -95,6 +95,8 @@ sudo tail -f /mnt/cachePool/appdata/idrac-fan-control/logs/fan_control.log
 - `remote_gpu:192.168.10.13/gpu0=<temperature>C`
 - 最終 decision temperature、level 與 fan percentage
 
+CD6 在 Docker 內需要 `SYS_ADMIN` 才能執行 NVMe admin ioctl。Compose 已只加入這個 capability；僅映射 `/dev/nvme0`、加入 `SYS_RAWIO` 或停用 seccomp 都無法讀取溫度。
+
 ## 5. 驗證與回復
 
 部署後可執行不改風扇的檢查：
@@ -116,7 +118,7 @@ sudo docker exec idrac-fan-control /usr/local/bin/fan-control.sh restore
 ## 安全邊界
 
 - 不要把包含真實密碼的 YAML 或 incident dump 提交到 Git。
-- 容器只映射 `/dev/nvme0`，不使用 `privileged`。
+- 容器只映射 `/dev/nvme0` 並加入 `SYS_ADMIN`，不使用 `privileged`。
 - 不掛載 Docker socket，也不要求 TrueNAS NVIDIA runtime。
 - 控制器只對外連線 iDRAC UDP 623 與 axolotl SSH 22，不需發布連接埠。
 - `diagnose` 是部署前必要門檻；不要在任何來源失敗時直接啟動 unattended auto mode。

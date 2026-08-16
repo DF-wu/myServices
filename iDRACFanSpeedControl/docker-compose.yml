@@ -6,13 +6,12 @@ services:
     # 固定到已通過 TrueNAS Compose 與變數契約驗證的映像。
     image: ghcr.io/df-wu/idrac-fan-control@sha256:0b67b5ea85e3d3c5de2c05eb73179a6c1adf1a5249642904db051ae47687a279
     container_name: idrac-fan-control
-    init: true
 
     environment:
       TZ: Asia/Taipei
 
       # TrueNAS UI 必填機密；不要把替換後的 YAML 提交回 Git。
-      IDRAC_IP: 192.168.10.9
+      IDRAC_IP: 192.168.10.8
       IDRAC_ID: root
       IDRAC_PASSWORD: REPLACE_TO_YOUR_IDRAC_PASSWORD
       IPMI_INTERFACE: lanplus
@@ -68,6 +67,10 @@ services:
 
     volumes:
       - /mnt/cachePool/appdata/idrac-fan-control/logs:/var/log/fan-control
+
+    cap_add:
+      # smartctl 對 CD6 執行 NVMe admin ioctl 所需；不必使用 privileged。
+      - SYS_ADMIN
 
     devices:
       # Kioxia CD6 KCD61LUL7T68，序號 61J0A02CT7C8；不需要 privileged。
