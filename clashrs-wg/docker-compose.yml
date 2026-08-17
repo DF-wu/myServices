@@ -16,13 +16,10 @@ services:
       - "${WG_PORT:-51820}:51820/udp"
       - "${WG_UI_BIND:-127.0.0.1}:${WG_UI_PORT:-51821}:51821/tcp"
     volumes:
-      - ${APPDATA_DIR:?Set APPDATA_DIR to an absolute Docker-host path}/wireguard:/etc/wireguard
+      - wireguard:/etc/wireguard
       - /lib/modules:/lib/modules:ro
     environment:
       TZ: ${TZ:-Asia/Taipei}
-    networks:
-      gateway:
-        ipv4_address: 172.30.90.2
     logging:
       driver: json-file
       options:
@@ -43,61 +40,21 @@ services:
     security_opt:
       - no-new-privileges:true
     volumes:
-      - ${APPDATA_DIR:?Set APPDATA_DIR to an absolute Docker-host path}/clash-rs:/config
+      - clash-data:/data
     configs:
       - source: clash_config
-        target: /bootstrap/config.yaml
+        target: /etc/clash/config.yaml
     environment:
       TZ: ${TZ:-Asia/Taipei}
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
-        mkdir -p /config/providers
-        if [ ! -s /config/config.yaml ]; then
-          cp /bootstrap/config.yaml /config/config.yaml
-          chmod 0600 /config/config.yaml
-        fi
-        exec /usr/bin/clash --compatibility --directory /config --config /config/config.yaml
-    healthcheck:
-      test: ["CMD-SHELL", "kill -0 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  gateway-rules:
-    image: alpine:3.22@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
-    container_name: wg-clash-rules
-    restart: unless-stopped
-    network_mode: "service:wg-easy"
-    depends_on:
-      wg-easy:
-        condition: service_started
-      clash-rs:
-        condition: service_healthy
-    cap_add:
-      - NET_ADMIN
-    security_opt:
-      - no-new-privileges:true
-    entrypoint: ["/bin/sh", "-ec"]
-    command:
-      - |
         apk add --no-cache iproute2 nftables
 
-        cleanup() {
-          nft delete table inet wg_clash_gateway 2>/dev/null || true
-          ip rule del fwmark 0x1 lookup 100 priority 100 2>/dev/null || true
-          ip route flush table 100 2>/dev/null || true
-        }
-        trap 'cleanup; exit 0' INT TERM EXIT
-
         until ip link show wg0 >/dev/null 2>&1; do sleep 1; done
-        cleanup
+        nft delete table inet wg_clash_gateway 2>/dev/null || true
+        ip rule del fwmark 0x1 lookup 100 priority 100 2>/dev/null || true
+        ip route flush table 100 2>/dev/null || true
         ip route add local 0.0.0.0/0 dev lo table 100
         ip rule add fwmark 0x1 lookup 100 priority 100
 
@@ -116,25 +73,16 @@ services:
         }
         EOF
 
-        while :; do sleep 3600; done
-    healthcheck:
-      test: ["CMD-SHELL", "nft list table inet wg_clash_gateway >/dev/null 2>&1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+        exec /usr/bin/clash --compatibility --directory /data --config /etc/clash/config.yaml
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
 
-networks:
-  gateway:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.30.90.0/24
+volumes:
+  wireguard:
+  clash-data:
 
 configs:
   clash_config:

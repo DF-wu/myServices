@@ -7,35 +7,32 @@ VMess、VLESS、Shadowsocks、Trojan、Hysteria2 或 TUIC 節點送出。
 [ClashRS 官方 GHCR image](https://github.com/Watfaq/clash-rs/pkgs/container/clash-rs)。
 ClashRS 原生支援 Clash YAML、proxy provider、TProxy 與 `--compatibility` 相容模式。
 
-ClashRS、WG Easy 與 Alpine image 均固定到 OCI manifest digest；不在部署主機
-build image，也不使用浮動 `latest`。
+ClashRS 與 WG Easy 均固定到 OCI manifest digest；不在部署主機 build image，
+也不使用浮動 `latest`。
 
 ## Portainer 相容性
 
 此 Stack 可由 **Portainer 的 Git Repository 模式部署到 Docker Standalone**。Compose
-Stack 名稱填 `clashrs-wg`，Compose 路徑填 `clashrs-wg/docker-compose.yml`。它不依賴 Portainer Business Edition 的
-relative-path volume 功能：Clash 設定與 nftables 指令直接定義在 Compose 內，
-持久資料只使用 `APPDATA_DIR` 指定的宿主機絕對路徑。
+Stack 名稱填 `clashrs-wg`，Compose 路徑填 `clashrs-wg/docker-compose.yml`。
+部署只需要這一份 Compose；WireGuard 與 ClashRS 狀態均使用 Docker named volume，
+不依賴 repository 相對路徑或宿主機 appdata 路徑。
 
 Portainer 必須使用支援 **Docker Compose 2.23.1 或更新版本**的部署引擎；此版本開始
-支援本 Stack 使用的 `configs.content`。`gateway-rules` 每次建立時會由 Alpine
-repository 安裝 `iproute2` 與 `nftables`，因此首次啟動需要能連到 Alpine 套件站。
+支援本 Stack 使用的 `configs.content`。ClashRS 啟動時會由 Alpine repository
+安裝 `iproute2` 與 `nftables`，因此啟動時需要能連到 Alpine 套件站。
 
 Portainer 部署時必須加入：
 
 | 環境變數 | 值 |
 |---|---|
-| `APPDATA_DIR` | Docker host 絕對路徑，例如 `/opt/appdata/clashrs-wg` |
 | `CLASH_SUBSCRIPTION_URL` | 供應商提供的 Clash subscription URL |
 
-其餘變數可從 `.env.example` 覆寫。首次啟動會把範本寫入
-`${APPDATA_DIR}/clash-rs/config.yaml`；之後即使移除環境變數，也會保留並使用既有
-設定。此 Compose 是 Docker Standalone 用途，不可用 `docker stack deploy`
-部署成 Swarm Stack，因為 Swarm 不支援
-`network_mode: service:...`。
+可選變數為 `WG_PORT`、`WG_UI_BIND`、`WG_UI_PORT` 與 `TZ`。此 Compose 是 Docker
+Standalone 用途，不可用 `docker stack deploy` 部署成 Swarm Stack，因為 Swarm
+不支援 `network_mode: service:...`。
 
-不要從 Portainer 的 **Containers** 頁面對 `wg-clash-core` 或 `wg-clash-rules`
-單獨按 **Recreate**。Portainer 目前對共享 service network namespace 的單容器重建
+不要從 Portainer 的 **Containers** 頁面對 `wg-clash-core` 單獨按 **Recreate**。
+Portainer 目前對共享 service network namespace 的單容器重建
 仍有[已知問題](https://github.com/portainer/portainer/issues/13012)。更新時請回到
 **Stacks** 頁面，對整個 Stack 執行 **Update the stack / Redeploy**。
 
@@ -50,7 +47,7 @@ WireGuard client
   -> Internet
 ```
 
-`gateway-rules` 與 `clash-rs` 共用 `wg-easy` 的 network namespace。規則只攔截
+`clash-rs` 共用 `wg-easy` 的 network namespace，並在啟動時建立 TProxy 規則。規則只攔截
 從 `wg0` 進入的 TCP/UDP，因此不會把 WireGuard UDP 握手或 ClashRS 自己的節點
 連線再次送入代理。其他由 `wg0` 進入的 IP 協議會 fail closed，ClashRS 故障時
 也不會改由主機公網直接送出。
@@ -64,33 +61,19 @@ WireGuard client
 - 這是 TCP/UDP 代理閘道，不是完整的 L3 出口；ICMP (`ping`)、GRE、ESP 等協議
   會被丟棄。
 - IPv6 預設停用，避免客戶端繞過 IPv4 代理出口。
-- `wg-easy`、`clash-rs`、`gateway-rules` 必須一起重建；不要單獨重啟
+- `wg-easy` 與 `clash-rs` 應一起重建；不要單獨重啟
   或 recreate `wg-easy`，否則共享的 network namespace 會被替換。
 
 ## 部署
 
-### 1. 建立本機設定
-
-```bash
-cd clashrs-wg
-cp .env.example .env
-mkdir -p /opt/appdata/clashrs-wg
-chmod 700 /opt/appdata/clashrs-wg
-chmod 600 .env
-```
-
-編輯 `.env`，設定絕對路徑 `APPDATA_DIR` 與 `CLASH_SUBSCRIPTION_URL`。訂閱網址
-通常包含帳號 token，不可提交到 Git 或貼入公開訊息。首次啟動後可直接修改
-`${APPDATA_DIR}/clash-rs/config.yaml` 做進階設定，容器不會覆寫既有檔案。
-
-### 2. 驗證並啟動
+### 驗證並啟動
 
 ```bash
 docker compose config --quiet
 docker compose pull
 docker compose up -d
 docker compose ps
-docker compose logs --tail=100 clash-rs gateway-rules
+docker compose logs --tail=100 clash-rs wg-easy
 ```
 
 WG Easy 管理介面預設只監聽宿主機 `127.0.0.1:51821`。從遠端管理時使用 SSH
@@ -137,7 +120,7 @@ docker compose start clash-rs
 查看實際命中計數：
 
 ```bash
-docker exec wg-clash-rules nft list table inet wg_clash_gateway
+docker exec wg-clash-core nft list table inet wg_clash_gateway
 ```
 
 ## 更新
