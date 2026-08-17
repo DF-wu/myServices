@@ -1,0 +1,62 @@
+# Copy this file to ${APPDATA_DIR}/clash-rs/config.yaml before starting the stack.
+# The subscription URL is a credential. Keep the resulting config.yaml out of Git.
+
+mode: rule
+log-level: info
+ipv6: false
+allow-lan: false
+external-controller: 127.0.0.1:9090
+
+# The gateway-rules sidecar transparently sends wg0 TCP and UDP traffic here.
+tproxy-port: 7893
+
+dns:
+  enable: true
+  ipv6: false
+  listen:
+    udp: 0.0.0.0:53
+    tcp: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - "*.lan"
+    - "localhost"
+  default-nameserver:
+    - 1.1.1.1
+    - 8.8.8.8
+  nameserver:
+    - "https://1.1.1.1/dns-query#proxy=PROXY"
+    - "https://8.8.8.8/dns-query#proxy=PROXY"
+  proxy-server-nameserver:
+    - 1.1.1.1
+    - 8.8.8.8
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+proxy-providers:
+  subscription:
+    type: http
+    url: "REPLACE_WITH_CLASH_SUBSCRIPTION_URL"
+    path: ./providers/subscription.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 300
+      lazy: true
+
+proxy-groups:
+  - name: PROXY
+    type: url-test
+    use:
+      - subscription
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    lazy: true
+    tolerance: 80
+    udp: true
+
+rules:
+  - MATCH,PROXY
