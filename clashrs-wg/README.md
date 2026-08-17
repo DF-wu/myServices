@@ -4,19 +4,22 @@
 VMess、VLESS、Shadowsocks、Trojan、Hysteria2 或 TUIC 節點送出。
 
 本服務刻意不使用目前倉庫內容與原專案定位不一致的 Mihomo 映像。代理核心採用
-[ClashRS](https://github.com/Watfaq/clash-rs)，並從指定 GitHub Release 下載靜態
-binary，在 build 時驗證 SHA-256。ClashRS 原生支援 Clash YAML、proxy provider、
-TProxy 與 `--compatibility` 相容模式。
+[ClashRS 官方 GHCR image](https://github.com/Watfaq/clash-rs/pkgs/container/clash-rs)。
+ClashRS 原生支援 Clash YAML、proxy provider、TProxy 與 `--compatibility` 相容模式。
 
-WG Easy 與 Alpine base image 也固定到 OCI manifest digest；升級時應同時核對 tag
-與新 digest，不要只改版本字串。
+ClashRS、WG Easy 與 Alpine image 均固定到 OCI manifest digest；不在部署主機
+build image，也不使用浮動 `latest`。
 
 ## Portainer 相容性
 
 此 Stack 可由 **Portainer 的 Git Repository 模式部署到 Docker Standalone**。Compose
 Stack 名稱填 `clashrs-wg`，Compose 路徑填 `clashrs-wg/docker-compose.yml`。它不依賴 Portainer Business Edition 的
-relative-path volume 功能：規則腳本與設定範本已包含在本機建置的 ClashRS image
-中，持久資料只使用 `APPDATA_DIR` 指定的宿主機絕對路徑。
+relative-path volume 功能：Clash 設定與 nftables 指令直接定義在 Compose 內，
+持久資料只使用 `APPDATA_DIR` 指定的宿主機絕對路徑。
+
+Portainer 必須使用支援 **Docker Compose 2.23.1 或更新版本**的部署引擎；此版本開始
+支援本 Stack 使用的 `configs.content`。`gateway-rules` 每次建立時會由 Alpine
+repository 安裝 `iproute2` 與 `nftables`，因此首次啟動需要能連到 Alpine 套件站。
 
 Portainer 部署時必須加入：
 
@@ -27,8 +30,8 @@ Portainer 部署時必須加入：
 
 其餘變數可從 `.env.example` 覆寫。首次啟動會把範本寫入
 `${APPDATA_DIR}/clash-rs/config.yaml`；之後即使移除環境變數，也會保留並使用既有
-設定。Portainer 端點必須支援 Docker build，且此 Compose 是 Docker Standalone
-用途，不可用 `docker stack deploy` 部署成 Swarm Stack，因為 Swarm 不支援
+設定。此 Compose 是 Docker Standalone 用途，不可用 `docker stack deploy`
+部署成 Swarm Stack，因為 Swarm 不支援
 `network_mode: service:...`。
 
 不要從 Portainer 的 **Containers** 頁面對 `wg-clash-core` 或 `wg-clash-rules`
@@ -54,6 +57,8 @@ WireGuard client
 
 ## 限制
 
+- ClashRS 官方 container tag 目前停在 `0.10.7`，落後 binary release `0.10.8`
+  一個 patch 版本；本 Stack 優先採用官方現成 image，不在部署主機自行 build。
 - ClashRS 目前不支援 ShadowsocksR (`type: ssr`)。購買前應確認供應商至少提供
   VMess、VLESS、SS、Trojan、Hysteria2 或 TUIC。
 - 這是 TCP/UDP 代理閘道，不是完整的 L3 出口；ICMP (`ping`)、GRE、ESP 等協議
@@ -81,8 +86,8 @@ chmod 600 .env
 ### 2. 驗證並啟動
 
 ```bash
-docker compose build --pull clash-rs
 docker compose config --quiet
+docker compose pull
 docker compose up -d
 docker compose ps
 docker compose logs --tail=100 clash-rs gateway-rules
@@ -137,17 +142,11 @@ docker exec wg-clash-rules nft list table inet wg_clash_gateway
 
 ## 更新
 
-先到 [ClashRS Releases](https://github.com/Watfaq/clash-rs/releases) 確認新版本，下載
-對應的 `x86_64-unknown-linux-musl` 與 `aarch64-unknown-linux-musl`，自行計算：
+先確認 [ClashRS container tags](https://github.com/Watfaq/clash-rs/pkgs/container/clash-rs)
+已有目標版本，將 Compose 中的 tag 與 manifest digest 一起更新，再執行：
 
 ```bash
-sha256sum clash-rs-*-unknown-linux-musl
-```
-
-將版本與兩個 SHA-256 更新到 `.env`，再執行：
-
-```bash
-docker compose build --no-cache clash-rs
+docker compose pull
 docker compose up -d --force-recreate
 ```
 

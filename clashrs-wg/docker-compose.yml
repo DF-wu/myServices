@@ -30,14 +30,7 @@ services:
         max-file: "3"
 
   clash-rs:
-    build:
-      context: .
-      dockerfile: Dockerfile.clash-rs
-      args:
-        CLASH_RS_VERSION: ${CLASH_RS_VERSION:-0.10.8}
-        CLASH_RS_AMD64_SHA256: ${CLASH_RS_AMD64_SHA256:-551f3f9e71a8f344416219ba300af2f3aced6f1e1d2eee6fdc1f256e7a011776}
-        CLASH_RS_ARM64_SHA256: ${CLASH_RS_ARM64_SHA256:-c3ebf9da1a89d5fce30bb64058a2143e4c67e0eb3092343bc9c768420c0a2072}
-    image: local/clash-rs:${CLASH_RS_VERSION:-0.10.8}
+    image: ghcr.io/watfaq/clash-rs:0.10.7@sha256:ca20da62b278ed35764be310d9353b536d3c83f353f52e9eb7187a56cae8a094
     container_name: wg-clash-core
     restart: unless-stopped
     network_mode: "service:wg-easy"
@@ -51,17 +44,22 @@ services:
       - no-new-privileges:true
     volumes:
       - ${APPDATA_DIR:?Set APPDATA_DIR to an absolute Docker-host path}/clash-rs:/config
+    configs:
+      - source: clash_config
+        target: /bootstrap/config.yaml
     environment:
       TZ: ${TZ:-Asia/Taipei}
-      CLASH_SUBSCRIPTION_URL: ${CLASH_SUBSCRIPTION_URL:-}
+    entrypoint: ["/bin/sh", "-ec"]
     command:
-      - --compatibility
-      - --directory
-      - /config
-      - --config
-      - /config/config.yaml
+      - |
+        mkdir -p /config/providers
+        if [ ! -s /config/config.yaml ]; then
+          cp /bootstrap/config.yaml /config/config.yaml
+          chmod 0600 /config/config.yaml
+        fi
+        exec /usr/bin/clash --compatibility --directory /config --config /config/config.yaml
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:9090/version >/dev/null"]
+      test: ["CMD-SHELL", "kill -0 1"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -73,7 +71,7 @@ services:
         max-file: "3"
 
   gateway-rules:
-    image: local/clash-rs:${CLASH_RS_VERSION:-0.10.8}
+    image: alpine:3.22@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
     container_name: wg-clash-rules
     restart: unless-stopped
     network_mode: "service:wg-easy"
@@ -86,7 +84,39 @@ services:
       - NET_ADMIN
     security_opt:
       - no-new-privileges:true
-    entrypoint: ["/bin/sh", "/usr/local/sbin/gateway-rules.sh"]
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        apk add --no-cache iproute2 nftables
+
+        cleanup() {
+          nft delete table inet wg_clash_gateway 2>/dev/null || true
+          ip rule del fwmark 0x1 lookup 100 priority 100 2>/dev/null || true
+          ip route flush table 100 2>/dev/null || true
+        }
+        trap 'cleanup; exit 0' INT TERM EXIT
+
+        until ip link show wg0 >/dev/null 2>&1; do sleep 1; done
+        cleanup
+        ip route add local 0.0.0.0/0 dev lo table 100
+        ip rule add fwmark 0x1 lookup 100 priority 100
+
+        nft -f - <<'EOF'
+        table inet wg_clash_gateway {
+          chain prerouting {
+            type filter hook prerouting priority mangle; policy accept;
+            iifname "wg0" fib daddr type local return
+            iifname "wg0" meta l4proto { tcp, udp } meta mark set 0x1 tproxy to :7893 accept
+            iifname "wg0" counter drop
+          }
+          chain forward_guard {
+            type filter hook forward priority -1; policy accept;
+            iifname "wg0" counter drop
+          }
+        }
+        EOF
+
+        while :; do sleep 3600; done
     healthcheck:
       test: ["CMD-SHELL", "nft list table inet wg_clash_gateway >/dev/null 2>&1"]
       interval: 30s
@@ -105,3 +135,59 @@ networks:
     ipam:
       config:
         - subnet: 172.30.90.0/24
+
+configs:
+  clash_config:
+    content: |
+      mode: rule
+      log-level: info
+      ipv6: false
+      allow-lan: false
+      external-controller: 127.0.0.1:9090
+      tproxy-port: 7893
+      dns:
+        enable: true
+        ipv6: false
+        listen:
+          udp: 0.0.0.0:53
+          tcp: 0.0.0.0:53
+        enhanced-mode: fake-ip
+        fake-ip-range: 198.18.0.1/16
+        fake-ip-filter:
+          - "*.lan"
+          - "localhost"
+        default-nameserver:
+          - 1.1.1.1
+          - 8.8.8.8
+        nameserver:
+          - "https://1.1.1.1/dns-query#proxy=PROXY"
+          - "https://8.8.8.8/dns-query#proxy=PROXY"
+        proxy-server-nameserver:
+          - 1.1.1.1
+          - 8.8.8.8
+      profile:
+        store-selected: true
+        store-fake-ip: true
+      proxy-providers:
+        subscription:
+          type: http
+          url: "${CLASH_SUBSCRIPTION_URL:?Set CLASH_SUBSCRIPTION_URL in Portainer}"
+          path: ./providers/subscription.yaml
+          interval: 3600
+          health-check:
+            enable: true
+            url: https://www.gstatic.com/generate_204
+            interval: 300
+            lazy: true
+      proxy-groups:
+        - name: PROXY
+          type: url-test
+          use:
+            - subscription
+          url: https://www.gstatic.com/generate_204
+          interval: 300
+          lazy: true
+          tolerance: 80
+          udp: true
+      rules:
+        - MATCH,PROXY
