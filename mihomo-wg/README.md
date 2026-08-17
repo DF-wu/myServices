@@ -1,4 +1,4 @@
-# WG Easy + ClashRS Gateway
+# mihomo-wg
 
 將標準 WireGuard 用戶端流量交給 Clash 相容代理核心，再由 Clash 訂閱中的
 VMess、VLESS、Shadowsocks、Trojan、Hysteria2 或 TUIC 節點送出。
@@ -14,7 +14,7 @@ WG Easy 與 Alpine base image 也固定到 OCI manifest digest；升級時應同
 ## Portainer 相容性
 
 此 Stack 可由 **Portainer 的 Git Repository 模式部署到 Docker Standalone**。Compose
-路徑填 `wg-easy-clashrs/docker-compose.yml`。它不依賴 Portainer Business Edition 的
+Stack 名稱填 `mihomo-wg`，Compose 路徑填 `mihomo-wg/docker-compose.yml`。它不依賴 Portainer Business Edition 的
 relative-path volume 功能：規則腳本與設定範本已包含在本機建置的 ClashRS image
 中，持久資料只使用 `APPDATA_DIR` 指定的宿主機絕對路徑。
 
@@ -22,7 +22,7 @@ Portainer 部署時必須加入：
 
 | 環境變數 | 值 |
 |---|---|
-| `APPDATA_DIR` | Docker host 絕對路徑，例如 `/opt/appdata/wg-easy-clashrs` |
+| `APPDATA_DIR` | Docker host 絕對路徑，例如 `/opt/appdata/mihomo-wg` |
 | `CLASH_SUBSCRIPTION_URL` | 供應商提供的 Clash subscription URL |
 
 其餘變數可從 `.env.example` 覆寫。首次啟動會把範本寫入
@@ -67,10 +67,10 @@ WireGuard client
 ### 1. 建立本機設定
 
 ```bash
-cd wg-easy-clashrs
+cd mihomo-wg
 cp .env.example .env
-mkdir -p /opt/appdata/wg-easy-clashrs
-chmod 700 /opt/appdata/wg-easy-clashrs
+mkdir -p /opt/appdata/mihomo-wg
+chmod 700 /opt/appdata/mihomo-wg
 chmod 600 .env
 ```
 
