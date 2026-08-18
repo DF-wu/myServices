@@ -42,9 +42,9 @@ services:
       # 不需要在家中路由器設定 port forwarding，也不要開放到 Internet。
       - "192.168.10.13:${WG_PORT:-51820}:51820/udp"
 
-      # wg-easy 管理頁，只綁定 axolotl 的 127.0.0.1，不直接暴露到 Internet。
-      # 遠端使用：ssh -L 51821:127.0.0.1:51821 <user>@<WG_HOST>
-      - "127.0.0.1:${WG_UI_PORT:-51821}:51821/tcp"
+      # wg-easy 管理頁只綁定 axolotl 的 LAN IP，供內網瀏覽器建立 client、
+      # 顯示 QR code 與下載 WireGuard .conf；不會監聽其他主機介面。
+      - "192.168.10.13:${WG_UI_PORT:-51821}:51821/tcp"
 
       # Mihomo API 只綁定 axolotl 的 127.0.0.1。
       # axolotl 的 9090 已被其他服務占用，所以主機端預設使用 19090。
