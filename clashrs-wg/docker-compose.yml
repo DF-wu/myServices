@@ -1,31 +1,58 @@
 services:
-  gateway:
-    image: ksantd/wg-gateway:26.08.08.07.41@sha256:514338227f2d8ac6a9ffd2776d44e63c3025cac835445c6c6c4149c3b7d41774
+  wg-easy:
+    image: ghcr.io/wg-easy/wg-easy:15.4.0@sha256:0e7bc9d34e86ddcaa92bc700d4d7dc9b33291dbc07ac8d13382f7c2095f949ec
     container_name: clashrs-wg
     restart: unless-stopped
-    network_mode: host
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=1
+    ports:
+      - "${WG_PORT:-51820}:51820/udp"
+      - "127.0.0.1:${WG_UI_PORT:-51821}:51821/tcp"
+      - "127.0.0.1:${MIHOMO_API_PORT:-9090}:9090/tcp"
+    volumes:
+      - wireguard:/etc/wireguard
+      - /lib/modules:/lib/modules:ro
+    environment:
+      INIT_ENABLED: "true"
+      INIT_USERNAME: ${WG_ADMIN_USERNAME:-admin}
+      INIT_PASSWORD: ${WG_ADMIN_PASSWORD:?Set the wg-easy admin password}
+      INIT_HOST: ${WG_HOST:?Set the public IP or hostname}
+      INIT_PORT: ${WG_PORT:-51820}
+      INIT_DNS: 10.8.0.1
+      INIT_IPV4_CIDR: 10.8.0.0/24
+      INIT_IPV6_CIDR: 2001:db8::/32
+      INIT_ALLOWED_IPS: 0.0.0.0/0
+      DISABLE_IPV6: "true"
+      INSECURE: "true"
+      TZ: ${TZ:-Asia/Taipei}
+
+  mihomo:
+    image: metacubex/mihomo:v1.19.30@sha256:baf38d282b785d7037337676714a69e3fdd1f2d9bf748dfd25fce681a624ea74
+    container_name: clashrs-wg-mihomo
+    restart: unless-stopped
+    network_mode: service:wg-easy
+    depends_on:
+      - wg-easy
+    cap_add:
+      - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
-      - wireguard:/data/wireguard
+      - mihomo-data:/root/.config/mihomo
     configs:
       - source: mihomo
-        target: /data/mihomo/config.yaml
+        target: /root/.config/mihomo/config.yaml
     environment:
-      WG_HOST: ${WG_HOST:?Set the public IP or hostname}
-      WG_EASY_INIT_PASSWORD: ${WG_EASY_INIT_PASSWORD:?Set the wg-easy admin password}
-      WG_ALLOWED_IPS: 0.0.0.0/0
-      WG_DEFAULT_DNS: 1.1.1.1
-      HOST: 127.0.0.1
-      INSECURE: "true"
-      DISABLE_IPV6: "true"
       TZ: ${TZ:-Asia/Taipei}
 
 volumes:
   wireguard:
+  mihomo-data:
 
 configs:
   mihomo:
@@ -34,17 +61,21 @@ configs:
       log-level: info
       ipv6: false
 
-      external-controller: 127.0.0.1:51888
-      external-ui: /data/mihomo/ui
+      external-controller: 0.0.0.0:9090
       secret: "${MIHOMO_SECRET:-}"
 
       tun:
         enable: true
         stack: mixed
-        auto-route: false
+        auto-route: true
+        auto-redirect: true
         auto-detect-interface: true
+        strict-route: true
+        include-interface:
+          - wg0
         dns-hijack:
           - any:53
+          - tcp://any:53
 
       dns:
         enable: true
@@ -62,7 +93,7 @@ configs:
         subscription:
           type: http
           url: "${CLASH_SUBSCRIPTION_URL:?Set the Clash subscription URL}"
-          path: /data/mihomo/providers/subscription.yaml
+          path: ./providers/subscription.yaml
           interval: 3600
           health-check:
             enable: true
