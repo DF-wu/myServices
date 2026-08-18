@@ -93,6 +93,7 @@ configs:
         subscription:
           type: http
           url: "${CLASH_SUBSCRIPTION_URL:?Set the Clash subscription URL}"
+          filter: "${CLASH_NODE_FILTER:?Set a unique subscription node name}"
           path: ./providers/subscription.yaml
           interval: 3600
           health-check:
@@ -102,12 +103,9 @@ configs:
 
       proxy-groups:
         - name: PROXY
-          type: url-test
+          type: select
           use:
             - subscription
-          url: https://www.gstatic.com/generate_204
-          interval: 300
-          tolerance: 80
 
       rules:
         - MATCH,PROXY

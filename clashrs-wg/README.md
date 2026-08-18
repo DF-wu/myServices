@@ -18,9 +18,27 @@ Required environment variables:
 | `WG_HOST` | Public IP or hostname clients connect to |
 | `WG_ADMIN_PASSWORD` | Initial wg-easy administrator password |
 | `CLASH_SUBSCRIPTION_URL` | Clash/Mihomo subscription URL |
+| `CLASH_NODE_FILTER` | Unique node name or regex selecting the subscription server |
 
 Optional variables: `WG_ADMIN_USERNAME`, `WG_PORT`, `WG_UI_PORT`,
 `MIHOMO_API_PORT`, `MIHOMO_SECRET`, and `TZ`.
+
+`WG_HOST` is the public address of the VPS running this stack, not an address from
+the subscription. For example, if the VPS public IP is `203.0.113.10`, set:
+
+```text
+WG_HOST=203.0.113.10
+```
+
+To use one particular subscription node, set `CLASH_NODE_FILTER` to a unique part of
+its full name. For a node named `Japan Tokyo 01`:
+
+```text
+CLASH_NODE_FILTER=Japan Tokyo 01
+```
+
+The filter is case-sensitive and accepts regular-expression syntax. It should match
+only one node; otherwise Mihomo initially selects the first matching node.
 
 The administrator password is used only by wg-easy's first-start initialization.
 After setup, remove `WG_ADMIN_PASSWORD` from the Portainer environment and redeploy.
