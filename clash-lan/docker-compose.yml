@@ -1,0 +1,103 @@
+# 用途：讓 axolotl 內網中的裝置，透過指定的 Clash YAML 節點連上 Internet。
+#
+# 這不是透明閘道。每台裝置都要手動設定 HTTP 或 SOCKS5 代理：
+#   Server / Host: 192.168.10.13
+#   Port:          7890
+#   Username:      Portainer 的 PROXY_USERNAME
+#   Password:      Portainer 的 PROXY_PASSWORD
+#
+# 資料流：
+#   內網裝置 -> 192.168.10.13:7890 -> Mihomo -> YAML 中選定的節點 -> Internet
+#
+# Portainer 建立 Stack 時只需填以下 4 個環境變數：
+#   CLASH_YAML_PATH    axolotl 上 Clash YAML 的絕對路徑
+#   CLASH_NODE_FILTER  YAML 中可唯一識別目標節點的名稱
+#   PROXY_USERNAME     內網裝置連線本服務時使用的帳號
+#   PROXY_PASSWORD     內網裝置連線本服務時使用的密碼
+#
+# 目前 axolotl LAN IP 已核對為 192.168.10.13/23。
+# 若日後 axolotl IP 改變，再修改下方 ports 的 192.168.10.13。
+
+services:
+  mihomo:
+    # Mihomo 官方映像；版本與 multi-arch digest 固定，避免浮動更新。
+    image: metacubex/mihomo:v1.19.30@sha256:baf38d282b785d7037337676714a69e3fdd1f2d9bf748dfd25fce681a624ea74
+    container_name: clash-lan
+    restart: unless-stopped
+
+    ports:
+      # Mixed proxy 同時接受 HTTP proxy 與 SOCKS5。
+      # 只綁 axolotl 的 LAN IP，不綁公網或所有主機介面。
+      - "192.168.10.13:7890:7890/tcp"
+
+      # SOCKS5 UDP associate 使用相同 port；只有支援 SOCKS5 UDP 的 client 會用到。
+      - "192.168.10.13:7890:7890/udp"
+
+      # Mihomo API 只允許從 axolotl 本機連線。
+      # axolotl 的 9090 已被其他服務使用，因此主機端改用 19090。
+      # 遠端管理可使用：ssh -L 19090:127.0.0.1:19090 <user>@192.168.10.13
+      - "127.0.0.1:19090:9090/tcp"
+
+    volumes:
+      # 保存 Mihomo cache 與執行狀態。Portainer redeploy 不會刪除此 volume。
+      - mihomo-data:/root/.config/mihomo
+
+      # 完整 Clash YAML 保留在 axolotl，唯讀掛入容器。
+      # 例如 /opt/appdata/clash-lan/EdNovasCloud_clash.yaml
+      - ${CLASH_YAML_PATH:?Set the absolute Clash YAML path on axolotl}:/root/.config/mihomo/import.yaml:ro
+
+    configs:
+      # 下方 inline config 是 Mihomo 主設定；附件 YAML 只提供 proxies 清單。
+      - source: mihomo
+        target: /root/.config/mihomo/config.yaml
+
+    environment:
+      TZ: ${TZ:-Asia/Taipei}
+
+volumes:
+  mihomo-data:
+
+configs:
+  mihomo:
+    content: |
+      mode: rule
+      log-level: info
+      ipv6: false
+
+      # 允許 Docker 映射的 LAN 連線進入 mixed-port。
+      mixed-port: 7890
+      allow-lan: true
+      bind-address: "*"
+
+      # 內網 proxy 必須驗證；帳密由 Portainer 環境變數提供。
+      authentication:
+        - "${PROXY_USERNAME:?Set the LAN proxy username}:${PROXY_PASSWORD:?Set the LAN proxy password}"
+
+      # API 雖監聽容器內所有介面，但 Docker 只發布到 axolotl 的 127.0.0.1。
+      external-controller: 0.0.0.0:9090
+      secret: "${MIHOMO_SECRET:-}"
+
+      # 使用完整 Clash YAML 作為 file provider，但只匯入其中的 proxies。
+      proxy-providers:
+        imported:
+          type: file
+          path: ./import.yaml
+
+          # 應填入只會命中一個節點的名稱。
+          # 目前附件範例：0.5X 🇯🇵 Japan Tokyo
+          filter: "${CLASH_NODE_FILTER:?Set one unique YAML node name}"
+
+          health-check:
+            enable: true
+            url: https://www.gstatic.com/generate_204
+            interval: 300
+
+      proxy-groups:
+        - name: PROXY
+          type: select
+          use:
+            - imported
+
+      # 所有經 7890 進入的流量都從選定節點送出，不允許 DIRECT fallback。
+      rules:
+        - MATCH,PROXY
