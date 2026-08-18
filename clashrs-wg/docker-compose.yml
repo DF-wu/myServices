@@ -1,16 +1,17 @@
 # 部署位置：axolotl 上的 Portainer，使用 Docker Standalone Stack。
 #
 # 資料流：
-#   手機/電腦 -> WireGuard -> axolotl:51820/UDP -> wg-easy 的 wg0
+#   內網手機/電腦 -> WireGuard -> 192.168.10.13:51820/UDP -> wg-easy 的 wg0
 #             -> Mihomo TUN -> YAML 中選定的代理節點 -> Internet
 #
 # 在 Portainer 建立 Stack 時，至少要填以下環境變數：
-#   WG_HOST              axolotl 對外可連線的公網 IP 或 DNS 名稱，不含 http:// 與 port
+#   WG_HOST              axolotl 的內網 IP；目前固定填 192.168.10.13
 #   WG_ADMIN_PASSWORD    wg-easy 第一次啟動時建立管理員所用的密碼
 #   CLASH_YAML_PATH      axolotl 本機上的 Clash YAML 絕對路徑
 #   CLASH_NODE_FILTER    YAML 內唯一節點名稱，例如：0.5X 🇯🇵 Japan Tokyo
 #
 # 建議值：
+#   WG_HOST=192.168.10.13
 #   CLASH_YAML_PATH=/opt/appdata/clashrs-wg/EdNovasCloud_clash.yaml
 #   TZ=Asia/Taipei
 
@@ -37,8 +38,8 @@ services:
       - net.ipv6.conf.all.disable_ipv6=1
 
     ports:
-      # 唯一需要從 Internet 開放的 port。
-      # axolotl 的主機/雲端防火牆也必須允許相同的 UDP port。
+      # WireGuard 入口，只供內網裝置連到 axolotl。
+      # 不需要在家中路由器設定 port forwarding，也不要開放到 Internet。
       - "${WG_PORT:-51820}:51820/udp"
 
       # wg-easy 管理頁，只綁定 axolotl 的 127.0.0.1，不直接暴露到 Internet。
@@ -62,9 +63,9 @@ services:
       INIT_USERNAME: ${WG_ADMIN_USERNAME:-admin}
       INIT_PASSWORD: ${WG_ADMIN_PASSWORD:?Set WG_ADMIN_PASSWORD in Portainer}
 
-      # WG_HOST 是「其他裝置要連到的 axolotl 公網位址」，不是代理節點。
-      # 範例：vpn.example.com 或 203.0.113.10
-      INIT_HOST: ${WG_HOST:?Set WG_HOST to axolotl public IP or hostname}
+      # WG_HOST 是內網裝置連線的 axolotl LAN IP，不是 YAML 內的代理節點。
+      # axolotl 已核對為 192.168.10.13/23，因此內網模式固定填 192.168.10.13。
+      INIT_HOST: ${WG_HOST:?Set WG_HOST to 192.168.10.13 for axolotl LAN use}
       INIT_PORT: ${WG_PORT:-51820}
 
       # WireGuard clients 使用 10.8.0.0/24；所有 IPv4 流量交給本閘道。

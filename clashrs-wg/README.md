@@ -3,9 +3,8 @@
 此 Stack 預計部署在 **axolotl 的 Portainer**。`docker-compose.yml` 已逐段加入繁體
 中文註解；在 Portainer 的 Web editor 或 Git repository 畫面即可直接對照閱讀。
 
-WireGuard clients connect through wg-easy and leave through a Mihomo subscription.
-The stack uses the official wg-easy and Mihomo images; it contains no local image build,
-custom routing script, or third-party all-in-one image.
+內網裝置透過 WireGuard 連入 axolotl，再由 Mihomo 使用 YAML 中指定的節點出網。
+裝置仍然需要安裝 WireGuard；本模式只是把 WireGuard 入口限制在家中內網使用。
 
 ## Portainer
 
@@ -18,7 +17,7 @@ Required environment variables:
 
 | Variable | Value |
 |---|---|
-| `WG_HOST` | Public IP or hostname clients connect to |
+| `WG_HOST` | axolotl 的 LAN IP，固定填 `192.168.10.13` |
 | `WG_ADMIN_PASSWORD` | Initial wg-easy administrator password |
 | `CLASH_YAML_PATH` | Absolute Docker-host path to a Clash YAML file |
 | `CLASH_NODE_FILTER` | Unique node name or regex selecting the subscription server |
@@ -26,7 +25,7 @@ Required environment variables:
 以目前附件選擇日本東京節點時，axolotl 的 Portainer 可填成：
 
 ```text
-WG_HOST=<axolotl 對外可連線的公網 IP 或 DNS 名稱>
+WG_HOST=192.168.10.13
 WG_ADMIN_PASSWORD=<自行設定的 wg-easy 管理密碼>
 CLASH_YAML_PATH=/opt/appdata/clashrs-wg/EdNovasCloud_clash.yaml
 CLASH_NODE_FILTER=0.5X 🇯🇵 Japan Tokyo
@@ -36,12 +35,16 @@ TZ=Asia/Taipei
 Optional variables: `WG_ADMIN_USERNAME`, `WG_PORT`, `WG_UI_PORT`,
 `MIHOMO_API_PORT`, `MIHOMO_SECRET`, and `TZ`.
 
-`WG_HOST` is the public address of the VPS running this stack, not an address from
-the subscription. For example, if the VPS public IP is `203.0.113.10`, set:
+`WG_HOST` 是 WireGuard client 要連線的 axolotl 內網位址，不是 YAML 裡的節點。
+axolotl 已核對為 `192.168.10.13/23`，所以填：
 
 ```text
-WG_HOST=203.0.113.10
+WG_HOST=192.168.10.13
 ```
+
+不需要在家中路由器設定 `51820/UDP` port forwarding，也不需要公網 IP 或網域。
+若 axolotl 的 DHCP 位址日後變更，必須同步更新 `WG_HOST`，因此建議在路由器為
+axolotl 保留 `192.168.10.13`。
 
 To use one particular subscription node, set `CLASH_NODE_FILTER` to a unique part of
 its full name. For a node named `Japan Tokyo 01`:
@@ -79,10 +82,11 @@ stack.
 The administrator password is used only by wg-easy's first-start initialization.
 After setup, remove `WG_ADMIN_PASSWORD` from the Portainer environment and redeploy.
 
-## Traffic path
+## 內網資料流
 
 ```text
-WireGuard client -> wg-easy wg0 -> Mihomo TUN -> imported proxy -> Internet
+內網裝置 -> WireGuard -> 192.168.10.13:51820/UDP
+         -> wg-easy wg0 -> Mihomo TUN -> YAML 指定節點 -> Internet
 ```
 
 Both containers share wg-easy's network namespace. Mihomo uses its supported Linux
@@ -90,10 +94,10 @@ router mode (`auto-route` plus `auto-redirect`) and limits interception to `wg0`
 `include-interface`. It therefore does not need a custom nftables script or routing
 sidecar.
 
-The wg-easy UI and Mihomo API listen only on host loopback. Access them remotely with:
+wg-easy UI 與 Mihomo API 只監聽 axolotl loopback。從另一台內網電腦管理時使用：
 
 ```bash
-ssh -L 51821:127.0.0.1:51821 -L 9090:127.0.0.1:9090 user@server
+ssh -L 51821:127.0.0.1:51821 -L 9090:127.0.0.1:9090 user@192.168.10.13
 ```
 
 - wg-easy: `http://127.0.0.1:51821`
