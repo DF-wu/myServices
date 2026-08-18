@@ -6,6 +6,10 @@
 內網裝置透過 WireGuard 連入 axolotl，再由 Mihomo 使用 YAML 中指定的節點出網。
 裝置仍然需要安裝 WireGuard；本模式只是把 WireGuard 入口限制在家中內網使用。
 
+目前實作的 VPN 入口是 **WireGuard**。它不是 HTTP/SOCKS proxy，也不要求裝置設定
+系統代理。若確定還要讓同一服務接受 OpenVPN `.ovpn` client，需另加 OpenVPN
+server container；OpenVPN 與 WireGuard 是不同協定，不能共用同一個 server port。
+
 ## Portainer
 
 - Stack name: `clashrs-wg`
@@ -26,14 +30,14 @@ Required environment variables:
 
 ```text
 WG_HOST=192.168.10.13
-WG_ADMIN_PASSWORD=<自行設定的 wg-easy 管理密碼>
-CLASH_YAML_PATH=/opt/appdata/clashrs-wg/EdNovasCloud_clash.yaml
+WG_ADMIN_PASSWORD=請自行設定高強度管理密碼
+CLASH_YAML_PATH=/home/df/appdata/clashrs-wg/EdNovasCloud_clash.yaml
 CLASH_NODE_FILTER=0.5X 🇯🇵 Japan Tokyo
 TZ=Asia/Taipei
 ```
 
 Optional variables: `WG_ADMIN_USERNAME`, `WG_PORT`, `WG_UI_PORT`,
-`MIHOMO_API_PORT`, `MIHOMO_SECRET`, and `TZ`.
+`MIHOMO_API_PORT`（預設 `19090`）, `MIHOMO_SECRET`, and `TZ`.
 
 `WG_HOST` 是 WireGuard client 要連線的 axolotl 內網位址，不是 YAML 裡的節點。
 axolotl 已核對為 `192.168.10.13/23`，所以填：
@@ -45,6 +49,9 @@ WG_HOST=192.168.10.13
 不需要在家中路由器設定 `51820/UDP` port forwarding，也不需要公網 IP 或網域。
 若 axolotl 的 DHCP 位址日後變更，必須同步更新 `WG_HOST`，因此建議在路由器為
 axolotl 保留 `192.168.10.13`。
+
+Compose 亦將 WireGuard port 明確綁在 `192.168.10.13`，不會監聽 axolotl 的
+Tailscale 或其他主機位址。
 
 To use one particular subscription node, set `CLASH_NODE_FILTER` to a unique part of
 its full name. For a node named `Japan Tokyo 01`:
@@ -62,15 +69,15 @@ The YAML stays on the Docker host and is mounted read-only. It is not copied int
 repository or stored in the Compose file. Put the downloaded YAML on the server first:
 
 ```bash
-sudo install -d -m 700 /opt/appdata/clashrs-wg
-sudo install -m 600 EdNovasCloud_clash.yaml \
-  /opt/appdata/clashrs-wg/EdNovasCloud_clash.yaml
+install -d -m 700 /home/df/appdata/clashrs-wg
+install -m 600 EdNovasCloud_clash.yaml \
+  /home/df/appdata/clashrs-wg/EdNovasCloud_clash.yaml
 ```
 
 Then set this Portainer environment variable:
 
 ```text
-CLASH_YAML_PATH=/opt/appdata/clashrs-wg/EdNovasCloud_clash.yaml
+CLASH_YAML_PATH=/home/df/appdata/clashrs-wg/EdNovasCloud_clash.yaml
 ```
 
 Both a full Clash configuration containing `proxies`, `proxy-groups`, and `rules`, and
@@ -97,11 +104,11 @@ sidecar.
 wg-easy UI 與 Mihomo API 只監聽 axolotl loopback。從另一台內網電腦管理時使用：
 
 ```bash
-ssh -L 51821:127.0.0.1:51821 -L 9090:127.0.0.1:9090 user@192.168.10.13
+ssh -L 51821:127.0.0.1:51821 -L 19090:127.0.0.1:19090 user@192.168.10.13
 ```
 
 - wg-easy: `http://127.0.0.1:51821`
-- Mihomo API: `http://127.0.0.1:9090`
+- Mihomo API: `http://127.0.0.1:19090`
 
 ## Host requirements
 
