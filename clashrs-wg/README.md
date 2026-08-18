@@ -17,7 +17,7 @@ Required environment variables:
 |---|---|
 | `WG_HOST` | Public IP or hostname clients connect to |
 | `WG_ADMIN_PASSWORD` | Initial wg-easy administrator password |
-| `CLASH_SUBSCRIPTION_URL` | Clash/Mihomo subscription URL |
+| `CLASH_YAML_PATH` | Absolute Docker-host path to a Clash YAML file |
 | `CLASH_NODE_FILTER` | Unique node name or regex selecting the subscription server |
 
 Optional variables: `WG_ADMIN_USERNAME`, `WG_PORT`, `WG_UI_PORT`,
@@ -40,13 +40,36 @@ CLASH_NODE_FILTER=Japan Tokyo 01
 The filter is case-sensitive and accepts regular-expression syntax. It should match
 only one node; otherwise Mihomo initially selects the first matching node.
 
+## Import a Clash YAML
+
+The YAML stays on the Docker host and is mounted read-only. It is not copied into this
+repository or stored in the Compose file. Put the downloaded YAML on the server first:
+
+```bash
+sudo install -d -m 700 /opt/appdata/clashrs-wg
+sudo install -m 600 EdNovasCloud_clash.yaml \
+  /opt/appdata/clashrs-wg/EdNovasCloud_clash.yaml
+```
+
+Then set this Portainer environment variable:
+
+```text
+CLASH_YAML_PATH=/opt/appdata/clashrs-wg/EdNovasCloud_clash.yaml
+```
+
+Both a full Clash configuration containing `proxies`, `proxy-groups`, and `rules`, and
+a provider-only YAML containing `proxies`, are accepted. Mihomo imports only the
+`proxies` list as a file provider; this stack keeps control of TUN, DNS, and gateway
+routing. To refresh an updated YAML, replace the host file atomically and redeploy the
+stack.
+
 The administrator password is used only by wg-easy's first-start initialization.
 After setup, remove `WG_ADMIN_PASSWORD` from the Portainer environment and redeploy.
 
 ## Traffic path
 
 ```text
-WireGuard client -> wg-easy wg0 -> Mihomo TUN -> subscription proxy -> Internet
+WireGuard client -> wg-easy wg0 -> Mihomo TUN -> imported proxy -> Internet
 ```
 
 Both containers share wg-easy's network namespace. Mihomo uses its supported Linux

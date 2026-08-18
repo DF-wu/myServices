@@ -44,6 +44,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     volumes:
       - mihomo-data:/root/.config/mihomo
+      - ${CLASH_YAML_PATH:?Set the absolute Docker-host path to the Clash YAML}:/root/.config/mihomo/import.yaml:ro
     configs:
       - source: mihomo
         target: /root/.config/mihomo/config.yaml
@@ -90,12 +91,10 @@ configs:
           - https://8.8.8.8/dns-query
 
       proxy-providers:
-        subscription:
-          type: http
-          url: "${CLASH_SUBSCRIPTION_URL:?Set the Clash subscription URL}"
+        imported:
+          type: file
           filter: "${CLASH_NODE_FILTER:?Set a unique subscription node name}"
-          path: ./providers/subscription.yaml
-          interval: 3600
+          path: ./import.yaml
           health-check:
             enable: true
             url: https://www.gstatic.com/generate_204
@@ -105,7 +104,7 @@ configs:
         - name: PROXY
           type: select
           use:
-            - subscription
+            - imported
 
       rules:
         - MATCH,PROXY
