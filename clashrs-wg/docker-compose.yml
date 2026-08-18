@@ -1,70 +1,146 @@
+# 部署位置：axolotl 上的 Portainer，使用 Docker Standalone Stack。
+#
+# 資料流：
+#   手機/電腦 -> WireGuard -> axolotl:51820/UDP -> wg-easy 的 wg0
+#             -> Mihomo TUN -> YAML 中選定的代理節點 -> Internet
+#
+# 在 Portainer 建立 Stack 時，至少要填以下環境變數：
+#   WG_HOST              axolotl 對外可連線的公網 IP 或 DNS 名稱，不含 http:// 與 port
+#   WG_ADMIN_PASSWORD    wg-easy 第一次啟動時建立管理員所用的密碼
+#   CLASH_YAML_PATH      axolotl 本機上的 Clash YAML 絕對路徑
+#   CLASH_NODE_FILTER    YAML 內唯一節點名稱，例如：0.5X 🇯🇵 Japan Tokyo
+#
+# 建議值：
+#   CLASH_YAML_PATH=/opt/appdata/clashrs-wg/EdNovasCloud_clash.yaml
+#   TZ=Asia/Taipei
+
 services:
+  # WireGuard 伺服器與管理介面。
+  # 其他裝置匯入 wg-easy 產生的設定後，會先連到這個容器。
   wg-easy:
+    # 官方 wg-easy 映像；版本與 multi-arch digest 均固定，避免浮動更新。
     image: ghcr.io/wg-easy/wg-easy:15.4.0@sha256:0e7bc9d34e86ddcaa92bc700d4d7dc9b33291dbc07ac8d13382f7c2095f949ec
     container_name: clashrs-wg
     restart: unless-stopped
+
+    # NET_ADMIN：建立 wg0、設定路由與防火牆。
+    # SYS_MODULE：必要時載入 axolotl 核心提供的 WireGuard module。
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
+
+    # 開啟 IPv4 forwarding，讓 WireGuard client 流量能交給 Mihomo。
+    # 本 Stack 暫不提供 IPv6 出口，以免流量繞過代理。
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
       - net.ipv6.conf.all.disable_ipv6=1
+
     ports:
+      # 唯一需要從 Internet 開放的 port。
+      # axolotl 的主機/雲端防火牆也必須允許相同的 UDP port。
       - "${WG_PORT:-51820}:51820/udp"
+
+      # wg-easy 管理頁，只綁定 axolotl 的 127.0.0.1，不直接暴露到 Internet。
+      # 遠端使用：ssh -L 51821:127.0.0.1:51821 <user>@<WG_HOST>
       - "127.0.0.1:${WG_UI_PORT:-51821}:51821/tcp"
+
+      # Mihomo API，也只綁定 axolotl 的 127.0.0.1。
+      # 遠端使用：ssh -L 9090:127.0.0.1:9090 <user>@<WG_HOST>
       - "127.0.0.1:${MIHOMO_API_PORT:-9090}:9090/tcp"
+
     volumes:
+      # 保存 wg-easy 的資料庫、server key 與所有 client 設定。
       - wireguard:/etc/wireguard
+
+      # 讓容器讀取 axolotl 的 kernel modules；唯讀掛載。
       - /lib/modules:/lib/modules:ro
+
     environment:
+      # 以下 INIT_* 只在 wireguard volume 尚未初始化時生效。
       INIT_ENABLED: "true"
       INIT_USERNAME: ${WG_ADMIN_USERNAME:-admin}
-      INIT_PASSWORD: ${WG_ADMIN_PASSWORD:?Set the wg-easy admin password}
-      INIT_HOST: ${WG_HOST:?Set the public IP or hostname}
+      INIT_PASSWORD: ${WG_ADMIN_PASSWORD:?Set WG_ADMIN_PASSWORD in Portainer}
+
+      # WG_HOST 是「其他裝置要連到的 axolotl 公網位址」，不是代理節點。
+      # 範例：vpn.example.com 或 203.0.113.10
+      INIT_HOST: ${WG_HOST:?Set WG_HOST to axolotl public IP or hostname}
       INIT_PORT: ${WG_PORT:-51820}
+
+      # WireGuard clients 使用 10.8.0.0/24；所有 IPv4 流量交給本閘道。
+      # Client DNS 指向 WireGuard server，之後由 Mihomo 的 dns-hijack 接管。
       INIT_DNS: 10.8.0.1
       INIT_IPV4_CIDR: 10.8.0.0/24
+
+      # wg-easy 同組初始化欄位要求提供 IPv6 CIDR，但 DISABLE_IPV6=true
+      # 會停用實際 IPv6 介面與 client 路由。
       INIT_IPV6_CIDR: 2001:db8::/32
       INIT_ALLOWED_IPS: 0.0.0.0/0
       DISABLE_IPV6: "true"
+
+      # 管理頁位於 HTTP，但只由 axolotl loopback + SSH tunnel 存取。
       INSECURE: "true"
       TZ: ${TZ:-Asia/Taipei}
 
+  # Clash/Mihomo 代理核心。
+  # 它讀取 axolotl 上的 Clash YAML，只匯入 proxies，再選定一個節點作為出口。
   mihomo:
+    # Mihomo 官方映像；版本與 multi-arch digest 均固定。
     image: metacubex/mihomo:v1.19.30@sha256:baf38d282b785d7037337676714a69e3fdd1f2d9bf748dfd25fce681a624ea74
     container_name: clashrs-wg-mihomo
     restart: unless-stopped
+
+    # 兩個容器共用同一個 network namespace。
+    # 因此 Mihomo 能直接看見 wg-easy 建立的 wg0，不需要第三個路由容器。
     network_mode: service:wg-easy
     depends_on:
       - wg-easy
+
+    # Mihomo 需要 NET_ADMIN 與 /dev/net/tun 來建立 TUN 與自動路由規則。
     cap_add:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
+
     volumes:
+      # 保存 Mihomo cache、provider 狀態與其他執行資料。
       - mihomo-data:/root/.config/mihomo
-      - ${CLASH_YAML_PATH:?Set the absolute Docker-host path to the Clash YAML}:/root/.config/mihomo/import.yaml:ro
+
+      # CLASH_YAML_PATH 必須是「axolotl 本機」的絕對路徑，不是操作電腦的路徑。
+      # 原始 YAML 以唯讀方式掛入，不會寫入 Git，也不會被容器修改。
+      - ${CLASH_YAML_PATH:?Set CLASH_YAML_PATH to an absolute path on axolotl}:/root/.config/mihomo/import.yaml:ro
+
     configs:
+      # 下方 configs.mihomo.content 是本 Stack 的主設定。
+      # 它保留必要的 TUN/router 設定，再引用上方掛載的 import.yaml。
       - source: mihomo
         target: /root/.config/mihomo/config.yaml
     environment:
       TZ: ${TZ:-Asia/Taipei}
 
+# Docker named volumes。Portainer redeploy 不會刪除它們；
+# 只有執行 `docker compose down -v` 或手動刪除 volume 才會清空資料。
 volumes:
   wireguard:
   mihomo-data:
 
+# Compose 2.23.1+ 支援 inline config。
+# 這段是 Mihomo 的主設定，不包含附件 YAML 裡的帳號、UUID 或節點憑證。
 configs:
   mihomo:
     content: |
+      # 所有流量最後都交給 PROXY 群組。
       mode: rule
       log-level: info
       ipv6: false
 
+      # API 綁在共用 namespace 的 9090；Docker port 僅映射到 axolotl loopback。
       external-controller: 0.0.0.0:9090
       secret: "${MIHOMO_SECRET:-}"
 
+      # Mihomo 官方 Linux router 模式：自動建立 TUN、route 與 redirect 規則。
+      # include-interface: wg0 表示只攔截 WireGuard client 流量，
+      # 不會把 Mihomo 自己連往代理節點的流量再次送回 TUN。
       tun:
         enable: true
         stack: mixed
@@ -78,6 +154,7 @@ configs:
           - any:53
           - tcp://any:53
 
+      # WireGuard client 的 DNS 查詢會由上方 dns-hijack 送進這裡。
       dns:
         enable: true
         ipv6: false
@@ -90,21 +167,31 @@ configs:
           - https://1.1.1.1/dns-query
           - https://8.8.8.8/dns-query
 
+      # 將完整 Clash YAML 當作本機 file provider。
+      # 即使附件含 proxy-groups 與 rules，這裡只取其中的 proxies 清單；
+      # 本 Stack 自己的 TUN、DNS 與 MATCH 規則不會被附件覆蓋。
       proxy-providers:
         imported:
           type: file
-          filter: "${CLASH_NODE_FILTER:?Set a unique subscription node name}"
+
+          # 在 Portainer 填入 YAML 中可唯一識別目標節點的名稱。
+          # 以目前附件為例：0.5X 🇯🇵 Japan Tokyo
+          filter: "${CLASH_NODE_FILTER:?Set CLASH_NODE_FILTER to one unique YAML node name}"
           path: ./import.yaml
+
+          # 每 300 秒檢查已匯入節點是否可連線。
           health-check:
             enable: true
             url: https://www.gstatic.com/generate_204
             interval: 300
 
+      # filter 理想上只留下單一節點；若意外命中多個，預設使用第一個。
       proxy-groups:
         - name: PROXY
           type: select
           use:
             - imported
 
+      # WireGuard client 的所有流量都從選定的 YAML 節點送出。
       rules:
         - MATCH,PROXY

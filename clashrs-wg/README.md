@@ -1,5 +1,8 @@
 # clashrs-wg
 
+此 Stack 預計部署在 **axolotl 的 Portainer**。`docker-compose.yml` 已逐段加入繁體
+中文註解；在 Portainer 的 Web editor 或 Git repository 畫面即可直接對照閱讀。
+
 WireGuard clients connect through wg-easy and leave through a Mihomo subscription.
 The stack uses the official wg-easy and Mihomo images; it contains no local image build,
 custom routing script, or third-party all-in-one image.
@@ -19,6 +22,16 @@ Required environment variables:
 | `WG_ADMIN_PASSWORD` | Initial wg-easy administrator password |
 | `CLASH_YAML_PATH` | Absolute Docker-host path to a Clash YAML file |
 | `CLASH_NODE_FILTER` | Unique node name or regex selecting the subscription server |
+
+以目前附件選擇日本東京節點時，axolotl 的 Portainer 可填成：
+
+```text
+WG_HOST=<axolotl 對外可連線的公網 IP 或 DNS 名稱>
+WG_ADMIN_PASSWORD=<自行設定的 wg-easy 管理密碼>
+CLASH_YAML_PATH=/opt/appdata/clashrs-wg/EdNovasCloud_clash.yaml
+CLASH_NODE_FILTER=0.5X 🇯🇵 Japan Tokyo
+TZ=Asia/Taipei
+```
 
 Optional variables: `WG_ADMIN_USERNAME`, `WG_PORT`, `WG_UI_PORT`,
 `MIHOMO_API_PORT`, `MIHOMO_SECRET`, and `TZ`.
