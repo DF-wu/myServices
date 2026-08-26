@@ -5,6 +5,7 @@ set -uo pipefail
 readonly SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly CONFIG_FILES_LABEL='com.docker.compose.project.config_files'
 readonly WORKING_DIR_LABEL='com.docker.compose.project.working_dir'
+readonly MAX_PARALLEL_PULLS=3
 
 dry_run=false
 
@@ -111,13 +112,35 @@ if [[ "$dry_run" == true ]]; then
   exit 0
 fi
 
-failures=0
-for image in "${sorted_images[@]}"; do
+pull_image() {
+  local image=$1
+
   printf '\nPulling %s\n' "$image"
   if ! docker pull "$image"; then
     printf 'Failed to pull %s\n' "$image" >&2
+    return 1
+  fi
+}
+
+failures=0
+active_pulls=0
+for image in "${sorted_images[@]}"; do
+  pull_image "$image" &
+  ((active_pulls += 1))
+
+  if ((active_pulls >= MAX_PARALLEL_PULLS)); then
+    if ! wait -n; then
+      ((failures += 1))
+    fi
+    ((active_pulls -= 1))
+  fi
+done
+
+while ((active_pulls > 0)); do
+  if ! wait -n; then
     ((failures += 1))
   fi
+  ((active_pulls -= 1))
 done
 
 if ((failures > 0)); then
