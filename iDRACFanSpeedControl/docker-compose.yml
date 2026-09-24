@@ -25,8 +25,9 @@ services:
       LOG_LEVEL: INFO
       RESTORE_AUTO_ON_EXIT: "true"
 
-      # TrueNAS 本機 CD6 + axolotl 遠端 Tesla P4。
-      TEMPERATURE_SOURCES: linux_disk,remote_gpu
+      # R730xd iDRAC sensors + axolotl 遠端 Tesla P4。
+      # TrueNAS 看到的是 VMware Virtual NVMe Disk，其 SMART log 不可信。
+      TEMPERATURE_SOURCES: idrac,remote_gpu
       WITH_GPU_TEMP: "false"
       GPU_TEMP_OFFSET: "15"
 
@@ -67,14 +68,6 @@ services:
 
     volumes:
       - /mnt/cachePool/appdata/idrac-fan-control/logs:/var/log/fan-control
-
-    cap_add:
-      # smartctl 對 CD6 執行 NVMe admin ioctl 所需；不必使用 privileged。
-      - SYS_ADMIN
-
-    devices:
-      # Kioxia CD6 KCD61LUL7T68，序號 61J0A02CT7C8；不需要 privileged。
-      - /dev/nvme0:/dev/nvme0
 
     # 預留足夠時間讓 SIGTERM trap 恢復 Dell 自動風扇控制。
     stop_grace_period: 45s
