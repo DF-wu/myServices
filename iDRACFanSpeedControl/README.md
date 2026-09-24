@@ -15,7 +15,7 @@
 | iDRAC | `192.168.10.8` (`idrac-r730xd.newhome`) |
 | axolotl | `192.168.10.13` |
 | Tesla P4 | `GPU-82dd964b-0c4c-78d4-8bd3-f7067e8cb29f` |
-| Controller image | `ghcr.io/df-wu/idrac-fan-control@sha256:0b67b5ea85e3d3c5de2c05eb73179a6c1adf1a5249642904db051ae47687a279` |
+| Controller image | `ghcr.io/df-wu/idrac-fan-control@sha256:0a4d1352636bc6ea3391b654864ece3f41e5d2a22aafd096d3b2af27376debeb` |
 
 `docker-compose.yml` 是完整的單檔設定。部署者只需在 TrueNAS YAML 編輯器內替換三個 `REPLACE_TO_YOUR_*` 欄位，不需要建立外部 env 或 secret 檔案。
 
