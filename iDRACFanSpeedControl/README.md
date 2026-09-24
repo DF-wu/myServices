@@ -1,6 +1,6 @@
 # iDRAC Fan Control on TrueNAS
 
-這個目錄提供可貼入 TrueNAS SCALE 25.10 **Install via YAML** 的部署設定。控制器在 TrueNAS 上執行，使用本機 Kioxia CD6 與遠端 axolotl Tesla P4 的溫度控制 Dell iDRAC 風扇。
+這個目錄提供可貼入 TrueNAS SCALE 25.10 **Install via YAML** 的部署設定。控制器在 TrueNAS 上執行，使用 R730xd 的 iDRAC sensors 與遠端 axolotl Tesla P4 溫度控制 Dell iDRAC 風扇。
 
 ## 已確認的環境
 
@@ -11,7 +11,7 @@
 | App data | `/mnt/cachePool/appdata` |
 | Docker Compose | `v2.38.1` |
 | Kioxia CD6 | `KCD61LUL7T68`, serial `61J0A02CT7C8` |
-| CD6 controller device | `/dev/nvme0` |
+| CD6 controller device | VMware virtual NVMe；SMART telemetry 不可用於控制 |
 | iDRAC | `192.168.10.8` (`idrac-r730xd.newhome`) |
 | axolotl | `192.168.10.13` |
 | Tesla P4 | `GPU-82dd964b-0c4c-78d4-8bd3-f7067e8cb29f` |
@@ -31,11 +31,13 @@ sudo install -d -m 0750 /mnt/cachePool/appdata/idrac-fan-control/logs
 
 ## 2. 部署前唯讀檢查
 
-確認 CD6 SMART 溫度：
+確認 iDRAC temperature sensors：
 
 ```bash
-sudo smartctl -A -j /dev/nvme0 | jq '.temperature.current'
+sudo docker exec idrac-fan-control /usr/local/bin/fan-control.sh status
 ```
+
+TrueNAS VM 中的 CD6 會顯示為 `VMware Virtual NVMe Disk`。其 NVMe SMART log 曾回報 `11759°C` 與錯位計數，因此不得啟用 `linux_disk` 來源；若日後需要 CD6 溫度，應改由 ESXi 對實體裝置讀取。
 
 確認 TrueNAS 能以設定的帳號登入 axolotl 並讀取 P4：
 
@@ -73,7 +75,7 @@ sudo docker exec idrac-fan-control /usr/local/bin/fan-control.sh diagnose
 只有下列項目全部顯示 `PASS`，才保留 `OPERATION_MODE=auto` 持續運作：
 
 - `iDRAC/IPMI`
-- `source:linux_disk`
+- `source:idrac`
 - `source:remote_gpu`
 - `decision preview`
 
@@ -91,11 +93,9 @@ sudo tail -f /mnt/cachePool/appdata/idrac-fan-control/logs/fan_control.log
 
 每個正常控制週期應同時列出：
 
-- `linux_disk:nvme0=<temperature>C`
+- `idrac:<sensor>=<temperature>C`
 - `remote_gpu:192.168.10.13/gpu0=<temperature>C`
 - 最終 decision temperature、level 與 fan percentage
-
-CD6 在 Docker 內需要 `SYS_ADMIN` 才能執行 NVMe admin ioctl。Compose 已只加入這個 capability；僅映射 `/dev/nvme0`、加入 `SYS_RAWIO` 或停用 seccomp 都無法讀取溫度。
 
 ## 5. 驗證與回復
 
@@ -118,7 +118,7 @@ sudo docker exec idrac-fan-control /usr/local/bin/fan-control.sh restore
 ## 安全邊界
 
 - 不要把包含真實密碼的 YAML 或 incident dump 提交到 Git。
-- 容器只映射 `/dev/nvme0` 並加入 `SYS_ADMIN`，不使用 `privileged`。
+- 容器不映射 host device、不加入額外 capability，也不使用 `privileged`。
 - 不掛載 Docker socket，也不要求 TrueNAS NVIDIA runtime。
 - 控制器只對外連線 iDRAC UDP 623 與 axolotl SSH 22，不需發布連接埠。
 - `diagnose` 是部署前必要門檻；不要在任何來源失敗時直接啟動 unattended auto mode。
