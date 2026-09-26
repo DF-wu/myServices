@@ -4,7 +4,7 @@
 services:
   idrac-fan-control:
     # 固定到已通過 TrueNAS Compose 與變數契約驗證的映像。
-    image: ghcr.io/df-wu/idrac-fan-control@sha256:0b67b5ea85e3d3c5de2c05eb73179a6c1adf1a5249642904db051ae47687a279
+    image: ghcr.io/df-wu/idrac-fan-control@sha256:0a4d1352636bc6ea3391b654864ece3f41e5d2a22aafd096d3b2af27376debeb
     container_name: idrac-fan-control
 
     environment:
@@ -71,4 +71,5 @@ services:
 
     # 預留足夠時間讓 SIGTERM trap 恢復 Dell 自動風扇控制。
     stop_grace_period: 45s
-    restart: unless-stopped
+    # 風扇控制屬基礎設施；即使曾被手動停止，Docker 重啟後仍須恢復常駐。
+    restart: always
