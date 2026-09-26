@@ -64,6 +64,10 @@ REMOTE_GPU_PASSWORD: REPLACE_TO_YOUR_AXOLOTL_SSH_PASSWORD
 
 6. 儲存並等待容器啟動。
 
+Compose 使用 `restart: always`。控制程序意外退出、Docker daemon 重啟或 TrueNAS
+重新開機後，容器都會自動恢復；若要維護停機，須先將 App 停止，並注意 Docker
+daemon 或主機再次啟動時它仍會恢復常駐。
+
 ## 4. 部署後唯讀診斷
 
 先執行映像內建的 `diagnose`。它不會送出風扇控制命令：
