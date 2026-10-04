@@ -886,7 +886,9 @@ services:
       - TAVILY_API_URL=${SMART_SEARCH_TAVILY_API_URL:-${TAVILY_API_BASE_URL:-https://api.tavily.com}}
       - TAVILY_API_KEY=${SMART_SEARCH_TAVILY_API_KEY:-${TAVILY_API_KEY}}
       - FIRECRAWL_API_URL=${SMART_SEARCH_FIRECRAWL_API_URL:-https://api.firecrawl.dev/v2}
-      - FIRECRAWL_API_KEY=${SMART_SEARCH_FIRECRAWL_API_KEY:-}
+      - FIRECRAWL_API_KEY=${SMART_SEARCH_FIRECRAWL_API_KEY:-${FIRECRAWL_API_KEY}}
+      # Lilac web.search/web.extract firecrawl provider; empty falls back to https://api.firecrawl.dev
+      - FIRECRAWL_API_BASE_URL=${FIRECRAWL_API_BASE_URL:-}
       - ANYSEARCH_API_URL=${SMART_SEARCH_ANYSEARCH_API_URL:-https://api.anysearch.com/mcp}
       - ANYSEARCH_API_KEY=${SMART_SEARCH_ANYSEARCH_API_KEY:-}
       - EXA_TIMEOUT_SECONDS=${SMART_SEARCH_EXA_TIMEOUT_SECONDS:-30}
@@ -1021,7 +1023,9 @@ services:
       - TAVILY_API_URL=${SMART_SEARCH_TAVILY_API_URL:-${TAVILY_API_BASE_URL:-https://api.tavily.com}}
       - TAVILY_API_KEY=${SMART_SEARCH_TAVILY_API_KEY:-${TAVILY_API_KEY}}
       - FIRECRAWL_API_URL=${SMART_SEARCH_FIRECRAWL_API_URL:-https://api.firecrawl.dev/v2}
-      - FIRECRAWL_API_KEY=${SMART_SEARCH_FIRECRAWL_API_KEY:-}
+      - FIRECRAWL_API_KEY=${SMART_SEARCH_FIRECRAWL_API_KEY:-${FIRECRAWL_API_KEY}}
+      # Lilac web.search/web.extract firecrawl provider; empty falls back to https://api.firecrawl.dev
+      - FIRECRAWL_API_BASE_URL=${FIRECRAWL_API_BASE_URL:-}
       - ANYSEARCH_API_URL=${SMART_SEARCH_ANYSEARCH_API_URL:-https://api.anysearch.com/mcp}
       - ANYSEARCH_API_KEY=${SMART_SEARCH_ANYSEARCH_API_KEY:-}
       - EXA_TIMEOUT_SECONDS=${SMART_SEARCH_EXA_TIMEOUT_SECONDS:-30}
