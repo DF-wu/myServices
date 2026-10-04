@@ -18,6 +18,7 @@
 # - 43061 | api-conversion
 # - 43062 | sub2api
 # - 43063 | infinite-canvas
+# - 43064 | cline-pass-switcher
 # - 43080 | telegram-chatbot (legacy profile)
 # - 59998 | tika
 
@@ -222,6 +223,45 @@ services:
         [
           "CMD-SHELL",
           "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Cline Pass upstream switcher / console.
+  # repo: https://github.com/munmunjaklin458-afk/cline-pass-switcher
+  # Sits between the new-api "cline pass" channel (id 316) and api.cline.bot so the real upstream
+  # provider behind each cline-pass/* model can be probed, pinned, ordered or excluded from a web UI.
+  # - console:        http://<host>:43064/      (admin API + /v1 proxy need the proxyKey)
+  # - new-api channel: base_url http://cline-pass-switcher:3123, key = proxyKey
+  # - config + secrets: /mnt/appdata/ChatStack/cline-pass-switcher/data/config.json (seeded on the
+  #   host, never committed). The env vars below are optional overrides; empty = keep config.json.
+  # - upstream publishes no image. dx95/cline-pass-switcher is a GitHub-Actions build of a fork
+  #   (xianchoujiduluo/cline-pass-switcher @ cb56f1f) whose server.js / public / package.json were
+  #   verified byte-identical to upstream 02538a3 on 2026-10-04 (digest sha256:8dbf0fc6...).
+  # - cutover / rollback of the new-api channel: scripts/cline-pass-switcher-cutover.sh
+  cline-pass-switcher:
+    image: dx95/cline-pass-switcher:latest
+    container_name: cline-pass-switcher
+    restart: unless-stopped
+    ports:
+      - "43064:3123"
+    volumes:
+      - /mnt/appdata/ChatStack/cline-pass-switcher/data:/data
+    environment:
+      - TZ=Asia/Taipei
+      - DATA_DIR=/data
+      - BIND_HOST=0.0.0.0
+      - PORT=3123
+      # Optional overrides (Portainer stack env). Leave empty to use config.json as-is.
+      - CLINE_PASS_KEY=${CLINE_PASS_KEY:-}
+      - PROXY_KEY=${CLINE_PASS_SWITCHER_PROXY_KEY:-}
+      - PUBLIC_BASE_URL=${CLINE_PASS_SWITCHER_PUBLIC_BASE_URL:-}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O - http://127.0.0.1:3123/api/meta | grep -q configured || exit 1",
         ]
       interval: 30s
       timeout: 10s
