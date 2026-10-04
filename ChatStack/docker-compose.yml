@@ -7,6 +7,9 @@
 # format: <host_port> | <service>
 # -  8317 | gluetun-proxy
 # -  8787 | lilac
+# -  8788 | lilac-claudia (GitHub webhook)
+# -  8789 | lilac-catalina (native web UI)
+# -  8790 | lilac-claudia (native web UI)
 # - 19000 | gluetun-proxy
 # - 43000 | open-webui
 # - 43001 | new-api
@@ -841,6 +844,11 @@ services:
       # Discord bot token
       - DISCORD_TOKEN=${DISCORD_TOKEN}
 
+      # Native web UI (surface.native in core-config.yaml): local owner login + session signing
+      - LILAC_NATIVE_LOCAL_USERNAME=${LILAC_NATIVE_LOCAL_USERNAME}
+      - LILAC_NATIVE_LOCAL_PASSWORD_HASH=${LILAC_NATIVE_LOCAL_PASSWORD_HASH}
+      - LILAC_NATIVE_SESSION_SECRET=${LILAC_NATIVE_SESSION_SECRET}
+
       # smart-search runtime config (shared env names; values injected by host env)
       - SMART_SEARCH_CONFIG_DIR=/data/.config/smart-search
       - XAI_API_URL=${SMART_SEARCH_XAI_API_URL:-https://api.x.ai/v1}
@@ -928,6 +936,7 @@ services:
       start_period: 20s
     ports:
       - "8787:8787" # GitHub webhook ingress
+      - "8789:8789" # Native web UI; NPM proxies https://catalina.dfder.tw here
       # - "43090:8080"  # Uncomment to expose tool server externally
 
 
@@ -969,6 +978,11 @@ services:
 
       # Discord bot token
       - DISCORD_TOKEN=${DISCORD_TOKEN_CLAUDIA}
+
+      # Native web UI (surface.native in core-config.yaml): local owner login + session signing
+      - LILAC_NATIVE_LOCAL_USERNAME=${LILAC_NATIVE_LOCAL_USERNAME}
+      - LILAC_NATIVE_LOCAL_PASSWORD_HASH=${LILAC_NATIVE_LOCAL_PASSWORD_HASH}
+      - LILAC_NATIVE_SESSION_SECRET=${LILAC_NATIVE_SESSION_SECRET_CLAUDIA}
 
       # smart-search runtime config (shared env names; values injected by host env)
       - SMART_SEARCH_CONFIG_DIR=/data/.config/smart-search
@@ -1060,4 +1074,5 @@ services:
       start_period: 20s
     ports:
       - "8788:8787" # GitHub webhook ingress; container still listens on 8787
+      - "8790:8789" # Native web UI; NPM proxies https://claudia.dfder.tw here
       # - "43090:8080"  # Uncomment to expose tool server externally
