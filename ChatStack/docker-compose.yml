@@ -16,6 +16,7 @@
 # - 43002 | open-webui
 # - 43003 | sillytavern
 # - 43004 | astrbot
+# - 43006 | librechat (opt-in librechat profile; configurable pilot port)
 # - 43020 | chatstack-postgres17-pgvector
 # - 43056 | claude-code-router
 # - 43061 | api-conversion
@@ -26,6 +27,222 @@
 # - 59998 | tika
 
 services:
+  # Opt-in parallel pilot. Stage config and prepare mounts before enabling this profile.
+  # Credentials deliberately expand to empty so the default stack still renders;
+  # startup guards and authenticated database entrypoints refuse an unconfigured pilot.
+  librechat:
+    image: ghcr.io/librechat-ai/librechat:v0.8.8@sha256:5b706bcee1ca154a1e2987303aaeca0eb27f97919cccee4bb604226c2f8abf61
+    profiles: [librechat]
+    user: "3000:3000"
+    restart: unless-stopped
+    ports:
+      - "${LIBRECHAT_HOST_BIND:-192.168.10.13}:${LIBRECHAT_HOST_PORT:-43006}:3080"
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        : "$${CREDS_KEY:?LIBRECHAT_CREDS_KEY is required}"
+        : "$${CREDS_IV:?LIBRECHAT_CREDS_IV is required}"
+        : "$${JWT_SECRET:?LIBRECHAT_JWT_SECRET is required}"
+        : "$${JWT_REFRESH_SECRET:?LIBRECHAT_JWT_REFRESH_SECRET is required}"
+        : "$${MEILI_MASTER_KEY:?LIBRECHAT_MEILI_MASTER_KEY is required}"
+        : "$${LIBRECHAT_MONGO_APP_PASSWORD:?LIBRECHAT_MONGO_APP_PASSWORD is required}"
+        : "$${LIBRECHAT_NEW_API_KEY:?LIBRECHAT_NEW_API_KEY is required}"
+        : "$${LIBRECHAT_TAVILY_API_KEY:?LIBRECHAT_TAVILY_API_KEY is required}"
+        : "$${DOMAIN_CLIENT:?LIBRECHAT_PUBLIC_URL is required}"
+        node -e 'for (const [key, length] of Object.entries({CREDS_KEY:64,CREDS_IV:32})) { if (!new RegExp("^[0-9a-fA-F]{"+length+"}$$").test(process.env[key] || "")) { console.error(key+" must contain "+length+" hex characters"); process.exit(1); } } if (!/^[0-9a-fA-F]+$$/.test(process.env.LIBRECHAT_MONGO_APP_PASSWORD)) { console.error("LIBRECHAT_MONGO_APP_PASSWORD must be hex"); process.exit(1); }'
+        node -e 'const c=require("js-yaml").load(require("fs").readFileSync("/app/librechat.yaml","utf8")); const models=c.endpoints?.custom?.find(e=>e.name==="ChatStack")?.models?.default; if (!Array.isArray(models) || !models.length || models.some(m=>typeof m!=="string" || !m.trim() || m.includes("REPLACE_WITH_"))) { console.error("Set ChatStack models.default in librechat.yaml to a verified vision/tool-calling model ID"); process.exit(1); }'
+        exec npm run backend
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3080"
+      NODE_ENV: production
+      TZ: ${TZ:-Asia/Taipei}
+      ENDPOINTS: custom,agents
+      ALLOW_EMAIL_LOGIN: "true"
+      ALLOW_REGISTRATION: "false"
+      ALLOW_SOCIAL_LOGIN: "false"
+      ALLOW_SOCIAL_REGISTRATION: "false"
+      DOMAIN_CLIENT: ${LIBRECHAT_PUBLIC_URL:-}
+      DOMAIN_SERVER: ${LIBRECHAT_PUBLIC_URL:-}
+      CREDS_KEY: ${LIBRECHAT_CREDS_KEY:-}
+      CREDS_IV: ${LIBRECHAT_CREDS_IV:-}
+      JWT_SECRET: ${LIBRECHAT_JWT_SECRET:-}
+      JWT_REFRESH_SECRET: ${LIBRECHAT_JWT_REFRESH_SECRET:-}
+      MONGO_URI: mongodb://librechat_app:${LIBRECHAT_MONGO_APP_PASSWORD:-}@librechat-mongodb:27017/LibreChat?authSource=LibreChat
+      LIBRECHAT_MONGO_APP_PASSWORD: ${LIBRECHAT_MONGO_APP_PASSWORD:-}
+      SEARCH: "true"
+      MEILI_HOST: http://librechat-meilisearch:7700
+      MEILI_MASTER_KEY: ${LIBRECHAT_MEILI_MASTER_KEY:-}
+      MEILI_NO_ANALYTICS: "true"
+      RAG_API_URL: http://librechat-rag-api:8000
+      LIBRECHAT_TEMP_CREDENTIALS_PATH: /app/data/.env.temp
+      LIBRECHAT_NEW_API_KEY: ${LIBRECHAT_NEW_API_KEY:-}
+      LIBRECHAT_TAVILY_API_KEY: ${LIBRECHAT_TAVILY_API_KEY:-}
+      LIBRECHAT_TAVILY_SEARCH_URL: ${LIBRECHAT_TAVILY_SEARCH_URL:-https://api.tavily.com/search}
+      LIBRECHAT_TAVILY_EXTRACT_URL: ${LIBRECHAT_TAVILY_EXTRACT_URL:-https://api.tavily.com/extract}
+      OCR_API_KEY: ${LIBRECHAT_OCR_API_KEY:-}
+      OCR_BASEURL: ${LIBRECHAT_OCR_BASEURL:-https://api.mistral.ai/v1}
+    volumes:
+      - type: bind
+        source: ${LIBRECHAT_CONFIG_DIR:-/home/df/appdata/ChatStack/librechat/config}/librechat.yaml
+        target: /app/librechat.yaml
+        read_only: true
+        bind:
+          create_host_path: false
+      - ${LIBRECHAT_FILES_ROOT:-/mnt/appdata/ChatStack/librechat}/images:/app/client/public/images
+      - ${LIBRECHAT_FILES_ROOT:-/mnt/appdata/ChatStack/librechat}/uploads:/app/uploads
+      - ${LIBRECHAT_LOCAL_ROOT:-/home/df/appdata/ChatStack/librechat}/data:/app/data
+      - ${LIBRECHAT_LOCAL_ROOT:-/home/df/appdata/ChatStack/librechat}/logs:/app/logs
+      - ${LIBRECHAT_LOCAL_ROOT:-/home/df/appdata/ChatStack/librechat}/skill:/app/skill
+    networks: [default, librechat-backend]
+    depends_on:
+      new-api:
+        condition: service_healthy
+      librechat-mongodb:
+        condition: service_healthy
+      librechat-meilisearch:
+        condition: service_healthy
+      librechat-rag-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3080/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  librechat-mongodb:
+    image: mongo:8.0.20@sha256:098862b1339f031900ca66cf8fef799e616d6324fa41b9a263f2ec899552c1ef
+    profiles: [librechat]
+    restart: unless-stopped
+    command: [mongod, --auth]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: librechat_root
+      MONGO_INITDB_ROOT_PASSWORD: ${LIBRECHAT_MONGO_ROOT_PASSWORD:-}
+      MONGO_INITDB_DATABASE: LibreChat
+      LIBRECHAT_MONGO_APP_PASSWORD: ${LIBRECHAT_MONGO_APP_PASSWORD:-}
+    volumes:
+      - ${LIBRECHAT_LOCAL_ROOT:-/home/df/appdata/ChatStack/librechat}/mongodb:/data/db
+      - type: bind
+        source: ${LIBRECHAT_CONFIG_DIR:-/home/df/appdata/ChatStack/librechat/config}/mongo-init.js
+        target: /docker-entrypoint-initdb.d/10-librechat-user.js
+        read_only: true
+        bind:
+          create_host_path: false
+    networks: [librechat-backend]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "const d=db.getSiblingDB('LibreChat'); if(!process.env.LIBRECHAT_MONGO_APP_PASSWORD || !d.auth('librechat_app',process.env.LIBRECHAT_MONGO_APP_PASSWORD)) quit(1); if(d.runCommand({ping:1}).ok !== 1) quit(1);"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  librechat-meilisearch:
+    image: getmeili/meilisearch:v1.35.1@sha256:8b57fc3c7f46535ddef3828df1538465ac19d892eb57c9a10da6df0880bd5856
+    profiles: [librechat]
+    user: "3000:3000"
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${LIBRECHAT_MEILI_MASTER_KEY:-}
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - ${LIBRECHAT_LOCAL_ROOT:-/home/df/appdata/ChatStack/librechat}/meilisearch:/meili_data
+    networks: [librechat-backend]
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--output-document=-", "http://127.0.0.1:7700/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  librechat-rag-api:
+    image: ghcr.io/librechat-ai/librechat-rag-api-dev-lite@sha256:a62ce2221b43a9bb57fa6cb733e7047c80132960272c33d5704028f3071a1251
+    profiles: [librechat]
+    restart: unless-stopped
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        : "$${JWT_SECRET:?LIBRECHAT_JWT_SECRET is required}"
+        : "$${POSTGRES_PASSWORD:?LIBRECHAT_POSTGRES_PASSWORD is required}"
+        : "$${RAG_OPENAI_API_KEY:?LIBRECHAT_EMBEDDING_API_KEY is required}"
+        : "$${RAG_OPENAI_BASEURL:?LIBRECHAT_EMBEDDING_BASEURL is required}"
+        : "$${EMBEDDINGS_MODEL:?LIBRECHAT_EMBEDDING_MODEL is required}"
+        exec python main.py
+    environment:
+      RAG_HOST: 0.0.0.0
+      RAG_PORT: "8000"
+      DB_HOST: librechat-vectordb
+      DB_PORT: "5432"
+      POSTGRES_DB: librechat_rag
+      POSTGRES_USER: librechat_rag
+      POSTGRES_PASSWORD: ${LIBRECHAT_POSTGRES_PASSWORD:-}
+      JWT_SECRET: ${LIBRECHAT_JWT_SECRET:-}
+      VECTOR_DB_TYPE: pgvector
+      EMBEDDINGS_PROVIDER: openai
+      EMBEDDINGS_MODEL: ${LIBRECHAT_EMBEDDING_MODEL:-qwen3-embedding-8b}
+      # Send raw text: custom/non-OpenAI models do not use OpenAI's token IDs.
+      RAG_CHECK_EMBEDDING_CTX_LENGTH: "false"
+      RAG_OPENAI_API_KEY: ${LIBRECHAT_EMBEDDING_API_KEY:-}
+      RAG_OPENAI_BASEURL: ${LIBRECHAT_EMBEDDING_BASEURL:-}
+      SCARF_NO_ANALYTICS: "true"
+    networks: [default, librechat-backend]
+    depends_on:
+      librechat-vectordb:
+        condition: service_healthy
+    healthcheck:
+      # This pinned API may serialize a DOWN/503 tuple with HTTP 200; check the body.
+      test: ["CMD", "python", "-c", "import json, urllib.request; result=json.load(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)); assert isinstance(result, dict) and result.get('status') == 'UP', result"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  librechat-vectordb:
+    image: pgvector/pgvector:0.8.0-pg15-trixie@sha256:8809cfffff0082cf260c9ac752f1dd1afc77f6f0a55c4e6411321e78efc3d9a5
+    profiles: [librechat]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: librechat_rag
+      POSTGRES_USER: librechat_rag
+      POSTGRES_PASSWORD: ${LIBRECHAT_POSTGRES_PASSWORD:-}
+    volumes:
+      - ${LIBRECHAT_LOCAL_ROOT:-/home/df/appdata/ChatStack/librechat}/vectordb:/var/lib/postgresql/data
+    networks: [librechat-backend]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "librechat_rag", "-d", "librechat_rag"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   open-webui:
     image: ghcr.io/open-webui/open-webui:ollama
     container_name: open-webui-ollama
@@ -1080,3 +1297,8 @@ services:
       - "8788:8787" # GitHub webhook ingress; container still listens on 8787
       - "8790:8789" # Native web UI; NPM proxies https://claudia.dfder.tw here
       # - "43090:8080"  # Uncomment to expose tool server externally
+
+networks:
+  default: {}
+  librechat-backend:
+    internal: true
