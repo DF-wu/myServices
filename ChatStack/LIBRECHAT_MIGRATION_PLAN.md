@@ -51,7 +51,7 @@
 
 附件 images／uploads 可沿用 NAS：`/mnt/appdata/ChatStack/librechat/{images,uploads}`，分別掛到 `/app/client/public/images`、`/app/uploads`。依所選 release 保存 `/app/data`（例如 temporary credentials/runtime state）及其他必要目錄；logs 設輪替，勿無限制累積。掛載清單以鎖定版本的 upstream Compose 為準。[S1]
 
-MongoDB 官方允許符合 POSIX.1 的 NFS，但指出遠端儲存可能造成效能退化，並強烈建議 Linux WiredTiger 使用 XFS。本計劃選擇新增 MongoDB 不沿用 `/mnt/appdata`。`/home` 目前是 Btrfs，表中的本機路徑只是候選；部署前評估將 Mongo 資料放在本機 XFS／ext4，或另驗證 Btrfs 的相容性與效能，不能把「本機」當成已符合官方推薦。新 Meilisearch／vector DB 也採本機磁碟是本計劃的隔離設計，不代表已證實所有 NAS 使用方式都不支援。[S11]
+MongoDB 官方指出 NFS 可能造成效能不穩定、退化並建議避免；因此新增 MongoDB 不沿用 `/mnt/appdata`。新 Meilisearch／vector DB 也採本機磁碟是本計劃的隔離設計，不代表已證實所有 NAS 使用方式都不支援。[S11]
 
 Mongo／Meili／vector DB 放在新增的內部 backend network；LibreChat 與 RAG API 同時連 backend network 及必要的可出站 network。MongoDB 即使未開 host port，也要有 auth，避免同 stack 其他服務任意讀取。單實例第一輪不需要額外 Redis；既有 Valkey DB 編號不改動。
 
@@ -78,7 +78,7 @@ Compose `${VAR}` 展開與應用程式 env 是兩層：LibreChat YAML 中的 `${
 
 ### 4.1 圖片辨識
 
-以 `endpoints.custom` 設定既有 new-api gateway，base URL 為 `http://new-api:3000/v1`、API key 為專用的 `${LIBRECHAT_NEW_API_KEY}`。先選明確測過的模型 allowlist，不能以 `/v1/models` 有列出模型就視為支援圖片／工具。本計劃使用管理者固定的 base URL；若改開放 `user_provided` base URL，候選版會做 URL 驗證，需在 `endpoints.allowedAddresses` 精確允許可信的 `new-api:3000`。兩種模式都將 gateway 初始化與實際呼叫列為驗收。[S2][S3][S15]
+以 `endpoints.custom` 設定既有 new-api gateway，base URL 為 `http://new-api:3000/v1`、API key 為專用的 `${LIBRECHAT_NEW_API_KEY}`。先選明確測過的模型 allowlist，不能以 `/v1/models` 有列出模型就視為支援圖片／工具。[S2][S3]
 
 圖片辨識要求完整路徑保留 multimodal `image_url`／base64 payload；測 PNG、JPEG、中文截圖、小字、兩張圖比較。new-api 的 channel／上游模型必須支援 vision。辨識與圖片生成是不同需求，本計劃不引入圖片生成服務。
 
@@ -120,7 +120,7 @@ RAG API 本身有文件 loaders；現有 `http://tika:9998` **不能只填一個
 
 若選 Mistral OCR，依鎖定版本 schema 設 `ocr` block 或 `OCR_API_KEY`／`OCR_BASEURL`，使用專用 credential；私有相容 endpoint 亦需核對 `ocr.allowedAddresses`。若不想傳文件給外部 OCR，需先實作／驗證自架路徑，不能把掃描 PDF 驗收省略。文件外傳對象是待選的服務，PR 不含使用者文件。[S2][S8]
 
-RAG 第一輪評估現有 `qwen3-embedding-8b`，在 RAG API 設 `EMBEDDINGS_PROVIDER=openai`、`EMBEDDINGS_MODEL=qwen3-embedding-8b`、`RAG_OPENAI_BASEURL`、`RAG_OPENAI_API_KEY`。先用無敏感短句驗證 `/v1/embeddings`、輸出維度、批次行為、配額與錯誤回報；RAG API 必須可連該 gateway，且 image 支援此維度。本計劃啟用 RAG API 的 JWT 驗證；LibreChat 與 RAG API 需共用同一個 `JWT_SECRET`，只交付給這兩個容器；不能各自產生不同值，也不能誤用 `JWT_REFRESH_SECRET`。RAG client/server 版本與授權行為須配套測試。後續變更 embedding 模型需重建索引，不直接混用不同模型向量。[S6]
+RAG 第一輪評估現有 `qwen3-embedding-8b`，在 RAG API 設 `EMBEDDINGS_PROVIDER=openai`、`EMBEDDINGS_MODEL=qwen3-embedding-8b`、`RAG_OPENAI_BASEURL`、`RAG_OPENAI_API_KEY`。先用無敏感短句驗證 `/v1/embeddings`、輸出維度、批次行為、配額與錯誤回報；RAG API 必須可連該 gateway，且 image 支援此維度。後續變更 embedding 模型需重建索引，不直接混用不同模型向量。[S6]
 
 設定 `fileConfig` 的 endpoint-specific MIME allowlist、單檔／總量／檔數限制，至少涵蓋 PDF、DOCX（`application/vnd.openxmlformats-officedocument.wordprocessingml.document`）及圖片。先用合理上限（候選單檔 20 MiB、每次 5 檔），並核對 proxy 與 parser 各自限制；允許副檔名並不保證能解析。舊 `.doc` 不屬本次必需格式，另做相容性測試。[S9]
 
@@ -210,6 +210,5 @@ pilot 回復：把日常入口指回 Open WebUI，僅停用 LibreChat 新服務�
 - [S12] [v0.8.8 release](https://github.com/LibreChat-AI/LibreChat/releases/tag/v0.8.8)、[GitHub releases API](https://api.github.com/repos/LibreChat-AI/LibreChat/releases)：release 日期與 prerelease 標記。
 - [S13] [Agents v4.0.1 Firecrawl implementation](https://github.com/LibreChat-AI/agents/blob/v4.0.1/src/tools/search/firecrawl.ts)：root URL、API version 與 scrape URL 組合；實作時依 lockfile 的實際 resolved library version 再查。
 - [S14] [v0.8.8 file strategies](https://github.com/LibreChat-AI/LibreChat/blob/v0.8.8/api/server/services/Files/strategies.js)：document parser／Mistral OCR handlers，對照 current docs 的差異。
-- [S15] [v0.8.8 custom endpoint initialization](https://github.com/LibreChat-AI/LibreChat/blob/v0.8.8/packages/api/src/endpoints/custom/initialize.ts)：custom gateway URL 驗證。
 
 本機證據：root `README.md`／`.gitignore`、`ChatStack/docker-compose.yml`、`CONTAINER_MANAGER_DEPLOYMENT_DESIGNS.md`、`Komodo/DEPLOYMENT_DESIGN.md`、`homepage/docs/21-cloudflare-ingress-runbook.md`、2026-10-08 的 Docker／mount／DB 唯讀快照。舊設計文件描述的狀態若與現況不同，以本次 runtime snapshot 為準；現有 NPM／Cloudflare 實際 routing、Portainer polling、備份 job 與模型 API 能力尚未驗證。
