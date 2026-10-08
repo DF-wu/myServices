@@ -2,7 +2,7 @@
 
 調查日期：2026-10-08（Asia/Taipei）
 
-範圍：部署設計與驗收計劃，以及第一階段服務定義；本 PR 新增可選啟用的 LibreChat 服務組與設定，沒有部署或切換服務。
+範圍：部署設計與驗收計劃；本 PR 僅新增文件，沒有部署或切換服務。
 
 ## 1. 結論
 
@@ -11,12 +11,6 @@
 建議先增加獨立的 LibreChat 服務組，使用新連接埠及資料目錄，與 Open WebUI 並行。第一階段完成圖片辨識、可引用來源的網路搜尋、文字型 PDF／DOCX 讀取；第二階段驗收長文件 RAG、歷史資料移轉與掃描 PDF OCR，再逐步切換日常使用入口。**掃描 PDF OCR 納入驗收，未通過前不宣告整體文件能力完成。**
 
 本計劃的架構可行；尚未執行付費模型／搜尋／embedding 呼叫或實際 LibreChat 部署，因此下方「待驗證」項目是後續部署的驗收門檻，不是已通過的結果。
-
-### 第一階段服務定義（2026-10-08）
-
-`ChatStack/docker-compose.yml` 已加入 `librechat` profile 下的五個服務，部署端未啟用該 profile 前不會啟動它們。設定、環境變數範例與 Mongo 初始化檔位於 `ChatStack/librechat/`；準備與啟用步驟見該目錄的 README。此階段完成的是服務定義，實際模型、搜尋、RAG、OCR 與使用者遷移仍依下列矩陣驗收。
-
-映像採可取得的官方 GHCR namespace 並鎖 digest；主程式對應 v0.8.8。調查時 `registry.librechat.ai` 在主機解析為 `0.0.0.0`，因此未使用上游 Compose 的該 registry 位址。所有新資料庫仍使用獨立本機路徑，儲存底層相容性與備份須在部署前確認。
 
 ## 2. 查到的部署慣例與實際狀態
 
@@ -69,13 +63,12 @@ Mongo／Meili／vector DB 放在新增的內部 backend network；LibreChat 與 
 
 該 tag 的 upstream Compose 仍引用 `librechat-dev:latest`、`librechat-rag-api-dev-lite:latest`，**版本化 YAML 不代表容器版本已鎖定**。實作 PR 必須列出實際 registry、tag、digest、支援架構及 release 對應關係；必要時評估 `lite` 的解析／embedding 依賴差異。管理用 `admin-panel` 不屬於本次需求，不直接引入或額外開 port。[S1]
 
-第一階段已新增／修改：
+後續實作預計新增／修改：
 
 - `ChatStack/docker-compose.yml`：新服務、network、mount、healthcheck／readiness 與 host port index。
 - `ChatStack/librechat/librechat.yaml`：可版本控管的端點、Agents、搜尋、文件上傳設定。
 - `ChatStack/librechat/compose.env.example`：只放新鍵名與非機密範例；真實值在 Portainer env 或被忽略的部署端檔案。
-- `ChatStack/librechat/README.md`：實際 image digests、設定交付、備份、驗收與回復步驟；部署後追加功能驗收紀錄。
-- `ChatStack/librechat/mongo-init.js`：首次建立專用且僅具 `readWrite` 權限的 app 帳號。
+- `ChatStack/librechat/DEPLOYMENT_RUNBOOK.md`：實際 image digests、設定交付、備份、驗收與回復紀錄。
 
 `librechat.yaml` 掛載可用 repo 內的相對檔案，但必須驗證 Portainer 執行時解析出的 **host source path** 存在且是檔案；若 git checkout 路徑／bind 支援不可靠，改交付到固定 `/home/df/appdata/ChatStack/librechat/config/librechat.yaml`，文件記錄版本 hash。不可直接綁定 `/data/compose/288` 作為永久設定來源，stack ID／checkout 路徑可能改變。
 
@@ -95,7 +88,7 @@ Compose `${VAR}` 展開與應用程式 env 是兩層：LibreChat YAML 中的 `${
 
 首選 **Tavily search + Tavily extract**，因部署端已有 Tavily key，而且 `v0.8.8` 的官方範例有這組內建設定。[S2] 先確認現有 `TAVILY_API_BASE_URL` 是官方服務還是相容轉發站；不能直接把任意 base URL 填進完整 endpoint URL 欄位。
 
-第一階段設定已通過鎖定映像的 schema 檢查；實際 provider endpoint 仍須部署時驗收：
+下列只是設定方向，待確認實際 endpoint 與 schema 後才形成可部署檔案：
 
 ```yaml
 webSearch:
