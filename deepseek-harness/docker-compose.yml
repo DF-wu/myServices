@@ -1,0 +1,75 @@
+# prepared: 2026-10-16
+# description: DeepSeek Harness (DSH) — 官方 DSH Web 工作區 + Web Admin 控制台 + 容器內 Chromium noVNC 桌面。
+# upstream (docker): https://github.com/misaka-link/deepseek-harness-docker
+# upstream (core):   https://github.com/deepseek-ai/deepseek-harness
+# image: ghcr.io/misaka-link/deepseek-harness-docker:0.2.4（內建 @deepseek-ai/dsh@0.2.1-alpha.3，僅 linux/amd64）
+#
+# Portainer Repository Stack：
+# - Repository URL: https://github.com/DF-wu/myServices.git
+# - Reference:      refs/heads/master
+# - Compose path:   deepseek-harness/docker-compose.yml
+# - Environment:    全部有預設值，可不填；需要覆寫時參考同目錄 .env.example
+#
+# 設計原則（已對照上游 Dockerfile / gateway 原始碼驗證）：
+# - 一個 port 包全部：DSH Web `/`、Admin `/admin/`、noVNC `/vnc/` 都走同一個 gateway 與同一套認證。
+# - 容器內 port 固定 3080：上游 image 的 HEALTHCHECK 寫死 `curl http://127.0.0.1:3080/healthz`，
+#   改 PROXY_PORT 會讓容器永遠 unhealthy，所以只改 host 端 port（預設 43065）。
+# - image tag 鎖工程版本 0.2.4，不用 latest。DSH 核心可在 Admin 內線上切換，切換歸檔存在 snapshots 卷，
+#   升級容器套件時再手動改 tag。要預裝插件市場（dshmarket）就改用 `0.2.4-market`。
+# - AUTH_TOKEN 預設留空：首次造訪會進 `/setup` 初始化口令，口令以 0600 存進 dsh 資料卷，
+#   所以祕密不會進 git，也不必放進 Portainer environment。
+# - 保留上游的容器加固（no-new-privileges + cap_drop ALL，只回補 root entrypoint 需要的最小集合）。
+#
+# 持久化路徑：
+# - /root/.dsh             = DSH 設定、profile、插件、會話歷史、訪問口令、session secret、gateway.config.json
+# - /root/.dsh-snapshots   = 設定快照 + versions/ 核心版本歸檔（回切免下載）
+# - /workspace             = AI 工作區（產生的專案程式碼與文件）
+# - /root/.config/chromium = 容器 Chromium 的 profile（登入狀態 / cookies）
+
+services:
+  deepseek-harness:
+    image: ghcr.io/misaka-link/deepseek-harness-docker:${DSH_IMAGE_TAG:-0.2.4}
+    container_name: deepseek-harness
+    restart: unless-stopped
+    ports:
+      - "${DSH_HOST_PORT:-43065}:3080"
+    environment:
+      TZ: ${TZ:-Asia/Taipei}
+      # 留空 = 首次造訪走 /setup 初始化口令；填值 = 直接使用該口令（不要用 admin 之類的弱口令）。
+      AUTH_TOKEN: ${AUTH_TOKEN:-}
+      # 固定 3080，理由見檔頭。
+      PROXY_PORT: 3080
+      DSH_HOME: /root
+      DSH_VERSIONS_MIN_FREE_MB: ${DSH_VERSIONS_MIN_FREE_MB:-1536}
+
+      # 反代相關：放在 NPM / Cloudflare Tunnel 後面時才需要。
+      # TRUST_PROXY=1 才會採用 X-Forwarded-For 做登入限流；直接暴露時務必維持 0，否則 XFF 可被偽造。
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      # WebSocket 同源校驗的對外 hostname 白名單（逗號分隔），例如 dsh.dfder.tw。
+      PUBLIC_HOST: ${PUBLIC_HOST:-}
+
+      DSH_DESKTOP_ENABLED: ${DSH_DESKTOP_ENABLED:-1}
+      DSH_IDLE_TIMEOUT_MINUTES: ${DSH_IDLE_TIMEOUT_MINUTES:-30}
+
+      # 出站代理（DSH 原生遵循）；模型 API / 插件下載需要繞路時再填。
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      ALL_PROXY: ${ALL_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      # entrypoint 以 root 修正資料卷屬主 / 權限，並管理 DSH、Xvfb、Chromium 等子程序。
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+      - KILL
+    volumes:
+      - ${DSH_APPDATA_DIR:-/mnt/appdata/deepseek-harness}/dsh:/root/.dsh
+      - ${DSH_APPDATA_DIR:-/mnt/appdata/deepseek-harness}/snapshots:/root/.dsh-snapshots
+      - ${DSH_APPDATA_DIR:-/mnt/appdata/deepseek-harness}/workspace:/workspace
+      - ${DSH_APPDATA_DIR:-/mnt/appdata/deepseek-harness}/browser:/root/.config/chromium
