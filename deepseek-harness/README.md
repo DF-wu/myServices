@@ -58,8 +58,8 @@ http://<host>:43065/vnc/      Chromium 桌面
 ## 放到反代後面
 
 - 在 NPM 開 WebSocket support（DSH Web 與 noVNC 都靠 WebSocket）。
-- 設 `PUBLIC_HOST=<對外 hostname>`，gateway 的 WebSocket 同源校驗只認真實 `Host` 與這個白名單，不認 `X-Forwarded-Host`。
-- 設 `TRUST_PROXY=1` 讓登入限流採用 `X-Forwarded-For`。直接暴露 port 時務必保持 `0`，否則 XFF 可被偽造繞過限流。
+- `TRUST_PROXY` 預設 `1`，登入限流採用 `X-Forwarded-For`，才不會把所有人算成反代那一個 IP。若 `43065` 直接暴露給不可信網路，請改回 `0`，否則 XFF 可被偽造繞過限流。
+- `PUBLIC_HOST` 預設 `*`，但上游 `gateway/ws-origin.js` 是逐字精確比對，`*` 不是萬用字元，效果等同沒填。gateway 的 WebSocket 同源校驗認真實 `Host` 頭與這份白名單（不認 `X-Forwarded-Host`）；反代保留原始 `Host` 時（NPM、Cloudflare Tunnel 預設）不填也能用，只有反代改寫 `Host` 時才需要填真實的對外 hostname。
 
 ## DeepSeek 帳號登入
 

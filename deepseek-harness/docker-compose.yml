@@ -58,13 +58,17 @@ services:
       # 線上切換 DSH 核心版本前的磁碟水位門檻（MB，預設 1536），低於此值會拒絕切換。
       DSH_VERSIONS_MIN_FREE_MB: ${DSH_VERSIONS_MIN_FREE_MB:-1536}
 
-      # 反代相關：放在 NPM / Cloudflare Tunnel 後面時才需要（Admin「網關與系統設定」也能改，存檔後以 Admin 為準）。
-      # 是否信任反代轉發的 X-Forwarded-For 做登入限流。只有確實在可信反代後面才設 1，
-      # 直接暴露時務必維持 0，否則任何人都能偽造 XFF 讓登入限流失效。
-      TRUST_PROXY: ${TRUST_PROXY:-0}
+      # 反代相關（Admin「網關與系統設定」也能改，存檔後以 Admin 為準）。
+      # 是否信任反代轉發的 X-Forwarded-For 做登入限流。預設 1：這個服務預期放在 NPM / Cloudflare Tunnel 後面，
+      # 不開的話所有請求都會被算成反代那一個 IP，一人輸錯口令就會把所有人一起限流。
+      # 代價：若 43065 被直接暴露給不可信網路，任何人都能偽造 XFF 讓登入限流失效；那種情況請改回 0。
+      TRUST_PROXY: ${TRUST_PROXY:-1}
       # 對外 hostname 白名單（逗號分隔），用於 WebSocket 同源校驗，例如 dsh.dfder.tw。
       # gateway 只認真實 Host 頭 + 這份白名單，刻意不採用可偽造的 X-Forwarded-Host。
-      PUBLIC_HOST: ${PUBLIC_HOST:-}
+      # 注意：上游（gateway/ws-origin.js）是逐字精確比對，`*` 不是萬用字元，效果等同沒填。
+      # 實際上不填也能用：只要反代保留原始 Host 頭（NPM、Cloudflare Tunnel 預設都會），
+      # 瀏覽器 Origin 就會等於 Host 而通過；只有反代改寫 Host 時才需要填真實的對外 hostname。
+      PUBLIC_HOST: ${PUBLIC_HOST:-*}
 
       # 出站網路代理（選用：模型 API、Web 搜尋或插件下載需要繞路時再填；DSH 0.1.5-rc.1 起原生遵循）。
       HTTP_PROXY: ${HTTP_PROXY:-}
