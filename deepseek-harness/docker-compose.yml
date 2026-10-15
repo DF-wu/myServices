@@ -2,8 +2,8 @@
 # description: DeepSeek Harness (DSH) — 官方 DSH Web 工作區 + Web Admin 控制台 + 容器內 Chromium noVNC 桌面。
 # upstream (docker): https://github.com/misaka-link/deepseek-harness-docker
 # upstream (core):   https://github.com/deepseek-ai/deepseek-harness
-# image: ghcr.io/misaka-link/deepseek-harness-docker:0.2.4-market
-#        （套件工程版本 0.2.4，內建 @deepseek-ai/dsh@0.2.1-alpha.3，僅 linux/amd64）
+# image: ghcr.io/misaka-link/deepseek-harness-docker:latest-market
+#        （2026-10-16 時指向套件工程版本 0.2.4，內建 @deepseek-ai/dsh@0.2.1-alpha.3，僅 linux/amd64）
 #
 # Portainer Repository Stack：
 # - Repository URL: https://github.com/DF-wu/myServices.git
@@ -17,9 +17,11 @@
 # - 一個 port 包全部：DSH Web `/`、Admin `/admin/`、noVNC `/vnc/` 都走同一個 gateway 與同一套認證。
 # - 容器內 port 固定 3080：上游 image 的 HEALTHCHECK 寫死 `curl http://127.0.0.1:3080/healthz`，
 #   改 PROXY_PORT 會讓容器永遠 unhealthy，所以只改 host 端 port（預設 43065，myServices AI 工具的 43xxx 區段）。
-# - image tag 鎖工程版本 0.2.4-market，不用 latest-market。上游每次 build 打三種 tag：
-#   latest-market / 內建 DSH 版本（0.2.1-alpha.3-market）/ 工程版本（0.2.4-market），鎖工程版本最能重現。
-#   DSH 核心可在 Admin 內線上切換，切換歸檔存在 snapshots 卷，升級容器套件時再手動改 tag。
+# - image tag 用 latest-market，跟著上游走。上游每次 build 打三種 tag：
+#   latest-market / 內建 DSH 版本（如 0.2.1-alpha.3-market）/ 工程版本（如 0.2.4-market）。
+#   Portainer 重新部署時要勾「Re-pull image」才會真的拉到新版；遇到新版出問題，
+#   把 DSH_IMAGE_TAG 改成上一個工程版本 tag（例如 0.2.4-market）即可回退。
+#   DSH 核心另外可在 Admin 內線上切換，切換歸檔存在 snapshots 卷。
 # - AUTH_TOKEN 預設留空：首次造訪會進 `/setup` 初始化口令，口令以 0600 存進 dsh 資料卷，
 #   所以祕密不會進 git，也不必放進 Portainer environment。
 # - 環境變數只是「初始預設值」：桌面、反代等設定在 Admin 存檔後會寫進 /root/.dsh/gateway.config.json，
@@ -34,7 +36,7 @@
 
 services:
   deepseek-harness:
-    image: ghcr.io/misaka-link/deepseek-harness-docker:${DSH_IMAGE_TAG:-0.2.4-market}
+    image: ghcr.io/misaka-link/deepseek-harness-docker:${DSH_IMAGE_TAG:-latest-market}
     container_name: deepseek-harness
     restart: unless-stopped
     ports:

@@ -36,7 +36,7 @@ http://<host>:43065/vnc/      Chromium 桌面
 
 **容器內 port 固定 3080。** 上游 compose 讓 `PROXY_PORT` 同時決定 host 與容器 port，但 image 的 `HEALTHCHECK` 寫死 `curl http://127.0.0.1:3080/healthz`，容器內改 port 就會永遠 unhealthy。所以這裡只開放改 host 端的 `DSH_HOST_PORT`（預設 `43065`，延續 myServices AI 工具的 43xxx 區段）。
 
-**用 market 變體，tag 鎖 `0.2.4-market`。** market 版在純淨版之上預裝社群應用市場 `dshmarket` 與思考強度調節插件 `@hytime/dsh-thinking-effort`，開箱就能從市場裝插件。上游每次 build 會打三種 tag：`latest-market`、內建 DSH 版本（`0.2.1-alpha.3-market`）、套件工程版本（`0.2.4-market`），鎖工程版本最能重現。DSH 核心本身可以在 `/admin/` 線上切換，切換歸檔放在 snapshots 卷，容器重建也不會丟。想回純淨版就把 `DSH_IMAGE_TAG` 改成 `0.2.4`。目前只有 `linux/amd64`，不能部署到 oracle-arm。
+**用 market 變體，tag 用 `latest-market`。** market 版在純淨版之上預裝社群應用市場 `dshmarket` 與思考強度調節插件 `@hytime/dsh-thinking-effort`，開箱就能從市場裝插件。上游每次 build 會打三種 tag：`latest-market`、內建 DSH 版本（如 `0.2.1-alpha.3-market`）、套件工程版本（如 `0.2.4-market`）；這裡跟著 `latest-market` 走。Portainer 重新部署時要勾「Re-pull image」才會拉到新版；新版出問題就把 `DSH_IMAGE_TAG` 改成上一個工程版本 tag（例如 `0.2.4-market`）回退。DSH 核心本身另外可以在 `/admin/` 線上切換，切換歸檔放在 snapshots 卷，容器重建也不會丟。想用純淨版就改成 `latest`。目前只有 `linux/amd64`，不能部署到 oracle-arm。
 
 **環境變數只是初始預設值。** 桌面、反代（`TRUST_PROXY` / `PUBLIC_HOST`）等設定在 Admin 存檔後會寫進 `/root/.dsh/gateway.config.json`，之後以持久化設定為準；只有 `PROXY_PORT` 是顯式 env 優先。上游把這類設定的權威收斂在 Admin，所以 compose 裡的選用參數跟上游一樣保留成註解，要用再打開。另外 `DSH_IDLE_TIMEOUT_MINUTES=0` 經 env 設定無效（會回到 30），要永不休眠請在 Admin 設。
 
