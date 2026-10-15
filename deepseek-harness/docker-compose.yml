@@ -65,10 +65,10 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-1}
       # 對外 hostname 白名單（逗號分隔），用於 WebSocket 同源校驗，例如 dsh.dfder.tw。
       # gateway 只認真實 Host 頭 + 這份白名單，刻意不採用可偽造的 X-Forwarded-Host。
-      # 注意：上游（gateway/ws-origin.js）是逐字精確比對，`*` 不是萬用字元，效果等同沒填。
-      # 實際上不填也能用：只要反代保留原始 Host 頭（NPM、Cloudflare Tunnel 預設都會），
+      # 上游（gateway/ws-origin.js）是逐字精確比對，不支援 `*` 之類的萬用字元。
+      # 預設留空即可：只要反代保留原始 Host 頭（NPM、Cloudflare Tunnel 預設都會），
       # 瀏覽器 Origin 就會等於 Host 而通過；只有反代改寫 Host 時才需要填真實的對外 hostname。
-      PUBLIC_HOST: ${PUBLIC_HOST:-*}
+      PUBLIC_HOST: ${PUBLIC_HOST:-}
 
       # 出站網路代理（選用：模型 API、Web 搜尋或插件下載需要繞路時再填；DSH 0.1.5-rc.1 起原生遵循）。
       HTTP_PROXY: ${HTTP_PROXY:-}
