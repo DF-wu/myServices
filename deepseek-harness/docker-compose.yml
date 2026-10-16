@@ -43,6 +43,8 @@ services:
       # 只暴露單一統一 port（DSH Web、Admin、VNC 桌面共用，共享同一套認證）。
       # 容器內固定 3080，理由見檔頭。
       - "${DSH_HOST_PORT:-43065}:3080"
+    env_file:
+      - .env
     environment:
       TZ: ${TZ:-Asia/Taipei}
 
