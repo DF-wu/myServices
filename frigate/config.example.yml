@@ -1,0 +1,50 @@
+# Copy to $FRIGATE_CONFIG_DIR/config.yml before a separately approved deployment.
+# This is a camera-free baseline; add real streams locally or through the UI.
+mqtt:
+  enabled: false
+
+ffmpeg:
+  hwaccel_args: preset-nvidia
+
+detectors:
+  onnx:
+    type: onnx
+    device: "0"
+
+# Export YOLOv9-s at 320x320, FP32, using the official recipe linked in README.
+# Frigate does not bundle/download this detector model automatically.
+model:
+  path: /config/model_cache/yolov9-s-320.onnx
+  model_type: yolo-generic
+  width: 320
+  height: 320
+  input_tensor: nchw
+  input_pixel_format: rgb
+  input_dtype: float
+  labelmap_path: /labelmap/coco-80.txt
+
+detect:
+  fps: 5
+
+objects:
+  track:
+    - person
+    - car
+
+# Enable individually after validating CUDA inference and camera image quality.
+face_recognition:
+  enabled: false
+  model_size: large
+
+lpr:
+  enabled: false
+  device: CPU
+
+# V2 supports Chinese, but its FP16 model needs a separate P4 performance check.
+semantic_search:
+  enabled: false
+  model: jinav2
+  model_size: large
+
+# No camera URLs, credentials or fabricated stream dimensions in this repo.
+cameras: {}
