@@ -19,9 +19,15 @@
 3. 將 `config.example.yml` 複製為 `/var/lib/frigate/config/config.yml`，依官方 [ONNX／YOLOv9 匯出步驟](https://github.com/blakeblackshear/frigate/blob/v0.18.2/docs/data/object_detectors_models.yaml) 匯出 **YOLOv9-s、320×320、FP32**，放到 `/var/lib/frigate/config/model_cache/yolov9-s-320.onnx`。匯出尺寸、資料型別與設定必須一致；不要加入 `--half`。模型尚未準備就啟動會導致 detector 無法載入。
 4. 範本的 `cameras: {}` 是有效的無攝影機初始配置，沒有虛構串流。新增真實攝影機時，於本機 `cameras` 下設定 FFmpeg inputs，明列 `detect`／`record` roles，並按串流設定解析度。含密碼的 URL 可用 `{FRIGATE_RTSP_PASSWORD}` 引用容器環境變數；保留 YAML 引號並確保 URL 特殊字元正確編碼。
 5. 如需錄影，另依場景設定 `record.enabled` 與保留天數；範本尚未啟用錄影。若需 MQTT／Home Assistant 整合，再於本機補上 MQTT，範本預設關閉。
-6. 經另外授權部署後，先驗證一支攝影機硬解、ONNX CUDA 模型載入與實際推論，再逐項啟用人臉、車牌與語意搜尋。先勿把多個進階模型同時開啟。
+6. 範本已啟用人臉、車牌與中文語意搜尋。經另外授權部署後，先用一支攝影機驗證硬解、ONNX CUDA 與各進階功能，再增加攝影機；觀察同時執行的顯存、延遲與負載。若 P4 記憶體不足或影響主要辨識，可暫時將 `semantic_search.enabled` 設為 `false` 後重新驗收。
 
-`config.example.yml` 已預選 GPU 人臉辨識 large、CPU 車牌辨識與支援中文的 Jina V2 large，但三者均關閉。Jina V2 使用 FP16 且需求較高，P4 上的速度未實測；`USE_FP16=False` 不能把預製 ONNX 模型轉為 FP32。使用英文搜尋可改選負擔較低的 Jina V1。
+## 已啟用的進階辨識
+
+- **人臉辨識**：`large`，指定 P4 GPU 0。COCO 物件模型不含 `face`，找臉步驟仍使用 CPU，辨識使用 GPU；保留 `person` 追蹤，勿額外加入 COCO 不支援的 `face`。首次下載模型後，需在 Face Library 建立人物並標註；攝影機影像也要有足夠臉部細節。
+- **車牌辨識**：指定 CPU，OCR 文字偵測採 `small` 模型，文字辨識仍使用 `recognition_v4.onnx`，讓 P4 優先處理物件、人臉與語意模型。COCO 不含 `license_plate`，Frigate 會使用額外的車牌偵測／OCR 模型，預設由車輛偵測觸發。真實 `known_plates` 僅放本機；辨識品質仍取決於車牌大小、快門與曝光。
+- **中文語意搜尋**：`jinav2`、`large`，指定 P4 GPU 0。Jina V2 使用 FP16、與其他模型共用顯存；P4 上的速度和同時執行負載未實測，`USE_FP16=False` 不能把預製 ONNX 轉為 FP32。首次啟用不自動索引舊事件，需在 UI 執行 Reindex；更換 Jina V1／V2 亦須重新索引。英文搜尋可改選負擔較低的 Jina V1。
+
+首次使用須可連線下載人臉、車牌與語意模型（GitHub／HuggingFace），下載後透過完整 `/config` 掛載持久保存。此範本仍是 `cameras: {}`：啟用表示已備妥功能設定，加入真實串流後才會處理攝影機事件。這三項功能不需 GenAI provider；生成式事件描述、摘要與問答需要另外配置服務，此處未啟用。
 
 P4 所屬 Pascal 的最後 CUDA Toolkit 支援為 12.x、最後驅動分支為 R580；目前驅動已在此分支，這次無須變動主機驅動。不要因為此配置提交而自動升級驅動或套用容器更新。
 
@@ -50,4 +56,7 @@ docker logs --tail 300 frigate
 - [NVIDIA 映像依賴](https://github.com/blakeblackshear/frigate/blob/v0.18.2/docker/tensorrt/requirements-amd64.txt)
 - [Frigate NVIDIA 硬解](https://docs.frigate.video/configuration/hardware_acceleration_video/#nvidia-gpus)
 - [Frigate 安裝及埠配置](https://docs.frigate.video/frigate/installation/)
+- [人臉辨識](https://docs.frigate.video/configuration/face_recognition/)
+- [車牌辨識](https://docs.frigate.video/configuration/license_plate_recognition/)
+- [語意搜尋](https://docs.frigate.video/configuration/semantic_search/)
 - [NVIDIA 架構／CUDA／驅動矩陣](https://docs.nvidia.com/datacenter/tesla/drivers/cuda-toolkit-driver-and-architecture-matrix.html)

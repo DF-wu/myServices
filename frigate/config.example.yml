@@ -31,20 +31,35 @@ objects:
     - person
     - car
 
-# Enable individually after validating CUDA inference and camera image quality.
+# 人臉辨識：large 使用 P4 GPU 0；首次啟用會下載模型至 /config/model_cache。
+# COCO 模型沒有 face 標籤，Frigate 會先在 person 區域以 CPU 找臉，再做 GPU 辨識。
+# 不要將 face 加入上方 COCO track 清單；請在 Face Library 建立並標註人物。
+# 攝影機 detect 串流需保有足夠臉部細節，啟用功能本身不會自動知道人物姓名。
 face_recognition:
-  enabled: false
+  enabled: true
   model_size: large
+  device: "0"
 
+# 車牌辨識：使用 CPU，OCR 文字偵測採 small 模型，減少與其他模型爭用 P4。
+# small 調整文字偵測模型；文字辨識仍使用 recognition_v4.onnx。
+# 首次啟用會下載車牌偵測與 OCR 模型；COCO 不含 license_plate，勿加入 track。
+# 預設先偵測 car 等車輛再辨識車牌；遠距、模糊或過曝需先調整串流與攝影機。
+# known_plates（車牌與名稱）僅填於本機設定，不放入此公開儲存庫。
 lpr:
-  enabled: false
+  enabled: true
+  model_size: small
   device: CPU
 
-# V2 supports Chinese, but its FP16 model needs a separate P4 performance check.
+# 中文語意搜尋：Jina V2 large 在 P4 GPU 0 執行，首次會從 HuggingFace 下載模型。
+# V2 使用 FP16、與其他 GPU 模型共用顯存；P4 的速度及同時執行負載尚未實測。
+# USE_FP16=False 不會將預製 ONNX 轉成 FP32。部署驗收須觀察 VRAM 與辨識延遲。
+# 若負載過高可暫停語意搜尋；改用英文 Jina V1 較輕，但切換模型須重新索引。
+# 初次啟用不自動索引歷史事件，需於 UI 執行 Reindex；勿設每次啟動都重建。
 semantic_search:
-  enabled: false
+  enabled: true
   model: jinav2
   model_size: large
+  device: "0"
 
 # No camera URLs, credentials or fabricated stream dimensions in this repo.
 cameras: {}
