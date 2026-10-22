@@ -9,7 +9,7 @@
 # - Repository URL: https://github.com/DF-wu/myServices.git
 # - Reference:      refs/heads/master
 # - Compose path:   deepseek-harness/docker-compose.yml
-# - Environment:    全部有預設值，可不填；需要覆寫時參考同目錄 .env.example
+# - Environment:    同目錄 .env 提供可提交的預設值；秘密在 Portainer 設定同名環境變數。
 #
 # 設計原則（已對照上游 Dockerfile / gateway 原始碼驗證）：
 # - 用 market 變體：在純淨版之上預裝社群應用市場 dshmarket 與思考強度調節插件
@@ -43,6 +43,7 @@ services:
       # 只暴露單一統一 port（DSH Web、Admin、VNC 桌面共用，共享同一套認證）。
       # 容器內固定 3080，理由見檔頭。
       - "${DSH_HOST_PORT:-43065}:3080"
+    # 隨 Repository 拉取同目錄 .env；其中秘密只引用 Portainer 的同名環境變數。
     env_file:
       - .env
     environment:
@@ -51,7 +52,10 @@ services:
       # 訪問認證碼（存取 DSH Web、Admin 與 VNC 桌面都需要）。
       # 留空：首次造訪自動導向「初始化訪問口令」頁面，設定後才能使用（上游已沒有免密直通模式）。
       # 填值：跳過初始化精靈，直接使用該口令（不要用 admin 之類的弱口令）。
+      # 讀取 Portainer Stack Environment 的同名 AUTH_TOKEN，未設定時留空。
       AUTH_TOKEN: ${AUTH_TOKEN:-}
+      # 選用：同名 SESSION_SECRET；留空時服務自動產生並持久化，不需把秘密寫進 repo。
+      SESSION_SECRET: ${SESSION_SECRET:-}
       # 統一對外 port（gateway 監聽的容器內 port）。顯式 env 優先於資料卷中的持久化設定。
       # 固定 3080，不開放覆寫，理由見檔頭。
       PROXY_PORT: 3080
@@ -73,13 +77,13 @@ services:
       PUBLIC_HOST: ${PUBLIC_HOST:-}
 
       # 出站網路代理（選用：模型 API、Web 搜尋或插件下載需要繞路時再填；DSH 0.1.5-rc.1 起原生遵循）。
+      # URL 若含帳密，請在 Portainer 設定 HTTP_PROXY / HTTPS_PROXY / ALL_PROXY 同名變數。
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       ALL_PROXY: ${ALL_PROXY:-}
       NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1}
 
       # --- 以下參數容器與 gateway 都有內建預設值，跟上游一樣預設註解保持簡潔，按需啟用：---
-      # SESSION_SECRET: ${SESSION_SECRET:-}  # 自訂 session 簽章金鑰（預設首次啟動自動產生 256 位隨機金鑰並持久化到 /root/.dsh/.session_secret）
       # ADMIN_PATH: /admin                   # 自訂 Admin 路徑（預設 /admin）
       # VNC_PATH: /vnc                       # 自訂 noVNC 桌面路徑（預設 /vnc）
       # DSH_WORKSPACE: /workspace            # DSH 預設工作區目錄

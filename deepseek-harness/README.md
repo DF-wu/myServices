@@ -22,7 +22,7 @@ image 以 `node:24-trixie` 為底，內建 `@deepseek-ai/dsh`，前面再包一�
 | Repository URL | `https://github.com/DF-wu/myServices.git` |
 | Repository reference | `refs/heads/master` |
 | Compose path | `deepseek-harness/docker-compose.yml` |
-| Environment variables | 可全部不填；要覆寫時參考 `.env.example` |
+| Environment variables | 同目錄 `.env` 隨 repo 提供預設值；Stack Environment 可覆寫 compose 已映射的變數 |
 
 部署後入口：
 
@@ -40,7 +40,9 @@ http://<host>:43065/vnc/      Chromium 桌面
 
 **環境變數只是初始預設值。** 桌面、反代（`TRUST_PROXY` / `PUBLIC_HOST`）等設定在 Admin 存檔後會寫進 `/root/.dsh/gateway.config.json`，之後以持久化設定為準；只有 `PROXY_PORT` 是顯式 env 優先。上游把這類設定的權威收斂在 Admin，所以 compose 裡的選用參數跟上游一樣保留成註解，要用再打開。另外 `DSH_IDLE_TIMEOUT_MINUTES=0` 經 env 設定無效（會回到 30），要永不休眠請在 Admin 設。
 
-**訪問口令不進 git。** `AUTH_TOKEN` 預設留空，第一次打開會被導到 `/setup` 設定口令，口令以 `0600` 寫進 `/root/.dsh`，session secret 也是第一次啟動自動產生並持久化。重建容器不會失效。
+**秘密由 Portainer 的同名環境變數提供。** repo 內的 `.env` 隨 Repository 拉取，保存部署預設值；其中 `AUTH_TOKEN`、`SESSION_SECRET`、`HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY` 使用 `${同名變數:-}` 引用，未設定時留空。請在 Portainer 的 Stack Environment 填入需要的實際值，Compose 的 `environment` 會將這些同名變數傳入容器，不要把真實口令、簽章金鑰或含帳密的代理 URL 寫進 repo。CLI 部署則可先 export 同名變數。
+
+`AUTH_TOKEN` 未設定或留空時，第一次打開會被導到 `/setup` 設定口令，口令以 `0600` 寫進 `/root/.dsh`。`SESSION_SECRET` 未設定或留空時，服務會自動產生並持久化到 `/root/.dsh/.session_secret`；需要固定金鑰才在 Portainer 設定。重建容器保留資料卷即可沿用。
 
 **保留上游的容器加固。** `no-new-privileges` + `cap_drop: ALL`，只回補 entrypoint 以 root 修正卷權限與管理子程序所需的 capability。
 
@@ -53,7 +55,13 @@ http://<host>:43065/vnc/      Chromium 桌面
 | `/mnt/appdata/deepseek-harness/workspace` | `/workspace` | AI 工作區 |
 | `/mnt/appdata/deepseek-harness/browser` | `/root/.config/chromium` | 容器 Chromium profile |
 
-容器以 root 執行，目錄不存在時 Docker 會自動以 root 建立，不需要先 `mkdir`；entrypoint 會把 `/root/.dsh` 收斂成 `0700`。
+容器以 root 執行；entrypoint 會把 `/root/.dsh` 收斂成 `0700`。axolotl 的 `/mnt/appdata` 是 NFS，Docker 自動建立掛載來源時可能因 `chown: operation not permitted` 而卡在 Starting，部署前請先以可寫入該 NFS 的主機使用者建立四個目錄：
+
+```bash
+mkdir -p /mnt/appdata/deepseek-harness/{dsh,snapshots,workspace,browser}
+```
+
+若覆寫 `DSH_APPDATA_DIR`，請使用對應的根路徑。
 
 ## 放到反代後面
 
@@ -74,4 +82,4 @@ DeepSeek 平台只接受 loopback 的 OAuth 回調（`http://localhost:<port>/oa
 
 ## 尚未做的事
 
-只建立了部署定義，沒有實際部署，也還沒加進 homepage / glance 與 NPM。
+已完成隔離測試，驗證 DSH 核心就緒、Chromium 桌面執行與首次設定頁；測試資源已清理。尚未保留正式運行服務，也還沒加進 homepage / glance 與 NPM。
