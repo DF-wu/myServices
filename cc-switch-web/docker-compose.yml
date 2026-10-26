@@ -9,7 +9,8 @@
 #
 # 設計原則：
 # - image tag 鎖定 0.17.0：上游 release note / package version 都是 0.17.0，Docker tag 也沿用不帶 v 的版本號。
-# - host port 直接暴露 43064:3000：這是 myServices 常用的高位 port 風格；若要對外公開，再交給外層反代做 TLS。
+# - host port 直接暴露 43067:3000：這是 myServices 常用的高位 port 風格；若要對外公開，再交給外層反代做 TLS。
+#   不用 43064：已被 ChatStack 的 cline-pass-switcher 占用。
 # - 容器內一定綁 `HOST=0.0.0.0`：Docker port publish 的標準要求。
 # - `ALLOW_HTTP_BASIC_OVER_HTTP=1` 必開：上游在非 loopback bind 時會擋啟動，這是明文 HTTP 的安全顯式確認。
 # - 持久化分兩層：
@@ -30,7 +31,7 @@ services:
     restart: unless-stopped
     init: true
     ports:
-      - "${CC_SWITCH_WEB_PORT:-43064}:3000"
+      - "${CC_SWITCH_WEB_PORT:-43067}:3000"
     environment:
       TZ: ${TZ:-Asia/Taipei}
       HOST: 0.0.0.0

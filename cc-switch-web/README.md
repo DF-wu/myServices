@@ -12,14 +12,14 @@
 
 ## 這份 compose 的部署模型
 
-預設 host port 是 `43064`，對應容器內 `3000`。容器內一定要用 `HOST=0.0.0.0`，因為 Docker port publish 需要它；同時上游在公開 bind 時會要求你顯式設定 `ALLOW_HTTP_BASIC_OVER_HTTP=1`，所以這個值我也保留為預設開啟。
+預設 host port 是 `43067`，對應容器內 `3000`（`43064` 已被 ChatStack 的 cline-pass-switcher 占用）。容器內一定要用 `HOST=0.0.0.0`，因為 Docker port publish 需要它；同時上游在公開 bind 時會要求你顯式設定 `ALLOW_HTTP_BASIC_OVER_HTTP=1`，所以這個值我也保留為預設開啟。
 
 `ENABLE_HSTS=false` 是刻意保守的預設。這個服務本身會提供 Basic Auth，如果你要真的對外公開，正確做法是把它放在 TLS 反代後面，而不是直接把 HTTP 裸露出去。
 
 目前預設入口：
 
 ```text
-http://127.0.0.1:43064
+http://127.0.0.1:43067
 ```
 
 ## 已啟用的掛載

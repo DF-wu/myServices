@@ -22,6 +22,9 @@
 # - 43062 | sub2api
 # - 43063 | infinite-canvas
 # - 43064 | cline-pass-switcher
+# - 43065 | librechat（不在這份 compose 裡，2026-10-23 另外建立的 chatstack-librechat-1）
+# - 43066 | deepseek-harness（獨立 stack，見 deepseek-harness/）
+# - 43067 | cc-switch-web（獨立 stack，見 cc-switch-web/）
 # - 43080 | telegram-chatbot (legacy profile)
 # - 59998 | tika
 
