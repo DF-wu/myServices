@@ -1,22 +1,22 @@
-# ChatStack：NyaProxy / Exa key pool
+# NyaProxy / Exa key pool（獨立 Stack）
 
-本目錄提供設定範本；服務已加進 `ChatStack/docker-compose.yml`。由你在 **Portainer 更新既有 ChatStack stack**，沒有另外部署新 stack，也沒有替你啟動容器。
+本目錄的 `nyaproxy/docker-compose.yml` 可直接建立獨立的 **nyaproxy stack**。包含 NyaProxy 與 Nginx 入口兩個服務，使用自己的 Compose 預設網路；不依賴 ChatStack、外部網路、PostgreSQL 或 Redis。由你在 Portainer 部署。
 
-沿用 ChatStack 的 `/mnt/appdata/ChatStack`、`user: 3000:3000`、`TZ=Asia/Taipei` 與 `unless-stopped`。對外只有一個 port：`43068`。
+沿用 repo 的 `user: 3000:3000`、`TZ=Asia/Taipei` 與 `unless-stopped` 慣例，獨立 appdata 放在 `/mnt/appdata/nyaproxy`。對外只有一個 port：`43068`。
 
 ## 1. 在 Docker 主機準備檔案
 
-從 myServices repo 根目錄執行以下操作。這些是你部署前要做的步驟，不會由 Portainer 自動複製：
+從 myServices repo 根目錄執行以下操作。首次部署前需準備這些 host 檔案，Portainer 不會自動從 repo 複製。以下以目的檔尚未存在為前提；若已有設定，請保留現有檔案：
 
 ```sh
-mkdir -p /mnt/appdata/ChatStack/nyaproxy/data
-cp ChatStack/nyaproxy/config.example.yaml /mnt/appdata/ChatStack/nyaproxy/data/config.yaml
-cp ChatStack/nyaproxy/nginx.conf /mnt/appdata/ChatStack/nyaproxy/nginx.conf
+mkdir -p /mnt/appdata/nyaproxy/data
+cp nyaproxy/config.example.yaml /mnt/appdata/nyaproxy/data/config.yaml
+cp nyaproxy/nginx.conf /mnt/appdata/nyaproxy/nginx.conf
 ```
 
-`data/` 必須能讓 `3000:3000` 讀寫，`nginx.conf` 必須可讀。你的 appdata NFS 以 all_squash 映射至 UID 3000，請使用現有可寫的 NFS 掛載建立；不要讓 Docker 首次啟動才代建來源目錄，也不要在 NFS 上硬做 chown。若改放本機檔案系統，則讓資料目錄的擁有者／權限符合 `3000:3000`。
+`data/` 必須能讓 `3000:3000` 讀寫，`nginx.conf` 必須可讀。目前實測 appdata NFS 建檔後的擁有者映射為 `3000:3000`，請使用現有可寫的 NFS 掛載建立；不要讓 Docker 首次啟動才代建來源目錄，也不要在 NFS 上硬做 chown。若改放本機檔案系統，則讓資料目錄的擁有者／權限符合 `3000:3000`。
 
-2026-10-28 已在本機準備好上述目錄與兩個設定檔：擁有者皆為 `3000:3000`，目錄 `0775`、檔案 `0664`，並驗證 `data/` 可以建立／寫入／atomic rename。尚未啟動服務或填入真實 keys；換主機時仍需重新準備。
+2026-10-28 已為獨立 stack 在本機準備好上述目錄與兩個設定檔：擁有者皆為 `3000:3000`，目錄 `0775`、檔案 `0664`，並驗證 `data/` 可以建立／寫入／atomic rename。尚未啟動服務或填入真實 keys；換主機時仍需重新準備。先前位於 `/mnt/appdata/ChatStack/nyaproxy` 的範本保留，獨立 stack 不再掛載該路徑。若你已在舊目錄寫入設定或狀態，請在舊容器停止後遷移整個 `data/`，避免遺失 UI 設定與冷卻狀態。
 
 **為何 Docker 不能直接代建？** 此主機的 `/mnt/appdata` 是 `192.168.10.10:/mnt/cachePool/appdata` 的 NFSv4 掛載。實測以 UID 1000 建立測試目錄後，NFS 回報擁有者為 `3000:3000`；改擁有者為 `0:0` 會得到 `EPERM / Operation not permitted`。Docker daemon 則以 root 執行，bind mount 來源不存在時不只 mkdir，還會嘗試將**新建**目錄 chown 成 daemon 的 root identity，這一步會被 NFS 的帳號映射／權限拒絕。Compose 的 `user: 3000:3000` 只決定容器內程序身分，不會改變 daemon 建來源目錄的身分。預先建立來源後，Docker 的「只處理新目錄」邏輯就不再改該目錄擁有者，因此不用放寬 NFS 的 squash 設定。[Docker/Moby 的 bind mount 建目錄邏輯](https://github.com/moby/moby/blob/v28.5.1/volume/mounts/mounts.go#L249-L263) 可見 `MkdirAllAndChown(...rootIDs..., WithOnlyNew)`。
 
@@ -24,7 +24,7 @@ cp ChatStack/nyaproxy/nginx.conf /mnt/appdata/ChatStack/nyaproxy/nginx.conf
 
 ## 2. Portainer 必填環境變數
 
-在既有 ChatStack stack 的 **Environment variables** 填以下三項；可以先匯入 `portainer.env.example`，再填真值。
+在獨立 **nyaproxy stack** 的 **Environment variables** 填以下三項；可以先匯入 `portainer.env.example`，再填真值。
 
 | 變數 | 格式／用途 |
 | --- | --- |
@@ -52,18 +52,26 @@ NYA_APIS__EXA__VARIABLES__KEYS=["Exa key A","Exa key B"]
 
 NyaProxy `0.8.2` manifest 已確認有 `linux/amd64` 與 `linux/arm64`。2026-10-28 查核時 `0.8.2` 與 `latest` 同指 `sha256:8586bca6968065168f2926cb2e9cf946b14eba3c9da2de71c846e03f3742526d`；本次使用固定版本 tag。
 
-## 3. 由你更新既有 Stack
+## 3. 由你建立獨立 Stack
 
-既有 repository stack 保留：repository `https://github.com/DF-wu/myServices.git`、reference `refs/heads/master`、compose path `ChatStack/docker-compose.yml`。先把本次變更同步到 Portainer 實際讀取的 Git reference；如果直接貼 Compose，使用更新後的完整 ChatStack Compose。
+在 Portainer **Add stack → Repository** 設定：
 
-確認上面的兩個 host 檔案與三項 env 都備妥，再由你在 Portainer Pull / Update / Redeploy。不要只部署 `nyaproxy-gateway`：它會等 `nyaproxy` healthy 才啟動；兩者留在同一個 ChatStack 預設網路即可，不需要新增 PostgreSQL 或 Redis。
+- Name：`nyaproxy`
+- Repository URL：`https://github.com/DF-wu/myServices.git`
+- Repository reference：`refs/heads/master`
+- Compose path：`nyaproxy/docker-compose.yml`
+- Environment variables：填入上一節的三項必填值。
+
+也可以在 Web editor 貼上這份獨立 Compose。確認 host 的兩份設定檔與 env 都備妥後，由你部署；兩個服務會在新 stack 自己的預設網路內互通，入口會等待 NyaProxy healthy。
+
+`ChatStack/docker-compose.yml` 已移除這兩個服務，ChatStack 不再需要 `NYAPROXY_*` 變數。若你已用舊版 ChatStack 部署 NyaProxy，先由你更新 ChatStack 並確認舊的 `nyaproxy` / `nyaproxy-gateway` 容器已移除，再建立新 stack，因為沿用相同的容器名稱與 host port。這次沒有操作現有容器。
 
 部署後：
 
 - Dashboard／登入入口：`http://<Docker主機>:43068/dashboard/`，使用 `NYAPROXY_ADMIN_KEY`。根路徑 `/` 只是 welcome JSON。
 - Config UI：`http://<Docker主機>:43068/config`，同樣用管理 token。
 - Exa REST base URL（主機／區網客戶端）：`http://<Docker主機>:43068/api/exa`。
-- Exa REST base URL（同一 ChatStack 內）：`http://nyaproxy-gateway:8080/api/exa`。
+- Exa REST base URL（ChatStack 或其他 stack）：同樣使用 `http://<Docker主機LAN-IP或可解析名稱>:43068/api/exa`。`nyaproxy-gateway:8080` 只在 NyaProxy stack 自己的網路內可解析。
 - Health：`http://<Docker主機>:43068/health`。這只檢查 gateway 和 NyaProxy 存活，不會消耗 Exa 額度，也不保證每把 key 有效。
 
 ## 4. 客戶端設定
@@ -78,15 +86,15 @@ EXA_TIMEOUT_SECONDS=120
 
 **客戶端拿的是 pool 的 client token，不是真實 Exa key**；真實 keys 只放 `NYAPROXY_EXA_API_KEYS`。不要加 `/v1`、`/v2` 或再次附加 `/search` 到 base URL。
 
-ChatStack 既有的 Catalina / Claudia 已經有 smart-search env 映射，不必再改服務定義。要讓兩者的 smart-search 改走此 pool，另外在同一份 Portainer Environment 設定：
+ChatStack 既有的 Catalina / Claudia 已有 smart-search env 映射。若要使用此獨立 pool，請在 **ChatStack 自己的 Portainer Environment** 設定以下值；不要填在 NyaProxy stack。跨 stack 請用客戶端容器能連到的 Docker 主機 LAN IP 或 DNS 名稱：
 
 ```text
-SMART_SEARCH_EXA_BASE_URL=http://nyaproxy-gateway:8080/api/exa
+SMART_SEARCH_EXA_BASE_URL=http://<Docker主機LAN-IP或可解析名稱>:43068/api/exa
 SMART_SEARCH_EXA_API_KEY=<NYAPROXY_API_KEY 的同一個值>
 SMART_SEARCH_EXA_TIMEOUT_SECONDS=120
 ```
 
-同時更新這些 client 容器才會收到新的 env。既有 smart-search 若已把設定寫入 `/data/.config/smart-search/config.json`，還要確認其設定來源；若持久化值優先，以該 client 的 `smart-search config set` 更新 `EXA_BASE_URL` / `EXA_API_KEY` / `EXA_TIMEOUT_SECONDS`。這次沒有更動任何 client 的真實設定或持久化檔案。
+若覆寫 `NYAPROXY_HOST_PORT`，客戶端 URL 也要使用同一個 port。兩個 stack 不需共用 Docker network；目前 Catalina / Claudia 沒有 `host.docker.internal` 映射，請直接用可連線的 LAN 位址。由你更新 client 容器後才會收到新的 env。既有 smart-search 若已把設定寫入 `/data/.config/smart-search/config.json`，還要確認其設定來源；若持久化值優先，以該 client 的 `smart-search config set` 更新 `EXA_BASE_URL` / `EXA_API_KEY` / `EXA_TIMEOUT_SECONDS`。這次沒有更動任何 client 的真實設定或持久化檔案。
 
 也支援手動帶 `Authorization: Bearer <NYAPROXY_API_KEY>`。NyaProxy 原生僅接受 Bearer，故 `nyaproxy-gateway` 用標準 Nginx 在 `/api/exa/` 將 client 的 `x-api-key` 轉成 Bearer；NyaProxy 驗證後再把選到的 **真實 key** 注入上游 `x-api-key`。入口 Exa 路由會清除 Cookie，**NyaProxy Exa provider 也以 `Cookie: ""` 覆寫上游 header**，避免編碼路徑繞過入口匹配後仍將管理登入 token 轉送至 Exa。管理介面不受這個 Exa 上游規則影響，仍由 NyaProxy 驗證。若兩個 header 都帶，明確的 Authorization 優先。
 
