@@ -1,6 +1,6 @@
 # iDRAC Fan Control on TrueNAS
 
-這個目錄提供可貼入 TrueNAS SCALE 25.10 **Install via YAML** 的部署設定。控制器在 TrueNAS 上執行，使用本機 Kioxia CD6 與遠端 axolotl Tesla P4 的溫度控制 Dell iDRAC 風扇。
+這個目錄提供可貼入 TrueNAS SCALE 25.10 **Install via YAML** 的部署設定。控制器在 TrueNAS 上執行，使用 R730xd 的 iDRAC sensors 與遠端 axolotl Tesla P4 溫度控制 Dell iDRAC 風扇。
 
 ## 已確認的環境
 
@@ -11,11 +11,11 @@
 | App data | `/mnt/cachePool/appdata` |
 | Docker Compose | `v2.38.1` |
 | Kioxia CD6 | `KCD61LUL7T68`, serial `61J0A02CT7C8` |
-| CD6 controller device | `/dev/nvme0` |
+| CD6 controller device | VMware virtual NVMe；SMART telemetry 不可用於控制 |
 | iDRAC | `192.168.10.8` (`idrac-r730xd.newhome`) |
 | axolotl | `192.168.10.13` |
 | Tesla P4 | `GPU-82dd964b-0c4c-78d4-8bd3-f7067e8cb29f` |
-| Controller image | `ghcr.io/df-wu/idrac-fan-control@sha256:0b67b5ea85e3d3c5de2c05eb73179a6c1adf1a5249642904db051ae47687a279` |
+| Controller image | `ghcr.io/df-wu/idrac-fan-control@sha256:0a4d1352636bc6ea3391b654864ece3f41e5d2a22aafd096d3b2af27376debeb` |
 
 `docker-compose.yml` 是完整的單檔設定。部署者只需在 TrueNAS YAML 編輯器內替換三個 `REPLACE_TO_YOUR_*` 欄位，不需要建立外部 env 或 secret 檔案。
 
@@ -31,11 +31,13 @@ sudo install -d -m 0750 /mnt/cachePool/appdata/idrac-fan-control/logs
 
 ## 2. 部署前唯讀檢查
 
-確認 CD6 SMART 溫度：
+確認 iDRAC temperature sensors：
 
 ```bash
-sudo smartctl -A -j /dev/nvme0 | jq '.temperature.current'
+sudo docker exec idrac-fan-control /usr/local/bin/fan-control.sh status
 ```
+
+TrueNAS VM 中的 CD6 會顯示為 `VMware Virtual NVMe Disk`。其 NVMe SMART log 曾回報 `11759°C` 與錯位計數，因此不得啟用 `linux_disk` 來源；若日後需要 CD6 溫度，應改由 ESXi 對實體裝置讀取。
 
 確認 TrueNAS 能以設定的帳號登入 axolotl 並讀取 P4：
 
@@ -62,6 +64,10 @@ REMOTE_GPU_PASSWORD: REPLACE_TO_YOUR_AXOLOTL_SSH_PASSWORD
 
 6. 儲存並等待容器啟動。
 
+Compose 使用 `restart: always`。控制程序意外退出、Docker daemon 重啟或 TrueNAS
+重新開機後，容器都會自動恢復；若要維護停機，須先將 App 停止，並注意 Docker
+daemon 或主機再次啟動時它仍會恢復常駐。
+
 ## 4. 部署後唯讀診斷
 
 先執行映像內建的 `diagnose`。它不會送出風扇控制命令：
@@ -73,7 +79,7 @@ sudo docker exec idrac-fan-control /usr/local/bin/fan-control.sh diagnose
 只有下列項目全部顯示 `PASS`，才保留 `OPERATION_MODE=auto` 持續運作：
 
 - `iDRAC/IPMI`
-- `source:linux_disk`
+- `source:idrac`
 - `source:remote_gpu`
 - `decision preview`
 
@@ -91,11 +97,9 @@ sudo tail -f /mnt/cachePool/appdata/idrac-fan-control/logs/fan_control.log
 
 每個正常控制週期應同時列出：
 
-- `linux_disk:nvme0=<temperature>C`
+- `idrac:<sensor>=<temperature>C`
 - `remote_gpu:192.168.10.13/gpu0=<temperature>C`
 - 最終 decision temperature、level 與 fan percentage
-
-CD6 在 Docker 內需要 `SYS_ADMIN` 才能執行 NVMe admin ioctl。Compose 已只加入這個 capability；僅映射 `/dev/nvme0`、加入 `SYS_RAWIO` 或停用 seccomp 都無法讀取溫度。
 
 ## 5. 驗證與回復
 
@@ -118,7 +122,7 @@ sudo docker exec idrac-fan-control /usr/local/bin/fan-control.sh restore
 ## 安全邊界
 
 - 不要把包含真實密碼的 YAML 或 incident dump 提交到 Git。
-- 容器只映射 `/dev/nvme0` 並加入 `SYS_ADMIN`，不使用 `privileged`。
+- 容器不映射 host device、不加入額外 capability，也不使用 `privileged`。
 - 不掛載 Docker socket，也不要求 TrueNAS NVIDIA runtime。
 - 控制器只對外連線 iDRAC UDP 623 與 axolotl SSH 22，不需發布連接埠。
 - `diagnose` 是部署前必要門檻；不要在任何來源失敗時直接啟動 unattended auto mode。

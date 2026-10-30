@@ -1,0 +1,67 @@
+# author: df
+# description: Standalone NyaProxy / Exa key pool
+# Setup and Portainer environment: README.md / portainer.env.example
+# Host port: 43068; appdata: /mnt/appdata/nyaproxy; UID/GID: 3000:3000
+
+services:
+  # NyaProxy Exa key pool. Setup / Portainer env: README.md
+  # Prepare the two host config files before deploying; /mnt/appdata is NFS.
+  # Keep /app writable: the config UI saves by atomic rename, and cooldown state lives here.
+  nyaproxy:
+    image: k3scat/nya-proxy:${NYAPROXY_IMAGE_TAG:-0.8.2}
+    container_name: nyaproxy
+    user: 3000:3000
+    init: true
+    restart: unless-stopped
+    command: ["--config", "/app/config.yaml", "--host", "0.0.0.0", "--port", "8080"]
+    environment:
+      TZ: Asia/Taipei
+      # Nacho env overrides: double underscore separates nested keys.
+      # First key administers the UI; the second is for Exa clients.
+      NYA_SERVER__API_KEY: '["${NYAPROXY_ADMIN_KEY:?Set NYAPROXY_ADMIN_KEY in Portainer}","${NYAPROXY_API_KEY:?Set NYAPROXY_API_KEY in Portainer}"]'
+      NYA_APIS__EXA__VARIABLES__KEYS: ${NYAPROXY_EXA_API_KEYS:?Set NYAPROXY_EXA_API_KEYS to a JSON array in Portainer}
+    volumes:
+      - /mnt/appdata/nyaproxy/data:/app
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Exa SDKs send x-api-key; NyaProxy authenticates incoming traffic with Bearer.
+  # This thin ingress adapts that header only on /api/exa/; NyaProxy still owns rotation.
+  # UI: http://<host>:43068/dashboard/ ; Exa base URL: http://<host>:43068/api/exa
+  nyaproxy-gateway:
+    image: nginxinc/nginx-unprivileged:stable-alpine
+    container_name: nyaproxy-gateway
+    user: 3000:3000
+    restart: unless-stopped
+    entrypoint: ["nginx", "-g", "daemon off;"]
+    ports:
+      - "${NYAPROXY_HOST_PORT:-43068}:8080"
+    environment:
+      - TZ=Asia/Taipei
+    volumes:
+      - /mnt/appdata/nyaproxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    tmpfs:
+      - /tmp
+    depends_on:
+      nyaproxy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,51 @@
+# NyaProxy 0.8.2. Copy to /mnt/appdata/nyaproxy/data/config.yaml.
+# Credentials are supplied by Portainer through the compose NYA_* env overrides.
+server:
+  api_key: []
+  logging:
+    enabled: true
+    level: info
+    log_file: /app/app.log
+  dashboard:
+    enabled: true
+
+default_settings:
+  key_variable: keys
+  randomness: 0.0
+  load_balancing_strategy: round_robin
+  allowed_methods: [GET, POST, HEAD, PUT, DELETE, PATCH, OPTIONS]
+  queue:
+    max_size: 200
+    max_workers: 10
+    # Age since the initial enqueue, including earlier attempts; retries do not reset it.
+    expiry_seconds: 90
+  rate_limit:
+    enabled: false
+  retry:
+    enabled: true
+    attempts: 3
+    retry_after_seconds: 1
+    retry_request_methods: [GET, POST]
+    retry_status_codes: [401, 402, 429, 500, 502, 503, 504]
+  key_blocking:
+    enabled: true
+    status_codes: [401, 402]
+    duration_seconds: 300
+  timeouts:
+    # Also bounds the entire queued request future, not just one upstream attempt.
+    request_timeout_seconds: 90
+
+apis:
+  exa:
+    name: Exa API key pool
+    endpoint: https://api.exa.ai
+    key_variable: keys
+    load_balancing_strategy: round_robin
+    headers:
+      x-api-key: "${{keys}}"
+      # Final upstream policy: also covers encoded paths that bypass ingress location rules.
+      Cookie: ""
+    variables:
+      keys: []
+    request_body_substitution:
+      enabled: false

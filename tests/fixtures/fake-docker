@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+#
+# Fake `docker` CLI for tests/pull-image.bats. It implements only the commands
+# pull-image.sh uses, driven by a scenario under $FAKE_DOCKER_DIR:
+#
+#   containers   one per line: name|config image|running image ID|project|service|working dir|config files
+#   images       one per line: repository|tag|digest|image ID   (`docker image ls`)
+#   tags/<ref>   image ID that `docker image inspect <ref>` resolves to ("/" in <ref> becomes "_")
+#   pulls        one per line: ref|behaviour, where behaviour is
+#                  same        pull succeeds, image unchanged (default)
+#                  new:<id>    pull succeeds and moves the tag to <id>
+#                  denied      permanent failure (repository does not exist)
+#                  flaky:<n>   transient failure for the first <n> attempts, then same
+#                  slow:<s>    succeeds unchanged after <s> seconds, reporting layers as it goes
+#                  hang        never finishes (until killed)
+#   daemon-down  if present, `docker info` fails
+#
+# Every invocation is appended to $FAKE_DOCKER_DIR/calls.
+
+set -uo pipefail
+
+dir=${FAKE_DOCKER_DIR:?FAKE_DOCKER_DIR must be set}
+sep=$'\x1f'
+printf '%s\n' "$*" >>"$dir/calls"
+
+tag_file() { printf '%s/tags/%s' "$dir" "${1//\//_}"; }
+
+pull_behaviour() {
+  local ref=$1 line
+  if [[ -f $dir/pulls ]]; then
+    while IFS= read -r line; do
+      if [[ ${line%%|*} == "$ref" ]]; then
+        printf '%s\n' "${line#*|}"
+        return 0
+      fi
+    done <"$dir/pulls"
+  fi
+  printf 'same\n'
+}
+
+pull_ok() {
+  printf '%s: Pulling from fake\n' "${1##*:}"
+  printf '0123456789ab: Already exists\n'
+  printf 'abcdef012345: Pull complete\n'
+  printf 'Status: %s\n%s\n' "$2" "$1"
+}
+
+case ${1:-} in
+info)
+  if [[ -e $dir/daemon-down ]]; then
+    printf 'Cannot connect to the Docker daemon at unix:///var/run/docker.sock\n' >&2
+    exit 1
+  fi
+  printf '29.0.0%s/nonexistent-docker-root\n' "$sep"
+  ;;
+ps)
+  n=0
+  while IFS= read -r _; do
+    n=$((n + 1))
+    printf 'container%02d\n' "$n"
+  done <"$dir/containers"
+  ;;
+inspect)
+  while IFS='|' read -r name image id project service workdir configs; do
+    printf '/%s%s%s%s%s%s%s%s%s%s%s%s%s\n' "$name" "$sep" "$image" "$sep" "$id" "$sep" "$project" \
+      "$sep" "$service" "$sep" "$workdir" "$sep" "$configs"
+  done <"$dir/containers"
+  ;;
+image)
+  case ${2:-} in
+  ls)
+    while IFS='|' read -r repo tag digest id; do
+      printf '%s%s%s%s%s%s%s\n' "$repo" "$sep" "$tag" "$sep" "$digest" "$sep" "$id"
+    done <"$dir/images"
+    ;;
+  inspect)
+    ref=${*: -1}
+    if [[ -f $(tag_file "$ref") ]]; then
+      cat -- "$(tag_file "$ref")"
+    else
+      printf 'Error response from daemon: No such image: %s\n' "$ref" >&2
+      exit 1
+    fi
+    ;;
+  *) exit 64 ;;
+  esac
+  ;;
+pull)
+  ref=${*: -1}
+  behaviour=$(pull_behaviour "$ref")
+  case $behaviour in
+  same) pull_ok "$ref" "Image is up to date for $ref" ;;
+  new:*)
+    printf '%s\n' "${behaviour#new:}" >"$(tag_file "$ref")"
+    pull_ok "$ref" "Downloaded newer image for $ref"
+    ;;
+  denied)
+    printf "Error response from daemon: pull access denied for %s, repository does not exist or may require 'docker login'\n" "${ref%:*}" >&2
+    exit 1
+    ;;
+  flaky:*)
+    counter=$dir/attempts-${ref//\//_}
+    seen=$(($(cat -- "$counter" 2>/dev/null || echo 0) + 1))
+    printf '%s\n' "$seen" >"$counter"
+    if ((seen <= ${behaviour#flaky:})); then
+      printf 'Error response from daemon: Get "https://registry-1.docker.io/v2/": net/http: TLS handshake timeout\n' >&2
+      exit 1
+    fi
+    pull_ok "$ref" "Image is up to date for $ref"
+    ;;
+  slow:*)
+    printf '%s: Pulling from fake\n' "${ref##*:}"
+    for layer in 111111111111 222222222222 333333333333 444444444444; do
+      printf '%s: Pulling fs layer\n' "$layer"
+    done
+    for layer in 111111111111 222222222222 333333333333 444444444444; do
+      sleep "$(awk -v s="${behaviour#slow:}" 'BEGIN { print s / 4 }')"
+      printf '%s: Pull complete\n' "$layer"
+    done
+    printf 'Status: Image is up to date for %s\n%s\n' "$ref" "$ref"
+    ;;
+  hang) exec sleep 300 ;;
+  esac
+  ;;
+*)
+  printf 'fake docker: unsupported command: %s\n' "$*" >&2
+  exit 64
+  ;;
+esac

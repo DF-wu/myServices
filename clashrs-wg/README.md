@@ -101,13 +101,20 @@ router mode (`auto-route` plus `auto-redirect`) and limits interception to `wg0`
 `include-interface`. It therefore does not need a custom nftables script or routing
 sidecar.
 
-wg-easy UI 與 Mihomo API 只監聽 axolotl loopback。從另一台內網電腦管理時使用：
+wg-easy UI 只監聽 axolotl 的 LAN IP，可直接從內網瀏覽器開啟：
 
-```bash
-ssh -L 51821:127.0.0.1:51821 -L 19090:127.0.0.1:19090 user@192.168.10.13
+```text
+http://192.168.10.13:51821
 ```
 
-- wg-easy: `http://127.0.0.1:51821`
+登入後建立 client，即可顯示 QR code 或下載 WireGuard `.conf`。Mihomo API 仍只
+監聽 axolotl loopback；從另一台內網電腦存取 API 時使用：
+
+```bash
+ssh -L 19090:127.0.0.1:19090 user@192.168.10.13
+```
+
+- wg-easy: `http://192.168.10.13:51821`
 - Mihomo API: `http://127.0.0.1:19090`
 
 ## Host requirements

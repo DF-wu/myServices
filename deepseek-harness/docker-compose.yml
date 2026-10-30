@@ -1,0 +1,134 @@
+# prepared: 2026-10-16
+# description: DeepSeek Harness (DSH) — 官方 DSH Web 工作區 + Web Admin 控制台 + 容器內 Chromium noVNC 桌面。
+# upstream (docker): https://github.com/misaka-link/deepseek-harness-docker
+# upstream (core):   https://github.com/deepseek-ai/deepseek-harness
+# image: ghcr.io/misaka-link/deepseek-harness-docker:latest-market
+#        （2026-10-25 時指向套件工程版本 0.2.9，內建 @deepseek-ai/dsh@0.2.1-rc.3，僅 linux/amd64）
+# 對外：NPM dsh.dfder.tw → 192.168.10.13:43066（設定見 README「放到反代後面」）。
+#
+# Portainer Repository Stack：
+# - Repository URL: https://github.com/DF-wu/myServices.git
+# - Reference:      refs/heads/master
+# - Compose path:   deepseek-harness/docker-compose.yml
+# - Environment:    同目錄 .env 提供可提交的預設值；秘密在 Portainer 設定同名環境變數。
+#
+# 設計原則（已對照上游 Dockerfile / gateway 原始碼驗證）：
+# - 用 market 變體：在純淨版之上預裝社群應用市場 dshmarket 與思考強度調節插件
+#   （@hytime/dsh-thinking-effort），這兩個插件在 image build 時跟隨 @latest。
+# - 一個 port 包全部：DSH Web `/`、Admin `/admin/`、noVNC `/vnc/` 都走同一個 gateway 與同一套認證。
+# - 容器內 port 固定 3080：上游 image 的 HEALTHCHECK 寫死 `curl http://127.0.0.1:3080/healthz`，
+#   改 PROXY_PORT 會讓容器永遠 unhealthy，所以只改 host 端 port
+#   （預設 43066，myServices AI 工具的 43xxx 區段；43065 已被 ChatStack 的 LibreChat 占用）。
+# - image tag 用 latest-market，跟著上游走，不手動維護版本。上游每次 build 推純淨版、-market、
+#   -mini 三個變體，各打 latest / 工程版本（0.2.9、v0.2.9）/ 內建 DSH 版本（0.2.1-rc.3、dsh-0.2.1-rc.3）。
+#   Pull and redeploy 時要打開「Re-pull image and redeploy」才會真的拉到新版；
+#   遇到新版出問題，把 DSH_IMAGE_TAG 改成上一個工程版本 tag（例如 0.2.8-market）即可回退。
+#   內建 DSH 版本 tag 會被後續 build 覆寫，不能當回退點。
+#   DSH 核心另外可在 Admin 內線上切換，切換歸檔存在 snapshots 卷
+#   （在這台 all_squash NFS 上歸檔會失敗，見 README「已知限制」）。
+# - AUTH_TOKEN 預設留空：首次造訪會進 `/setup` 初始化口令，口令以 0600 存進 dsh 資料卷，
+#   所以祕密不會進 git，也不必放進 Portainer environment。
+# - 桌面設定的 env 只是「初始預設值」：第一次啟動就寫進 /root/.dsh/gateway.config.json，之後以 Admin 為準。
+#   PROXY_PORT、ADMIN_PATH、VNC_PATH、AUTH_TOKEN 則是顯式 env 優先；TRUST_PROXY、PUBLIC_HOST
+#   沒有 Admin 欄位會寫入，實際上由 env 決定。選用參數跟上游一樣保留成註解，要用再打開。
+#
+# 持久化路徑：
+# - /root/.dsh             = DSH 設定、profile、插件、會話歷史、訪問口令、session secret、gateway.config.json
+# - /root/.dsh-snapshots   = 設定快照 + versions/ 核心版本歸檔
+# - /workspace             = AI 工作區（產生的專案程式碼與文件）
+# - /root/.config/chromium = 容器 Chromium 的 profile（登入狀態 / cookies）
+
+services:
+  deepseek-harness:
+    image: ghcr.io/misaka-link/deepseek-harness-docker:${DSH_IMAGE_TAG:-latest-market}
+    container_name: deepseek-harness
+    restart: unless-stopped
+    ports:
+      # 只暴露單一統一 port（DSH Web、Admin、VNC 桌面共用，共享同一套認證）。
+      # 容器內固定 3080，理由見檔頭。
+      - "${DSH_HOST_PORT:-43066}:3080"
+    # 隨 Repository 拉取同目錄 .env；其中秘密只引用 Portainer 的同名環境變數。
+    env_file:
+      - .env
+    environment:
+      TZ: ${TZ:-Asia/Taipei}
+
+      # 訪問認證碼（存取 DSH Web、Admin 與 VNC 桌面都需要）。
+      # 留空：首次造訪自動導向「初始化訪問口令」頁面，設定後才能使用（上游已沒有免密直通模式）。
+      # 填值：跳過初始化精靈，直接使用該口令（不要用 admin 之類的弱口令）。
+      # 讀取 Portainer Stack Environment 的同名 AUTH_TOKEN，未設定時留空。
+      AUTH_TOKEN: ${AUTH_TOKEN:-}
+      # 選用：同名 SESSION_SECRET；留空時服務自動產生並持久化，不需把秘密寫進 repo。
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      # 統一對外 port（gateway 監聽的容器內 port）。顯式 env 優先於資料卷中的持久化設定。
+      # 固定 3080，不開放覆寫，理由見檔頭。
+      PROXY_PORT: 3080
+      # 執行根目錄；以非 root（1001:1001）部署時才改成 /home/dsh。
+      DSH_HOME: /root
+      # 線上切換 DSH 核心版本前的磁碟水位門檻（MB，預設 1536），低於此值會拒絕切換。
+      DSH_VERSIONS_MIN_FREE_MB: ${DSH_VERSIONS_MIN_FREE_MB:-1536}
+
+      # 反代相關（Admin 沒有欄位會寫入這兩項，改 env 後重新部署即生效）。
+      # 是否信任反代轉發的 X-Forwarded-For 做登入限流。預設 1：對外經 NPM 的 dsh.dfder.tw，
+      # 不開的話所有請求都會被算成 NPM 那一個 IP，一人輸錯口令就會把所有人一起限流。
+      # gateway 只取 XFF 最右一個 IP（NPM 的 $remote_addr）。但 dsh.dfder.tw 走 Cloudflare 橘雲，
+      # NPM 對 Cloudflare / 私有網段來源會採信 X-Real-IP，公網用戶很可能自填就能繞過限流；直接連 43066
+      # 的區網 / tailnet 用戶也能自帶 XFF。口令要夠強；若 43066 暴露給不可信網路請改回 0。
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      # 對外 hostname 白名單（逗號分隔），用於 WebSocket 同源校驗，例如 dsh.dfder.tw。
+      # gateway 只認真實 Host 頭 + 這份白名單，刻意不採用可偽造的 X-Forwarded-Host。
+      # 上游（gateway/ws-origin.js）是逐字精確比對，不支援 `*` 之類的萬用字元。
+      # 預設留空即可：只要反代保留原始 Host 頭（NPM、Cloudflare Tunnel 預設都會），
+      # 瀏覽器 Origin 就會等於 Host 而通過；只有反代改寫 Host 時才需要填真實的對外 hostname。
+      PUBLIC_HOST: ${PUBLIC_HOST:-}
+
+      # 出站網路代理（選用：模型 API、Web 搜尋或插件下載需要繞路時再填；DSH 0.1.5-rc.1 起原生遵循）。
+      # URL 若含帳密，請在 Portainer 設定 HTTP_PROXY / HTTPS_PROXY / ALL_PROXY 同名變數。
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      ALL_PROXY: ${ALL_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1}
+
+      # --- 以下參數容器與 gateway 都有內建預設值，跟上游一樣預設註解保持簡潔，按需啟用：---
+      # ADMIN_PATH: /admin                   # 自訂 Admin 路徑（預設 /admin）
+      # VNC_PATH: /vnc                       # 自訂 noVNC 桌面路徑（預設 /vnc）
+      # DSH_WORKSPACE: /workspace            # DSH 預設工作區目錄
+      # DSH_DESKTOP_ENABLED: 1               # 是否啟用內建 Chromium 圖形桌面（1 開啟 / 0 關閉）
+      # DSH_IDLE_TIMEOUT_MINUTES: 30         # 桌面閒置休眠分鐘數。注意：env 填 0 會被當成未設定而回到 30，要「永不休眠」請在 Admin 設
+      # DSH_DESKTOP_WIDTH: 1920              # 虛擬桌面寬度（Admin 可動態調整）
+      # DSH_DESKTOP_HEIGHT: 1080             # 虛擬桌面高度（Admin 可動態調整）
+      # DSH_ENABLE_CDP: 1                    # Chromium CDP 9222 遠端除錯（0 關閉；只在容器內，未對外 publish）
+      # DSH_SCREENSHOT_QUALITY: high         # AI 截圖預設畫質（high / medium / low）
+      # DSH_SCREENSHOT_DIR: ""               # AI 截圖預設存放子目錄（相對工作區，留空 = 工作區根目錄）
+      # DSH_VERSIONS_KEEP: 3                 # versions/ 內保留的核心版本歸檔數量（LRU）
+      # DSH_MAX_ARCHIVE_MEMBERS: 1000000     # 快照還原 / 匯入前的成員數上限（預設 100 萬；快照真的超過才需要調高）
+      # COOKIE_MAX_AGE: 2592000              # 登入 cookie 有效秒數（預設 30 天）
+
+    # ── 容器加固（沿用上游 M11）─────────────────────────────────────
+    # 1) 禁止提權：setuid / setgid binary 無法取得新權限。
+    security_opt:
+      - no-new-privileges:true
+    # 2) 丟掉全部 Linux capabilities，只回補 root 執行所需的最小集合
+    #    （entrypoint 要修正資料卷屬主 / 權限，並建立與管理 DSH、Xvfb、Chromium 等子程序）。
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+      - KILL
+    # 3) 【選用】以非 root 執行（更徹底）：打開下面這行，environment 的 DSH_HOME 改成 /home/dsh，
+    #    volumes 的容器端改成 /home/dsh/.dsh 等路徑，host 目錄先 chown 1001:1001；此時可刪掉上面的 cap_add。
+    #    注意：/mnt/appdata 是 all_squash 的 NFS，chown 會被拒絕，在這台主機上無法照此啟用。
+    # user: "1001:1001"
+    volumes:
+      # 1. DSH 系統與設定目錄（插件、預設、設定檔、會話歷史、訪問口令、session secret、gateway.config.json）
+      - ${DSH_APPDATA_DIR:-/mnt/appdata/deepseek-harness}/dsh:/root/.dsh
+      # 2. DSH 設定快照與備份歸檔（內含 versions/ 核心版本歸檔；這台 NFS 上歸檔會失敗，見 README「已知限制」）
+      - ${DSH_APPDATA_DIR:-/mnt/appdata/deepseek-harness}/snapshots:/root/.dsh-snapshots
+      # 3. 獨立專案工作區（AI 產生的專案程式碼、文件，與 DSH 系統目錄隔離）
+      - ${DSH_APPDATA_DIR:-/mnt/appdata/deepseek-harness}/workspace:/workspace
+      # 4. Chromium 使用者資料（持久化容器內瀏覽器的登入狀態與 cookies）
+      - ${DSH_APPDATA_DIR:-/mnt/appdata/deepseek-harness}/browser:/root/.config/chromium

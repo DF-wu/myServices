@@ -7,6 +7,9 @@
 # format: <host_port> | <service>
 # -  8317 | gluetun-proxy
 # -  8787 | lilac
+# -  8788 | lilac-claudia (GitHub webhook)
+# -  8789 | lilac-catalina (native web UI)
+# -  8790 | lilac-claudia (native web UI)
 # - 19000 | gluetun-proxy
 # - 43000 | open-webui
 # - 43001 | new-api
@@ -18,6 +21,11 @@
 # - 43061 | api-conversion
 # - 43062 | sub2api
 # - 43063 | infinite-canvas
+# - 43064 | cline-pass-switcher
+# - 43065 | librechat（不在這份 compose 裡，2026-10-23 另外建立的 chatstack-librechat-1）
+# - 43066 | deepseek-harness（獨立 stack，見 deepseek-harness/）
+# - 43067 | cc-switch-web（獨立 stack，見 cc-switch-web/）
+# - 43068 | nyaproxy-gateway（獨立 stack，見 nyaproxy/）
 # - 43080 | telegram-chatbot (legacy profile)
 # - 59998 | tika
 
@@ -222,6 +230,45 @@ services:
         [
           "CMD-SHELL",
           "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Cline Pass upstream switcher / console.
+  # repo: https://github.com/munmunjaklin458-afk/cline-pass-switcher
+  # Sits between the new-api "cline pass" channel (id 316) and api.cline.bot so the real upstream
+  # provider behind each cline-pass/* model can be probed, pinned, ordered or excluded from a web UI.
+  # - console:        http://<host>:43064/      (admin API + /v1 proxy need the proxyKey)
+  # - new-api channel: base_url http://cline-pass-switcher:3123, key = proxyKey
+  # - config + secrets: /mnt/appdata/ChatStack/cline-pass-switcher/data/config.json (seeded on the
+  #   host, never committed). The env vars below are optional overrides; empty = keep config.json.
+  # - upstream publishes no image. dx95/cline-pass-switcher is a GitHub-Actions build of a fork
+  #   (xianchoujiduluo/cline-pass-switcher @ cb56f1f) whose server.js / public / package.json were
+  #   verified byte-identical to upstream 02538a3 on 2026-10-04 (digest sha256:8dbf0fc6...).
+  # - cutover / rollback of the new-api channel: scripts/cline-pass-switcher-cutover.sh
+  cline-pass-switcher:
+    image: dx95/cline-pass-switcher:latest
+    container_name: cline-pass-switcher
+    restart: unless-stopped
+    ports:
+      - "43064:3123"
+    volumes:
+      - /mnt/appdata/ChatStack/cline-pass-switcher/data:/data
+    environment:
+      - TZ=Asia/Taipei
+      - DATA_DIR=/data
+      - BIND_HOST=0.0.0.0
+      - PORT=3123
+      # Optional overrides (Portainer stack env). Leave empty to use config.json as-is.
+      - CLINE_PASS_KEY=${CLINE_PASS_KEY:-}
+      - PROXY_KEY=${CLINE_PASS_SWITCHER_PROXY_KEY:-}
+      - PUBLIC_BASE_URL=${CLINE_PASS_SWITCHER_PUBLIC_BASE_URL:-}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O - http://127.0.0.1:3123/api/meta | grep -q configured || exit 1",
         ]
       interval: 30s
       timeout: 10s
@@ -801,6 +848,11 @@ services:
       # Discord bot token
       - DISCORD_TOKEN=${DISCORD_TOKEN}
 
+      # Native web UI (surface.native in core-config.yaml): local owner login + session signing
+      - LILAC_NATIVE_LOCAL_USERNAME=${LILAC_NATIVE_LOCAL_USERNAME}
+      - LILAC_NATIVE_LOCAL_PASSWORD_HASH=${LILAC_NATIVE_LOCAL_PASSWORD_HASH}
+      - LILAC_NATIVE_SESSION_SECRET=${LILAC_NATIVE_SESSION_SECRET}
+
       # smart-search runtime config (shared env names; values injected by host env)
       - SMART_SEARCH_CONFIG_DIR=/data/.config/smart-search
       - XAI_API_URL=${SMART_SEARCH_XAI_API_URL:-https://api.x.ai/v1}
@@ -838,7 +890,9 @@ services:
       - TAVILY_API_URL=${SMART_SEARCH_TAVILY_API_URL:-${TAVILY_API_BASE_URL:-https://api.tavily.com}}
       - TAVILY_API_KEY=${SMART_SEARCH_TAVILY_API_KEY:-${TAVILY_API_KEY}}
       - FIRECRAWL_API_URL=${SMART_SEARCH_FIRECRAWL_API_URL:-https://api.firecrawl.dev/v2}
-      - FIRECRAWL_API_KEY=${SMART_SEARCH_FIRECRAWL_API_KEY:-}
+      - FIRECRAWL_API_KEY=${SMART_SEARCH_FIRECRAWL_API_KEY:-${FIRECRAWL_API_KEY}}
+      # Lilac web.search/web.extract firecrawl provider; empty falls back to https://api.firecrawl.dev
+      - FIRECRAWL_API_BASE_URL=${FIRECRAWL_API_BASE_URL:-}
       - ANYSEARCH_API_URL=${SMART_SEARCH_ANYSEARCH_API_URL:-https://api.anysearch.com/mcp}
       - ANYSEARCH_API_KEY=${SMART_SEARCH_ANYSEARCH_API_KEY:-}
       - EXA_TIMEOUT_SECONDS=${SMART_SEARCH_EXA_TIMEOUT_SECONDS:-30}
@@ -888,6 +942,7 @@ services:
       start_period: 20s
     ports:
       - "8787:8787" # GitHub webhook ingress
+      - "8789:8789" # Native web UI; NPM proxies https://catalina.dfder.tw here
       # - "43090:8080"  # Uncomment to expose tool server externally
 
 
@@ -930,6 +985,11 @@ services:
       # Discord bot token
       - DISCORD_TOKEN=${DISCORD_TOKEN_CLAUDIA}
 
+      # Native web UI (surface.native in core-config.yaml): local owner login + session signing
+      - LILAC_NATIVE_LOCAL_USERNAME=${LILAC_NATIVE_LOCAL_USERNAME}
+      - LILAC_NATIVE_LOCAL_PASSWORD_HASH=${LILAC_NATIVE_LOCAL_PASSWORD_HASH}
+      - LILAC_NATIVE_SESSION_SECRET=${LILAC_NATIVE_SESSION_SECRET_CLAUDIA}
+
       # smart-search runtime config (shared env names; values injected by host env)
       - SMART_SEARCH_CONFIG_DIR=/data/.config/smart-search
       - XAI_API_URL=${SMART_SEARCH_XAI_API_URL:-https://api.x.ai/v1}
@@ -967,7 +1027,9 @@ services:
       - TAVILY_API_URL=${SMART_SEARCH_TAVILY_API_URL:-${TAVILY_API_BASE_URL:-https://api.tavily.com}}
       - TAVILY_API_KEY=${SMART_SEARCH_TAVILY_API_KEY:-${TAVILY_API_KEY}}
       - FIRECRAWL_API_URL=${SMART_SEARCH_FIRECRAWL_API_URL:-https://api.firecrawl.dev/v2}
-      - FIRECRAWL_API_KEY=${SMART_SEARCH_FIRECRAWL_API_KEY:-}
+      - FIRECRAWL_API_KEY=${SMART_SEARCH_FIRECRAWL_API_KEY:-${FIRECRAWL_API_KEY}}
+      # Lilac web.search/web.extract firecrawl provider; empty falls back to https://api.firecrawl.dev
+      - FIRECRAWL_API_BASE_URL=${FIRECRAWL_API_BASE_URL:-}
       - ANYSEARCH_API_URL=${SMART_SEARCH_ANYSEARCH_API_URL:-https://api.anysearch.com/mcp}
       - ANYSEARCH_API_KEY=${SMART_SEARCH_ANYSEARCH_API_KEY:-}
       - EXA_TIMEOUT_SECONDS=${SMART_SEARCH_EXA_TIMEOUT_SECONDS:-30}
@@ -1020,4 +1082,5 @@ services:
       start_period: 20s
     ports:
       - "8788:8787" # GitHub webhook ingress; container still listens on 8787
+      - "8790:8789" # Native web UI; NPM proxies https://claudia.dfder.tw here
       # - "43090:8080"  # Uncomment to expose tool server externally
