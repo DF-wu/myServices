@@ -1,0 +1,12 @@
+# Add as a Portainer additional Compose file only when clock control is wanted.
+# Requires the v2.1 image, ENABLED=true, and a supported frequency in .env.
+# The base recipe already requests NVIDIA GPU access.
+services:
+  capswriter-server:
+    user: "0:0"
+    cap_add:
+      - SYS_ADMIN
+      - DAC_OVERRIDE
+      - CHOWN
+      - FOWNER
+    stop_grace_period: 150s
