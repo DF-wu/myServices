@@ -5,10 +5,10 @@ services:
     container_name: openlist
     ports:
       # container ports
-      - 5245:5245
-      - 5244:5244
+      - 55245:5245
+      - 55244:5244
       # sftp access
-      - 5222:5222
+      - 55222:5222
 
     volumes:
       # appdata config
