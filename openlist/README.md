@@ -6,13 +6,13 @@
 
 `sinclair-od-bridge` 使用 Docker 官方 `node:24-bookworm-slim` 公開映像，不含 `build:`，也不需要自行建置映像。啟動腳本會在新容器內安裝 Debian Chromium、Xvfb、noVNC 與鎖定版本的 npm 依賴；同一容器重新啟動會沿用已安裝的系統套件。容器被重新建立時，安裝系統套件仍需要網路，首次啟動可能需數分鐘。
 
-本 recipe 明確設定 `BRIDGE_TRANSPORT=browser`，讓上游請求由真正的 Chromium 發出，保留其 TLS、HTTP/2 與瀏覽器產生的標頭。WebDAV 僅在 OpenList 與 bridge 之間使用，上游仍是 SharePoint 的 GET／POST REST 操作。此模式目前仍有 CDP Base64 資料中繼成本；原生瀏覽器搭配本機二進位資料通道的替代方案將另行驗證。
+本 recipe 明確設定 `BRIDGE_TRANSPORT=http`，由 Node 透過 `impit@0.14.8` 直接串流上下載，使用固定 Chrome 151 的 TLS／HTTP2 profile 與相同版本的 Linux User-Agent、Client Hints；同時設定同源 fetch 的 Origin／Referer／Sec-Fetch 標頭。WebDAV 僅在 OpenList 與 bridge 之間使用，上游仍是 SharePoint 的 GET／POST REST 操作，檔案位元組不經 CDP 或 Base64。
 
-`http` 模式雖能直接串流，但使用 Node 網路堆疊，不能保留 Chromium 的連線指紋，因此不符合此部署要求。不要僅以改 User-Agent 取代真實瀏覽器連線；瀏覽器外觀一致也不代表能保證無法辨識存取行為。
+Chromium 僅用於正常登入與定期提供 Cookie 快照，記憶體快取預設五分鐘；不參與每個檔案的資料中繼。`impit` 由 npm 安裝平台預編譯套件，不需要自行 build 映像或編譯程式。這是固定瀏覽器 profile 的模擬，並非完整重現登入瀏覽器的所有特徵，也不保證不可辨識；套件或 profile 更新時需重新驗證。`browser` 僅保留為明確選用的診斷模式，不會自動切回。
 
 此學校端點可能忽略 Range 並回 200；配額 API 則可能因 Cookie 驗證回 403。HTTP 模式不依賴該配額 API 判斷健康，未知配額不會虛報為零；HEAD 透過檔案中繼資料提供大小。租戶若拒絕回收非空資料夾，bridge 會保留失敗，不自動遞迴刪除。
 
-bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。執行版本為 `0ec9747913974d865e933de4b43ddd4f10feb2e7`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/0ec9747913974d865e933de4b43ddd4f10feb2e7`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
+bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。執行版本為 `9f0bfbbf393964f2f2bbfa757eb2641d4531b439`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/9f0bfbbf393964f2f2bbfa757eb2641d4531b439`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
 
 更新 bridge 的流程是：在私有 repo 修復、驗證並提交，以 `bash deploy/stage-runtime.sh <新的主機版本目錄>` 備妥原始碼，再更新本 recipe 的來源路徑交由 Portainer 更新。全程不需要 `docker build`。不會在容器內保存 GitHub 認證或於每次重啟拉取未固定的程式碼。
 
