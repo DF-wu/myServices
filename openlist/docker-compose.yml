@@ -1,0 +1,18 @@
+services:
+  openlist:
+    image: openlistteam/openlist:latest
+    restart: unless-stopped
+    container_name: openlist
+    ports:
+      # container ports
+      - 5245:5245
+      - 5244:5244
+      # sftp access
+      - 5222:5222
+
+    volumes:
+      # appdata config
+      - /mnt/appdata/openlist:/opt/openlist/data
+    environment:
+      - TZ=Asia/Taipei
+
