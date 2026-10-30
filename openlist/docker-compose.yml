@@ -41,7 +41,7 @@ services:
       PGID: "3000"
       BRIDGE_HOST: 0.0.0.0
       BRIDGE_PORT: "8110"
-      BRIDGE_TRANSPORT: http
+      BRIDGE_TRANSPORT: browser
       BRIDGE_USERNAME: openlist
       BRIDGE_PASSWORD_FILE: /var/lib/od-bridge/private/bridge-password
       CDP_URL: http://127.0.0.1:9222

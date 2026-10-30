@@ -6,7 +6,9 @@
 
 `sinclair-od-bridge` 使用 Docker 官方 `node:24-bookworm-slim` 公開映像，不含 `build:`，也不需要自行建置映像。啟動腳本會在新容器內安裝 Debian Chromium、Xvfb、noVNC 與鎖定版本的 npm 依賴；同一容器重新啟動會沿用已安裝的系統套件。容器被重新建立時，安裝系統套件仍需要網路，首次啟動可能需數分鐘。
 
-`BRIDGE_TRANSPORT=http` 讓列目錄、上下載及檔案操作直接走 Node 原生 HTTP 串流，資料不經 Chromium／CDP，也不做 Base64 編解碼。Chromium 仍由本服務維持，僅供學校登入、MFA 與讀取驗證 Cookie；Cookie snapshot 預設在程序記憶體快取五分鐘。驗證失效時重取 session，不自動退回瀏覽器傳檔。`browser` 是明確選用的舊版診斷模式。
+本 recipe 明確設定 `BRIDGE_TRANSPORT=browser`，讓上游請求由真正的 Chromium 發出，保留其 TLS、HTTP/2 與瀏覽器產生的標頭。WebDAV 僅在 OpenList 與 bridge 之間使用，上游仍是 SharePoint 的 GET／POST REST 操作。此模式目前仍有 CDP Base64 資料中繼成本；原生瀏覽器搭配本機二進位資料通道的替代方案將另行驗證。
+
+`http` 模式雖能直接串流，但使用 Node 網路堆疊，不能保留 Chromium 的連線指紋，因此不符合此部署要求。不要僅以改 User-Agent 取代真實瀏覽器連線；瀏覽器外觀一致也不代表能保證無法辨識存取行為。
 
 此學校端點可能忽略 Range 並回 200；配額 API 則可能因 Cookie 驗證回 403。HTTP 模式不依賴該配額 API 判斷健康，未知配額不會虛報為零；HEAD 透過檔案中繼資料提供大小。租戶若拒絕回收非空資料夾，bridge 會保留失敗，不自動遞迴刪除。
 
