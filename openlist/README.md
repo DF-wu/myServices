@@ -6,7 +6,11 @@
 
 `sinclair-od-bridge` 使用 Docker 官方 `node:24-bookworm-slim` 公開映像，不含 `build:`，也不需要自行建置映像。啟動腳本會在新容器內安裝 Debian Chromium、Xvfb、noVNC 與鎖定版本的 npm 依賴；同一容器重新啟動會沿用已安裝的系統套件。容器被重新建立時，安裝系統套件仍需要網路，首次啟動可能需數分鐘。
 
-bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。執行版本為 `d56ba1fc2397551c5bf1cecf1fc4fb7e147e3696`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/d56ba1fc2397551c5bf1cecf1fc4fb7e147e3696`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
+`BRIDGE_TRANSPORT=http` 讓列目錄、上下載及檔案操作直接走 Node 原生 HTTP 串流，資料不經 Chromium／CDP，也不做 Base64 編解碼。Chromium 仍由本服務維持，僅供學校登入、MFA 與讀取驗證 Cookie；Cookie snapshot 預設在程序記憶體快取五分鐘。驗證失效時重取 session，不自動退回瀏覽器傳檔。`browser` 是明確選用的舊版診斷模式。
+
+此學校端點可能忽略 Range 並回 200；配額 API 則可能因 Cookie 驗證回 403。HTTP 模式不依賴該配額 API 判斷健康，未知配額不會虛報為零；HEAD 透過檔案中繼資料提供大小。租戶若拒絕回收非空資料夾，bridge 會保留失敗，不自動遞迴刪除。
+
+bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。執行版本為 `0ec9747913974d865e933de4b43ddd4f10feb2e7`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/0ec9747913974d865e933de4b43ddd4f10feb2e7`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
 
 更新 bridge 的流程是：在私有 repo 修復、驗證並提交，以 `bash deploy/stage-runtime.sh <新的主機版本目錄>` 備妥原始碼，再更新本 recipe 的來源路徑交由 Portainer 更新。全程不需要 `docker build`。不會在容器內保存 GitHub 認證或於每次重啟拉取未固定的程式碼。
 
