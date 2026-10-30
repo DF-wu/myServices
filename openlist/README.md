@@ -6,7 +6,7 @@
 
 `sinclair-od-bridge` 使用 Docker 官方 `node:24-bookworm-slim` 公開映像，不含 `build:`，也不需要自行建置映像。啟動腳本會在新容器內安裝 Debian Chromium、Xvfb、noVNC 與鎖定版本的 npm 依賴；同一容器重新啟動會沿用已安裝的系統套件。容器被重新建立時，安裝系統套件仍需要網路，首次啟動可能需數分鐘。
 
-bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。執行版本為 `7fa6e721fc22824b6db35cfe9e94376303ad5aba`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/7fa6e721fc22824b6db35cfe9e94376303ad5aba`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
+bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。執行版本為 `d56ba1fc2397551c5bf1cecf1fc4fb7e147e3696`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/d56ba1fc2397551c5bf1cecf1fc4fb7e147e3696`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
 
 更新 bridge 的流程是：在私有 repo 修復、驗證並提交，以 `bash deploy/stage-runtime.sh <新的主機版本目錄>` 備妥原始碼，再更新本 recipe 的來源路徑交由 Portainer 更新。全程不需要 `docker build`。不會在容器內保存 GitHub 認證或於每次重啟拉取未固定的程式碼。
 
@@ -30,6 +30,8 @@ bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。執行版本為 `7f
 CDP 9222 只監聽容器內 loopback；WebDAV 8110 僅在 Docker 內網提供，並要求 bridge 的專用 Basic 認證。OpenList 透過 `http://sinclair-od-bridge:8110` 存取。
 
 若已有本機登入設定，登入助手會嘗試一次正常登入及 TOTP；遇到拒絕、其他 MFA 或 SSO 挑戰會停下，保留桌面供人工完成，不會持續重試密碼。工作階段仍可能被學校撤銷，不能保證永久有效。
+
+2026-10-30 的部署後修正處理 Microsoft 明確提供「Not now」連結的可選驗證方式設定提醒；必要的驗證設定仍由人工完成。新版 OneDrive 可能導向同一主機的 `/my`，bridge 現在可使用該分頁並以實際 API 驗證健康，仍保留外部登入與 MFA 分頁。已在既有容器中恢復 `/Sinclair_OD` 並驗證根目錄列出成功，沒有自行重新部署或重啟。
 
 待真正的 SharePoint API 驗證成功後，子服務才會透過 OpenList 正式管理 API 啟用 `/Sinclair_OD`，根目錄對應 OneDrive 的 `Documents` 文件庫根。OpenList 不允許直接更換 storage driver，所以現有同名的原生 OneDrive 設定會先備份，停用並保留在 `/Sinclair_OD__previous_<id>`，再以原名稱建立 WebDav；其他儲存不會被更動。新掛載可在部署前預先建立為停用，待 session 健康後自動啟用。瀏覽器登入未完成時，子服務健康狀態為不健康，但不會阻止既有 OpenList 啟動。
 
