@@ -1,42 +1,113 @@
-# doc:
-# - repo: https://github.com/DF-wu/CapsWriter-Offline-Container
-# - compose reference based on the upstream server-focused Docker deployment
-
+# 參照 CapsWriter master a674e40；Portainer 單一主檔包含 NVIDIA server 與 Web。
 services:
   capswriter-server:
     image: ${CAPSWRITER_SERVER_IMAGE:-ghcr.io/df-wu/capswriter-offline-server:latest}
     container_name: capswriter-server
     restart: unless-stopped
     pull_policy: always
-    env_file:
-      - .env
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # 此自部署 recipe 保留 NVIDIA 裝置；只設定 cpu 不會取消裝置 reservation。
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              # all = request visible GPUs; 0 = CPU-only startup
               count: ${CAPSWRITER_GPU_DEVICE_COUNT:-all}
               capabilities: [gpu]
     environment:
-      - TZ=Asia/Taipei
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
-      - CAPSWRITER_GPU_BOOST_ENABLED=${CAPSWRITER_GPU_BOOST_ENABLED:-false}
-      - CAPSWRITER_GPU_BOOST_DEVICE=${CAPSWRITER_GPU_BOOST_DEVICE:-0}
-      - CAPSWRITER_GPU_BOOST_MEMORY_CLOCK_MHZ=${CAPSWRITER_GPU_BOOST_MEMORY_CLOCK_MHZ:-0}
-      - CAPSWRITER_GPU_BOOST_IDLE_SECONDS=${CAPSWRITER_GPU_BOOST_IDLE_SECONDS:-1}
-      - CAPSWRITER_GPU_BOOST_TIMEOUT=${CAPSWRITER_GPU_BOOST_TIMEOUT:-5}
+      TZ: ${TZ:-Asia/Taipei}
+      # qwen_asr (default) | fun_asr_nano
+      CAPSWRITER_MODEL_TYPE: ${CAPSWRITER_MODEL_TYPE:-qwen_asr}
+
+      # qwen preset: default | low_vram_gpu
+      CAPSWRITER_QWEN_PRESET: ${CAPSWRITER_QWEN_PRESET:-default}
+
+      # auto = prefer GPU and fall back to CPU; gpu = try GPU first; cpu = force CPU
+      CAPSWRITER_INFERENCE_HARDWARE: ${CAPSWRITER_INFERENCE_HARDWARE:-auto}
+
+      # true = remove downloaded archives after extraction
+      CAPSWRITER_REMOVE_MODEL_ARCHIVES: ${CAPSWRITER_REMOVE_MODEL_ARCHIVES:-false}
+
+      CAPSWRITER_SERVER_ADDR: 0.0.0.0
+      CAPSWRITER_SERVER_PORT: ${CAPSWRITER_SERVER_PORT:-6016}
+      CAPSWRITER_SERVER_MAX_WEBSOCKET_CONNECTIONS: ${CAPSWRITER_SERVER_MAX_WEBSOCKET_CONNECTIONS:-8}
+      CAPSWRITER_SERVER_MAX_WEBSOCKET_TASK_SECONDS: ${CAPSWRITER_SERVER_MAX_WEBSOCKET_TASK_SECONDS:-3600}
+
+      # ===== OpenAI-Compatible HTTP API (opt-in; see docs/HTTP_API.md) =====
+      # Web 透過 HTTP API 辨識；Portainer 可覆寫所有映射參數。
+      CAPSWRITER_HTTP_API_ENABLE: ${CAPSWRITER_HTTP_API_ENABLE:-true}
+      CAPSWRITER_HTTP_API_BIND: ${CAPSWRITER_HTTP_API_BIND:-0.0.0.0}
+      CAPSWRITER_HTTP_API_PORT: ${CAPSWRITER_HTTP_API_PORT:-6017}
+      CAPSWRITER_HTTP_API_KEY: ${CAPSWRITER_HTTP_API_KEY:-${DF_API_KEY:?請在 Portainer 設定 DF_API_KEY 或 CAPSWRITER_HTTP_API_KEY}}
+      CAPSWRITER_HTTP_API_KEY_FILE: ${CAPSWRITER_HTTP_API_KEY_FILE:-}
+      CAPSWRITER_HTTP_API_ALLOW_INSECURE_BIND: ${CAPSWRITER_HTTP_API_ALLOW_INSECURE_BIND:-false}
+      CAPSWRITER_HTTP_API_MAX_UPLOAD_MB: ${CAPSWRITER_HTTP_API_MAX_UPLOAD_MB:-100}
+      CAPSWRITER_HTTP_API_MAX_AUDIO_SECONDS: ${CAPSWRITER_HTTP_API_MAX_AUDIO_SECONDS:-3600}
+      CAPSWRITER_HTTP_API_TASK_TIMEOUT: ${CAPSWRITER_HTTP_API_TASK_TIMEOUT:-600}
+      CAPSWRITER_HTTP_API_MAX_CONCURRENT_REQUESTS: ${CAPSWRITER_HTTP_API_MAX_CONCURRENT_REQUESTS:-2}
+      CAPSWRITER_HTTP_API_MAX_PENDING_REQUESTS: ${CAPSWRITER_HTTP_API_MAX_PENDING_REQUESTS:-4}
+      CAPSWRITER_HTTP_API_CORS_ORIGINS: ${CAPSWRITER_HTTP_API_CORS_ORIGINS:-http://${CAPSWRITER_WEB_HOST:-axolotl.newhome}:${CAPSWRITER_WEB_PORT:-6018},http://localhost:${CAPSWRITER_WEB_PORT:-6018},http://127.0.0.1:${CAPSWRITER_WEB_PORT:-6018}}
+      CAPSWRITER_HTTP_API_LOG_TRANSCRIPTS: ${CAPSWRITER_HTTP_API_LOG_TRANSCRIPTS:-false}
+
+      CAPSWRITER_ENABLE_TRAY: "false"
+      CAPSWRITER_LOG_LEVEL: ${CAPSWRITER_LOG_LEVEL:-INFO}
+      CAPSWRITER_LOG_DIR: /app/logs
+
+      # shared thread hint for CPU-bound stages
+      CAPSWRITER_FORMAT_NUM: ${CAPSWRITER_FORMAT_NUM:-true}
+      CAPSWRITER_FORMAT_SPELL: ${CAPSWRITER_FORMAT_SPELL:-true}
+      CAPSWRITER_NUM_THREADS: ${CAPSWRITER_NUM_THREADS:-16}
+      CAPSWRITER_MODEL_DOWNLOAD_TIMEOUT: ${CAPSWRITER_MODEL_DOWNLOAD_TIMEOUT:-60}
+      CAPSWRITER_MODEL_BOOTSTRAP_LOCK_TIMEOUT: ${CAPSWRITER_MODEL_BOOTSTRAP_LOCK_TIMEOUT:-1800}
+      CAPSWRITER_BACKEND_PROBE_TIMEOUT: ${CAPSWRITER_BACKEND_PROBE_TIMEOUT:-300}
+      CAPSWRITER_ENGINE_FFMPEG_TIMEOUT: ${CAPSWRITER_ENGINE_FFMPEG_TIMEOUT:-120}
+      CAPSWRITER_GPU_BOOST_ENABLED: ${CAPSWRITER_GPU_BOOST_ENABLED:-false}
+      CAPSWRITER_GPU_BOOST_DEVICE: ${CAPSWRITER_GPU_BOOST_DEVICE:-0}
+      CAPSWRITER_GPU_BOOST_MEMORY_CLOCK_MHZ: ${CAPSWRITER_GPU_BOOST_MEMORY_CLOCK_MHZ:-0}
+      CAPSWRITER_GPU_BOOST_IDLE_SECONDS: ${CAPSWRITER_GPU_BOOST_IDLE_SECONDS:-1}
+      CAPSWRITER_GPU_BOOST_TIMEOUT: ${CAPSWRITER_GPU_BOOST_TIMEOUT:-5}
+      CAPSWRITER_SERVER_MODEL_LOAD_TIMEOUT: ${CAPSWRITER_SERVER_MODEL_LOAD_TIMEOUT:-600}
+      CAPSWRITER_SERVER_WORKER_STOP_TIMEOUT: ${CAPSWRITER_SERVER_WORKER_STOP_TIMEOUT:-2}
+      CAPSWRITER_SERVER_WORKER_STALL_TIMEOUT: ${CAPSWRITER_SERVER_WORKER_STALL_TIMEOUT:-900}
+
+      # model tuning; backend CUDA/Vulkan flags are derived by entrypoint.sh
+      CAPSWRITER_QWEN_CHUNK_SIZE: ${CAPSWRITER_QWEN_CHUNK_SIZE:-}
+      CAPSWRITER_QWEN_N_CTX: ${CAPSWRITER_QWEN_N_CTX:-}
+      CAPSWRITER_QWEN_MEMORY_NUM: ${CAPSWRITER_QWEN_MEMORY_NUM:-}
+      CAPSWRITER_QWEN_PAD_TO: ${CAPSWRITER_QWEN_PAD_TO:-}
+      CAPSWRITER_FUNASR_ENABLE_CTC: ${CAPSWRITER_FUNASR_ENABLE_CTC:-}
+      CAPSWRITER_FUNASR_N_PREDICT: ${CAPSWRITER_FUNASR_N_PREDICT:-}
+      CAPSWRITER_FUNASR_PAD_TO: ${CAPSWRITER_FUNASR_PAD_TO:-}
+      CAPSWRITER_FUNASR_MAX_HOTWORDS: ${CAPSWRITER_FUNASR_MAX_HOTWORDS:-}
+      CAPSWRITER_FUNASR_SIMILAR_THRESHOLD: ${CAPSWRITER_FUNASR_SIMILAR_THRESHOLD:-}
+
+      # expert-only qwen llama overrides; leave empty to follow preset
+      CAPSWRITER_QWEN_LLAMA_N_BATCH: ${CAPSWRITER_QWEN_LLAMA_N_BATCH:-}
+      CAPSWRITER_QWEN_LLAMA_N_UBATCH: ${CAPSWRITER_QWEN_LLAMA_N_UBATCH:-}
+      CAPSWRITER_QWEN_LLAMA_FLASH_ATTN: ${CAPSWRITER_QWEN_LLAMA_FLASH_ATTN:-}
+      CAPSWRITER_QWEN_LLAMA_OFFLOAD_KQV: ${CAPSWRITER_QWEN_LLAMA_OFFLOAD_KQV:-}
+
+      CAPSWRITER_INTERACTIVE_ERRORS: "false"
+
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility,graphics
+
+      # ===== Integrated-GPU compatibility patches (opt-in; see .env.example) =====
+      # GGML_VK_DISABLE_COOPMAT: ${GGML_VK_DISABLE_COOPMAT:-}
+      # GGML_VK_DISABLE_F16:     ${GGML_VK_DISABLE_F16:-}
     ports:
-      - "${CAPSWRITER_SERVER_PORT:-6016}:${CAPSWRITER_SERVER_PORT:-6016}"
-      # Uncomment when you want the OpenAI-compatible HTTP API.
-      # Make sure CAPSWRITER_HTTP_API_ENABLE=true and CAPSWRITER_HTTP_API_KEY is set.
-      - "${CAPSWRITER_HTTP_API_PORT:-6017}:${CAPSWRITER_HTTP_API_PORT:-6017}"
+      - "${CAPSWRITER_SERVER_PUBLISH_HOST:-0.0.0.0}:${CAPSWRITER_SERVER_PORT:-6016}:${CAPSWRITER_SERVER_PORT:-6016}"
+      - "${CAPSWRITER_HTTP_API_PUBLISH_HOST:-0.0.0.0}:${CAPSWRITER_HTTP_API_PORT:-6017}:${CAPSWRITER_HTTP_API_PORT:-6017}"
     volumes:
-      # Keep model bootstrap locks and downloads on local Docker storage.
       - capswriter-server-models:/app/models
-      - /mnt/appdata/capswriter-offline/hot-server.txt:/app/hot-server.txt
-      # Keep logs on a named volume by default; upstream explicitly recommends this
-      # to avoid bind-mount permission friction with the non-root container user.
+      - type: bind
+        source: /mnt/appdata/capswriter-offline/hot-server.txt
+        target: /app/hot-server.txt
+        read_only: true
+        bind:
+          create_host_path: false
       - capswriter-server-logs:/app/logs
     healthcheck:
       test: ["CMD", "python", "docker/server/healthcheck.py"]
@@ -44,6 +115,29 @@ services:
       timeout: 5s
       start_period: 20m
       retries: 5
+
+  capswriter-web:
+    image: ${CAPSWRITER_WEB_IMAGE:-ghcr.io/df-wu/capswriter-offline-web:latest}
+    container_name: capswriter-web
+    restart: unless-stopped
+    pull_policy: always
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      CAPSWRITER_WEB_API_BASE: ${CAPSWRITER_WEB_API_BASE:-http://${CAPSWRITER_WEB_HOST:-axolotl.newhome}:${CAPSWRITER_HTTP_API_PORT:-6017}}
+      CAPSWRITER_WEB_API_KEY: ${CAPSWRITER_WEB_API_KEY:-}
+      CAPSWRITER_WEB_ALLOW_PUBLIC_API_KEY: ${CAPSWRITER_WEB_ALLOW_PUBLIC_API_KEY:-false}
+      CAPSWRITER_WEB_MODEL: ${CAPSWRITER_WEB_MODEL:-whisper-1}
+      CAPSWRITER_WEB_LANGUAGE: ${CAPSWRITER_WEB_LANGUAGE:-}
+      CAPSWRITER_WEB_PROMPT: ${CAPSWRITER_WEB_PROMPT:-}
+      CAPSWRITER_WEB_RESPONSE_FORMAT: ${CAPSWRITER_WEB_RESPONSE_FORMAT:-verbose_json}
+    ports:
+      - "${CAPSWRITER_WEB_PUBLISH_HOST:-0.0.0.0}:${CAPSWRITER_WEB_PORT:-6018}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
   capswriter-server-models:
