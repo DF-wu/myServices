@@ -1,0 +1,262 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>官方來源台帳 · ChatStack</title><style>
+:root{--ink:#15334b;--sub:#496276;--brand:#155eab;--pale:#eaf3fd;--line:#dbe5ef;--paper:#fff;--bg:#f3f7fb;--teal:#25685e;--amber:#8b4d09;font-family:"Noto Sans CJK TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;color:var(--ink);font-size:16px;line-height:1.85;color-scheme:light}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:24px}body{margin:0;background:var(--bg)}a{color:var(--brand);text-underline-offset:4px}a:hover{color:#073d78}a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #cf7c17;outline-offset:4px}button,input{font:inherit}button,.button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 16px;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);text-decoration:none;cursor:pointer}button:hover,.button:hover{background:var(--pale)}.primary{background:var(--brand);color:white;border-color:var(--brand)}.primary:hover{background:#104d8e;color:white}header{max-width:1320px;margin:auto;padding:28px 44px;display:flex;justify-content:space-between;align-items:center;gap:18px}.wordmark{font-size:19px;font-weight:750;letter-spacing:-.4px}.wordmark span{font-weight:400;color:var(--sub);margin-left:8px;font-size:14px}.header-actions{display:flex;gap:8px}.cover{max-width:1232px;margin:4px auto 40px;padding:44px 50px;background:var(--paper);border:1px solid var(--line);border-radius:20px;display:grid;grid-template-columns:1.25fr 1fr;gap:44px;align-items:center}.cover h1{font-size:clamp(30px,3.8vw,48px);line-height:1.35;letter-spacing:-1.8px;margin:18px 0 20px;max-width:15ch}.cover p{color:var(--sub);max-width:38em;font-size:16px}.tag{font-size:13px;padding:4px 10px;border-radius:5px;background:var(--pale);color:#174d83;display:inline-block}.cover-meta{display:flex;gap:22px;font-size:13px;color:var(--sub);margin-top:26px;flex-wrap:wrap}.route{border-left:2px solid #8bb2dc;padding-left:26px}.route-step{position:relative;padding:15px 0}.route-step:before{content:"";position:absolute;left:-33px;top:27px;width:12px;height:12px;border:2px solid #7a9fc4;border-radius:50%;background:white}.route-step:nth-child(2):before{background:var(--brand);border-color:var(--brand)}.route-step strong{display:block;font-size:23px;line-height:1.4}.route-step small{display:block;color:var(--sub);font-size:13px}.route-step .route-desc{font-size:14px;color:var(--sub)}.layout{max-width:1232px;display:grid;grid-template-columns:202px minmax(0,1fr);gap:36px;margin:0 auto;padding-bottom:64px}.sidebar{position:sticky;top:24px;align-self:start;font-size:14px}.sidebar .nav-title{font-weight:700;margin:0 0 10px;padding:0 12px}.sidebar a{display:block;padding:8px 12px;text-decoration:none;color:var(--sub);border-left:2px solid transparent;line-height:1.6}.sidebar a:hover,.sidebar a.active{background:#e3edf8;color:#0e4e90;border-left-color:var(--brand)}.sidebar .scope-note{font-size:12px;line-height:1.9;color:var(--sub);margin:22px 12px 0}.main{min-width:0;background:white;border:1px solid var(--line);border-radius:14px;padding:12px 42px 38px}.main section{padding:28px 0 34px;border-bottom:1px solid var(--line)}.main section:last-child{border:0}.main h2{font-size:27px;line-height:1.45;letter-spacing:-.6px;margin:8px 0 24px;color:#123d61;scroll-margin-top:30px}.main h3{font-size:20px;line-height:1.6;margin:30px 0 14px}.main h4{font-size:17px;margin:24px 0 10px}.main p{margin:16px 0}.main ul,.main ol{padding-left:1.5em}.main li{margin:10px 0}.main li>p{margin:6px 0}.main strong{font-weight:720}code{font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;background:#edf2f8;color:#153e66;padding:2px 5px;border-radius:4px;font-size:.87em;overflow-wrap:anywhere}pre{padding:18px;overflow:auto;background:#edf2f8;border-radius:8px;white-space:pre-wrap;line-height:1.6}pre code{background:none;padding:0}blockquote{margin:24px 0;padding:4px 18px;border-left:3px solid #79a7d9;background:#f2f7fd;color:var(--sub)}.table-wrap{overflow-x:auto;margin:20px 0 24px;border:1px solid var(--line);border-radius:9px;scrollbar-width:thin}table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.8}th,td{text-align:left;vertical-align:top;padding:13px 14px;border-bottom:1px solid var(--line)}th{background:#edf4fb;color:#214b6e;font-weight:700}tr:last-child td{border-bottom:0}tbody tr:nth-child(even){background:#fafcfe}td:first-child{min-width:116px;font-weight:500}td a{overflow-wrap:anywhere}details{border:1px solid var(--line);border-radius:9px;margin:18px 0;padding:0 18px}details>summary{cursor:pointer;font-weight:700;padding:16px 0;min-height:48px}details[open]{padding-bottom:12px}.diagram{background:#f6f9fd;border:1px solid var(--line);border-radius:12px;padding:22px;margin:24px 0}.diagram-title{font-size:13px;color:var(--sub);margin-bottom:16px}.clients{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.client{background:white;border:1px solid #bed2e8;border-top:3px solid #5686b9;border-radius:7px;padding:12px 8px;text-align:center;font-size:12px;min-width:0;overflow-wrap:anywhere}.client strong{display:block;font-size:14px;margin-bottom:5px}.connector{height:24px;position:relative;display:flex;justify-content:space-around;margin:0 12%}.connector span{width:1px;background:#96b2d0}.bus{border-top:1px solid #96b2d0;width:76%;margin:auto;height:20px;position:relative}.bus:after{content:"";position:absolute;left:50%;top:0;height:20px;border-left:1px solid #96b2d0}.db-node{background:#e7f0fb;border:1px solid #8fb0d6;border-radius:9px;text-align:center;padding:18px 14px;max-width:460px;margin:auto}.db-node strong{font-size:20px;display:block}.db-node small{color:#365e86;font-size:12px}.indirect{margin-top:20px;border-top:1px dashed #9eb3c8;padding-top:14px;color:var(--sub);font-size:13px}.chart{margin:24px 0;background:#f7fafd;border:1px solid var(--line);border-radius:10px;padding:20px}.chart-title{font-size:13px;color:var(--sub);margin-bottom:16px}.bar-row{display:grid;grid-template-columns:112px minmax(0,1fr) 95px;align-items:center;gap:14px;font-size:13px;margin:13px 0}.bar-track{height:16px;background:#e7edf5;border-radius:3px;overflow:hidden}.bar-fill{height:16px;min-width:2px;background:var(--brand);border-radius:3px}.bar-value{text-align:right;font-variant-numeric:tabular-nums}.chart-note{font-size:12px;color:var(--sub);margin-top:14px}.service-search{display:flex;gap:12px;align-items:center;margin:20px 0}.service-search input{border:1px solid #b0c4d9;border-radius:7px;padding:9px 12px;min-height:44px;width:100%;background:white;color:var(--ink)}.service-search label{font-size:13px;white-space:nowrap}.service-count{font-size:12px;color:var(--sub);min-height:22px}.noscript{font-size:13px;color:var(--sub)}.footer{max-width:1232px;margin:0 auto;padding:24px 0 42px;color:var(--sub);font-size:13px;display:flex;justify-content:space-between;gap:24px}.top-link{white-space:nowrap}.sourcebook{max-width:1040px;margin:16px auto 44px;background:white;padding:34px 44px;border:1px solid var(--line);border-radius:14px}.sourcebook h1{font-size:28px}.sourcebook a{overflow-wrap:anywhere}.sourcebook .table-wrap{margin-top:22px}.sourcebook table{font-size:13px}section p,section li{overflow-wrap:anywhere}.scope-callout{background:#edf5ff;border-left:3px solid var(--brand);padding:12px 16px;font-size:14px;margin:18px 0}.print-note{display:none}
+@media(max-width:1100px){header{padding:22px 24px}.cover,.layout,.footer{margin-left:24px;margin-right:24px}.cover{padding:32px;gap:24px}.layout{grid-template-columns:166px minmax(0,1fr);gap:24px}.main{padding:8px 28px 28px}.clients{grid-template-columns:repeat(2,minmax(0,1fr))}.connector span:nth-child(n+3){display:none}.client strong{font-size:15px}}
+@media(max-width:760px){header{padding:18px 18px;flex-wrap:wrap}.wordmark span{display:none}.header-actions{gap:6px}.header-actions .button,header button{font-size:13px;min-height:44px;padding:7px 10px}.cover{margin:0 16px 24px;padding:26px 23px;grid-template-columns:1fr;gap:20px;border-radius:13px}.cover h1{font-size:34px;letter-spacing:-1px;max-width:16ch}.cover-meta{gap:12px;font-size:12px}.route{margin-left:7px}.route-step{padding:9px 0}.route-step strong{font-size:20px}.route-step:before{top:19px}.layout{display:block;margin:0 16px;padding-bottom:24px}.sidebar{position:static;margin:0 0 18px;display:flex;gap:6px;flex-wrap:wrap}.sidebar .nav-title,.scope-note{display:none}.sidebar a{font-size:12px;background:white;border:1px solid var(--line);border-radius:5px;padding:8px 10px;min-height:40px}.main{padding:0 18px 22px;border-radius:10px}.main section{padding:22px 0}.main h2{font-size:24px;margin:8px 0 18px}.main h3{font-size:19px}body{font-size:15px}.table-wrap table{min-width:660px}th,td{padding:12px}.diagram{padding:16px}.client{padding:10px 7px}.client strong{font-size:14px}.db-node strong{font-size:18px}.bar-row{grid-template-columns:85px minmax(0,1fr) 80px;gap:8px;font-size:12px}.chart{padding:16px}.footer{margin:0 18px;display:block;font-size:12px}.footer a{display:inline-block;min-height:36px;margin-right:16px}.sourcebook{margin:0 16px 30px;padding:18px}.sourcebook h1{font-size:25px}}
+@media print{@page{size:A4;margin:15mm}body{background:white;font-size:10pt;color:#000}header,.sidebar,.header-actions,.footer,.service-search,.service-count,.no-print{display:none!important}.cover{margin:0 0 20px;padding:22px;break-inside:avoid;grid-template-columns:1.2fr 1fr}.cover h1{font-size:27pt}.cover p{font-size:10pt}.route-step strong{font-size:15pt}.layout{display:block;margin:0;padding:0;max-width:none}.main,.sourcebook{border:0;border-radius:0;padding:0;margin:0}.main section{padding:18px 0}.main h2{font-size:17pt}.main h3{font-size:13pt}h2,h3,h4{break-after:avoid}.table-wrap{overflow:visible;border:0;margin:14px 0}.table-wrap table{min-width:0!important;font-size:8.5pt}th,td{padding:8px;border:1px solid #c4c4c4}thead{display:table-header-group}tr,.diagram,.chart{break-inside:avoid}a{color:#164e82;text-decoration:underline}.print-note{display:block;font-size:9pt}details{border:0;padding:0}details>summary{padding:8px 0}.chart-note{font-size:8pt}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style></head><body><main class="sourcebook"><h1>官方來源與查核範圍</h1>
+<p><a href="index.html">返回研究報告</a></p>
+<p>查核日期：2026-10-31。以下為本次已讀取的 primary sources；固定 commit／tag 優先用於確認已部署行為，可變文件用於查核當前官方政策。來源內容可隨後續發布改變。沒有把官方功能說明當成在本機通過驗收的證據。</p>
+<h2>版本與替代引擎</h2>
+<p>下列均於 <strong>2026-10-31（本機環境日期）</strong> 透過smart-search <code>fetch</code>實際讀取。API來源是官方專案GitHub metadata，不是第三方整理。歷史／可變頁內容若再次讀取不同，應保留差異。</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="可水平捲動的資料表"><table>
+<thead>
+<tr>
+<th scope="col">代號</th>
+<th scope="col">官方URL／範圍</th>
+<th scope="col">讀取日期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P1</td>
+<td><a href="https://www.postgresql.org/support/versioning/">https://www.postgresql.org/support/versioning/</a> — current minor、支援政策／EOL</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>P2</td>
+<td><a href="https://www.postgresql.org/">https://www.postgresql.org/</a> — 當前首頁正式與RC狀態／minor日期</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>P3</td>
+<td><a href="https://www.postgresql.org/docs/18/release-18.html">https://www.postgresql.org/docs/18/release-18.html</a> — PG18功能／不相容變更</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>P4</td>
+<td><a href="https://www.postgresql.org/about/news/postgresql-19-rc-1-released-3409/">https://www.postgresql.org/about/news/postgresql-19-rc-1-released-3409/</a> — RC1與計畫GA</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>P5</td>
+<td><a href="https://www.postgresql.org/docs/18/release-18-6.html">https://www.postgresql.org/docs/18/release-18-6.html</a> — 18.6 notes</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>P6</td>
+<td><a href="https://www.postgresql.org/docs/17/release-17-11.html">https://www.postgresql.org/docs/17/release-17-11.html</a> — 17.11 notes</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>P7</td>
+<td><a href="https://www.postgresql.org/docs/18/pgupgrade.html">https://www.postgresql.org/docs/18/pgupgrade.html</a> — pg_upgrade方法／限制／rollback</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>P8</td>
+<td><a href="https://www.postgresql.org/docs/17/release-17.html">https://www.postgresql.org/docs/17/release-17.html</a> — PG17基礎功能</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>P9</td>
+<td><a href="https://www.postgresql.org/docs/18/upgrading.html">https://www.postgresql.org/docs/18/upgrading.html</a> — major三種遷移路線</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>P10</td>
+<td><a href="https://www.postgresql.org/docs/18/logical-replication-restrictions.html">https://www.postgresql.org/docs/18/logical-replication-restrictions.html</a> — DDL／sequence／large object等限制</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>V1</td>
+<td><a href="https://github.com/pgvector/pgvector/tags">https://github.com/pgvector/pgvector/tags</a> — 最新tag與commit日期</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>V2</td>
+<td><a href="https://raw.githubusercontent.com/pgvector/pgvector/master/CHANGELOG.md">https://raw.githubusercontent.com/pgvector/pgvector/master/CHANGELOG.md</a> — 發布史／修補</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>V3</td>
+<td><a href="https://raw.githubusercontent.com/pgvector/pgvector/v0.8.7/README.md">https://raw.githubusercontent.com/pgvector/pgvector/v0.8.7/README.md</a> — 固定版本安裝／升級／索引／維度／Docker</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>V4</td>
+<td><a href="https://github.com/pgvector/pgvector/releases">https://github.com/pgvector/pgvector/releases</a> — 無GitHub Releases，不代表無tags</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>V5</td>
+<td><a href="https://raw.githubusercontent.com/pgvector/pgvector/v0.8.7/.github/workflows/build.yml">https://raw.githubusercontent.com/pgvector/pgvector/v0.8.7/.github/workflows/build.yml</a> — 固定tag CI設定</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>V6</td>
+<td><a href="https://raw.githubusercontent.com/pgvector/pgvector/master/.github/workflows/build.yml">https://raw.githubusercontent.com/pgvector/pgvector/master/.github/workflows/build.yml</a> — 開發CI對照</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>C1</td>
+<td><a href="https://hub.docker.com/_/postgres">https://hub.docker.com/_/postgres</a> — 官方image PGDATA、VOLUME、init行為</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>A1</td>
+<td><a href="https://github.com/tensorchord/VectorChord">https://github.com/tensorchord/VectorChord</a> — 主專案；實際導向supervc-stack；功能／相依／授權</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>A2</td>
+<td><a href="https://github.com/timescale/pgvectorscale">https://github.com/timescale/pgvectorscale</a> — README能力／型別／filter／license</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>A3</td>
+<td><a href="https://api.github.com/repos/timescale/pgvectorscale/releases/latest">https://api.github.com/repos/timescale/pgvectorscale/releases/latest</a> — 0.9.1時間與assets</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>A4</td>
+<td><a href="https://github.com/timescale/pgvectorscale/releases">https://github.com/timescale/pgvectorscale/releases</a> — 0.9.1安全修補與upgrade注意事項、0.9.0 PG18支援</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>A5</td>
+<td><a href="https://docs.vectorchord.ai/vectorchord/getting-started/installation.html">https://docs.vectorchord.ai/vectorchord/getting-started/installation.html</a> — 安裝／映像／preload／architecture</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>A6</td>
+<td><a href="https://github.com/tensorchord/VectorChord-images">https://github.com/tensorchord/VectorChord-images</a> — suite support matrix（仍列20250929）</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>A7</td>
+<td><a href="https://api.github.com/repos/tensorchord/VectorChord/releases/latest">https://api.github.com/repos/tensorchord/VectorChord/releases/latest</a> — 實際回傳supervc-stack，1.1.1時間與assets</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>A8</td>
+<td><a href="https://raw.githubusercontent.com/timescale/pgvectorscale/0.9.1/pgvectorscale/Cargo.toml">https://raw.githubusercontent.com/timescale/pgvectorscale/0.9.1/pgvectorscale/Cargo.toml</a> — 固定release PG14–18 feature matrix</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>A9</td>
+<td><a href="https://raw.githubusercontent.com/timescale/pgvectorscale/main/pgvectorscale/Cargo.toml">https://raw.githubusercontent.com/timescale/pgvectorscale/main/pgvectorscale/Cargo.toml</a> — 0.9.2-dev對照</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>A10</td>
+<td><a href="https://github.com/tensorchord/VectorChord/releases">https://github.com/tensorchord/VectorChord/releases</a> — 1.1.1量化／dequantize變更；新release URL <a href="https://github.com/supervc-stack/VectorChord/releases/tag/1.1.1">https://github.com/supervc-stack/VectorChord/releases/tag/1.1.1</a></td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>A11</td>
+<td><a href="https://docs.tigerdata.com/self-hosted/latest/upgrades/upgrade-pg/">https://docs.tigerdata.com/self-hosted/latest/upgrades/upgrade-pg/</a> — TimescaleDB↔PG支援矩陣</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>S1</td>
+<td><a href="https://qdrant.tech/documentation/overview/what-is-qdrant/">https://qdrant.tech/documentation/overview/what-is-qdrant/</a> — 引擎定位</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>S2</td>
+<td><a href="https://qdrant.tech/documentation/scaling/distributed_deployment/">https://qdrant.tech/documentation/scaling/distributed_deployment/</a> — 分散式／shards／replication</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>S3</td>
+<td><a href="https://milvus.io/docs/architecture_overview.md">https://milvus.io/docs/architecture_overview.md</a> — 實際v3.0.x架構</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>S4</td>
+<td><a href="https://docs.weaviate.io/weaviate/concepts/replication-architecture">https://docs.weaviate.io/weaviate/concepts/replication-architecture</a> — metadata／data一致性架構</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>S5</td>
+<td><a href="https://docs.weaviate.io/weaviate/search/hybrid">https://docs.weaviate.io/weaviate/search/hybrid</a> — vector與BM25 hybrid API</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>S6</td>
+<td><a href="https://docs.opensearch.org/latest/vector-search/">https://docs.opensearch.org/latest/vector-search/</a> — vector／neural搜尋、mapping／pipeline</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>D1</td>
+<td><a href="https://dev.mysql.com/doc/refman/9.4/en/vector.html">https://dev.mysql.com/doc/refman/9.4/en/vector.html</a> — 實際呈現9.7 VECTOR頁；版本redirect已記錄</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>D2</td>
+<td><a href="https://dev.mysql.com/doc/refman/9.7/en/vector-functions.html">https://dev.mysql.com/doc/refman/9.7/en/vector-functions.html</a> — DISTANCE產品限制</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>D3</td>
+<td><a href="https://www.sqlite.org/whentouse.html">https://www.sqlite.org/whentouse.html</a> — embedded定位／單writer（頁面last updated 2025-05-31）</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>D4</td>
+<td><a href="https://www.sqlite.org/omitted.html">https://www.sqlite.org/omitted.html</a> — GRANT／REVOKE等差異（頁面last updated 2022-04-18）</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>D5</td>
+<td><a href="https://github.com/asg017/sqlite-vec">https://github.com/asg017/sqlite-vec</a> — 作者官方repository，pre-v1聲明</td>
+<td>2026-10-31</td>
+</tr>
+</tbody>
+</table></div>
+<h2>服務官方文件與固定原始碼</h2>
+<ul>
+<li><a href="https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/requirements.txt">https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/requirements.txt</a></li>
+<li><a href="https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/internal/db.py">https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/internal/db.py</a></li>
+<li><a href="https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/env.py">https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/env.py</a></li>
+<li><a href="https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/config.py">https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/config.py</a></li>
+<li><a href="https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/migrations/env.py">https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/migrations/env.py</a></li>
+<li><a href="https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/retrieval/vector/dbs/pgvector.py">https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/retrieval/vector/dbs/pgvector.py</a></li>
+<li><a href="https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/retrieval/vector/factory.py">https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/backend/open_webui/retrieval/vector/factory.py</a></li>
+<li><a href="https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/.github/workflows/backend.yaml">https://github.com/open-webui/open-webui/blob/f7ac7ee10962ddec0017f5c29b6740d9b9c5faca/.github/workflows/backend.yaml</a></li>
+<li><a href="https://docs.openwebui.com/reference/env-configuration/">https://docs.openwebui.com/reference/env-configuration/</a></li>
+<li><a href="https://docs.openwebui.com/enterprise/deployment/">https://docs.openwebui.com/enterprise/deployment/</a></li>
+<li><a href="https://docs.openwebui.com/getting-started/advanced-topics/scaling/">https://docs.openwebui.com/getting-started/advanced-topics/scaling/</a></li>
+<li><a href="https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/README.md">https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/README.md</a></li>
+<li><a href="https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/go.mod">https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/go.mod</a></li>
+<li><a href="https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/model/main.go">https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/model/main.go</a></li>
+<li><a href="https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/model/gorm_logger.go">https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/model/gorm_logger.go</a></li>
+<li><a href="https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/model/migration_dialector.go">https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/model/migration_dialector.go</a></li>
+<li><a href="https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/model/locking.go">https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/model/locking.go</a></li>
+<li><a href="https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/docker-compose.yml">https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/docker-compose.yml</a></li>
+<li><a href="https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/.github/workflows/ci.yml">https://github.com/QuantumNous/new-api/blob/e835b1bfc43b565d625537830dbfb19328925134/.github/workflows/ci.yml</a></li>
+<li><a href="https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/README.md">https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/README.md</a></li>
+<li><a href="https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/go.mod">https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/go.mod</a></li>
+<li><a href="https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/internal/repository/ent.go">https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/internal/repository/ent.go</a></li>
+<li><a href="https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/internal/repository/migrations_runner.go">https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/internal/repository/migrations_runner.go</a></li>
+<li><a href="https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/internal/repository/db_pool.go">https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/internal/repository/db_pool.go</a></li>
+<li><a href="https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/migrations/001_init.sql">https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/migrations/001_init.sql</a></li>
+<li><a href="https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/migrations/065_add_search_trgm_indexes.sql">https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/migrations/065_add_search_trgm_indexes.sql</a></li>
+<li><a href="https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/internal/repository/integration_harness_test.go">https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/backend/internal/repository/integration_harness_test.go</a></li>
+<li><a href="https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/deploy/docker-compose.yml">https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/deploy/docker-compose.yml</a></li>
+<li><a href="https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/.github/workflows/backend-ci.yml">https://github.com/wei-shaw/sub2api/blob/dece26153621959ccd7635814f4b2d08304e681a/.github/workflows/backend-ci.yml</a></li>
+<li><a href="https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/Dockerfile">https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/Dockerfile</a></li>
+<li><a href="https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/web/package.json">https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/web/package.json</a></li>
+<li><a href="https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/web/docker-entrypoint.sh">https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/web/docker-entrypoint.sh</a></li>
+<li><a href="https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/web/src/lib/localforage-storage.ts">https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/web/src/lib/localforage-storage.ts</a></li>
+<li><a href="https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/docker-compose.yml">https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/docker-compose.yml</a></li>
+<li><a href="https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/docs/content/docs/overview/docker.mdx">https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/docs/content/docs/overview/docker.mdx</a></li>
+<li><a href="https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/README.md">https://github.com/basketikun/infinite-canvas/blob/3a6b64b602ad062b29fac66902ed18a7ef5fd9dc/README.md</a></li>
+<li><a href="https://github.com/apache/tika-docker/blob/main/README.md">https://github.com/apache/tika-docker/blob/main/README.md</a></li>
+<li><a href="https://github.com/ChinRain/api-conversion/blob/main/README.md">https://github.com/ChinRain/api-conversion/blob/main/README.md</a></li>
+<li><a href="https://github.com/pgvector/pgvector/blob/master/README.md">https://github.com/pgvector/pgvector/blob/master/README.md</a></li>
+</ul>
+<h2>研究方法</h2>
+<p>本機僅盤點 Compose、runtime／image metadata、PostgreSQL 設定、catalog 與小型向量表筆數；未執行升級、索引重建或 restore。網頁研究使用 smart-search CLI，精確 fetch 官方文件與固定原始碼，保留本機 raw 證據；公開站不包含 raw inventory、credentials 或用戶內容。完整 report.md 另列儲存、備份、記憶體與連線池來源。</p></main></body></html>
