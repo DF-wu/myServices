@@ -1,0 +1,15 @@
+{
+  "librechat": "ghcr.io/librechat-ai/librechat:v0.8.8@sha256:5b706bcee1ca154a1e2987303aaeca0eb27f97919cccee4bb604226c2f8abf61",
+  "mongo": "mongo:8.0.21@sha256:02d91831f61a3194065e5e88e406f1ffe94b5b4d388f12d8f4444dfe2b1713c9",
+  "meili": "getmeili/meilisearch:v1.35.1@sha256:8b57fc3c7f46535ddef3828df1538465ac19d892eb57c9a10da6df0880bd5856",
+  "rag": "ghcr.io/librechat-ai/librechat-rag-api-dev-lite:latest@sha256:a62ce2221b43a9bb57fa6cb733e7047c80132960272c33d5704028f3071a1251",
+  "redis": "redis:7.4.7-alpine@sha256:02f2cc4882f8bf87c79a220ac958f58c700bdec0dfb9b9ea61b62fb0e8f1bfcf",
+  "storage": "rustfs/rustfs:1.0.4@sha256:ed9210d6411d77ffceb70d94b964a3cb7d225983368bc25bebe01e995293dcc2",
+  "code_api": "ghcr.io/librechat-ai/code-interpreter-api:sha-2fa9f0d43e8e38b7d6240bc76e2483c6a47c64c7@sha256:a96882bb9b64dd4e32b4f94511b3be3709e75397dfc6f16af775f5bf099b8d94",
+  "code_worker": "ghcr.io/librechat-ai/code-interpreter-worker:sha-2fa9f0d43e8e38b7d6240bc76e2483c6a47c64c7@sha256:2a4a6e2db0124932ac4a3b3947b35e92e38901cad4c8cfc83f0215e5fe512c12",
+  "code_files": "ghcr.io/librechat-ai/code-interpreter-file-server:sha-2fa9f0d43e8e38b7d6240bc76e2483c6a47c64c7@sha256:52db4ce0c44bb063c613ebbddf2a80bca5edfa38b42856f06ef8740cd7a0ebb3",
+  "code_egress": "ghcr.io/librechat-ai/code-interpreter-egress-gateway:sha-2fa9f0d43e8e38b7d6240bc76e2483c6a47c64c7@sha256:ad95dd63b7789a0cb4e83f4402e5d0f0e5412e00e33244fdcf3543843d15e44d",
+  "code_tools": "ghcr.io/librechat-ai/code-interpreter-tool-call-server:sha-2fa9f0d43e8e38b7d6240bc76e2483c6a47c64c7@sha256:93d46ac0907b42dafcd8ba5d07f67ae5a9b6970369a0a74d0eef5abf4687e812",
+  "code_runner": "ghcr.io/librechat-ai/code-interpreter-sandbox-runner-direct:sha-2fa9f0d43e8e38b7d6240bc76e2483c6a47c64c7@sha256:181fd30c589bc97f96c0d76d48dacb14d07b6a7274d54911ec47b19cc22e1c64",
+  "code_packages": "ghcr.io/librechat-ai/code-interpreter-sandbox-runner:sha-2fa9f0d43e8e38b7d6240bc76e2483c6a47c64c7@sha256:eef1c94f1255813c82f636d6aa006e85bf1ccf0d1776aad85fea355838e4bcb7"
+}
