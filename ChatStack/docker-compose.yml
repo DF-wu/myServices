@@ -26,6 +26,9 @@
 # - 43066 | deepseek-harness（獨立 stack，見 deepseek-harness/）
 # - 43067 | cc-switch-web（獨立 stack，見 cc-switch-web/）
 # - 43068 | nyaproxy-gateway（獨立 stack，見 nyaproxy/）
+# - 43069 | lobehub（獨立 stack，見 lobehub/）
+# - 43070 | lobehub-gateway（Agent WebSocket）
+# - 43071 | lobehub-gateway（Device WebSocket）
 # - 43080 | telegram-chatbot (legacy profile)
 # - 59998 | tika
 
@@ -91,6 +94,8 @@ services:
   # - Database 5: lilac-mono
   # - Database 6: sub2api (CRS 2.0)
   # - Database 7: lilac-mono-claudia
+  # - Database 8: librechat（既有獨立容器）
+  # - Database 9: lobehub（獨立 stack，見 lobehub/）
   chatstack-unified-redis:
     image: docker.io/valkey/valkey:8-alpine
     container_name: chatstack-unified-redis
