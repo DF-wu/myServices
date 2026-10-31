@@ -1,169 +1,125 @@
 # CapsWriter-Offline-Container
 
-對應 repo：<https://github.com/DF-wu/CapsWriter-Offline-Container>
+Portainer Git stack recipe，對應
+[CapsWriter](https://github.com/DF-wu/CapsWriter-Offline-Container)。
+本次依 `master` 的 `a674e40` 對齊參數，使用已發布的 server／Web 映像，
+不在部署主機 build。
 
-這份是放進 `myServices` 的自部署版本，維持目前倉庫慣例：
+## 服務與網址
 
-- 每個服務一個目錄
-- 以 `docker-compose.yml` 為主
-- 使用同目錄 `.env` 控制主要參數
-- 模型與 logs 使用本機 Docker named volume；熱詞檔保留在 `/mnt/appdata/...`
+主檔 `docker-compose.yml` 已包含 NVIDIA server 與 Web Console，
+HTTP API 已啟用，三個 port 都透過 `.env` 控制並發布至 LAN：
 
----
+| 用途 | 預設網址 | 容器 port |
+|---|---|---|
+| 桌面用戶端 WebSocket | `ws://axolotl.newhome:6016` | 6016 |
+| OpenAI 相容 HTTP API | `http://axolotl.newhome:6017/v1` | 6017 |
+| Web Console | `http://axolotl.newhome:6018` | 8080 |
 
-## 預設行為
+Web 使用 `ghcr.io/df-wu/capswriter-offline-web:latest`，server 使用
+`ghcr.io/df-wu/capswriter-offline-server:latest`。兩個映像都可在 `.env`
+改成已驗證的 `sha-<完整 commit>` 或 digest。
 
-- 映像：`ghcr.io/df-wu/capswriter-offline-server:latest`
-- 預設模型：`qwen_asr`
-- 預設 WebSocket port：`6016`
-- 預設硬體策略：`auto`（有 GPU 就優先 GPU，否則回退 CPU）
-- OpenAI 相容 HTTP API：**預設關閉**
+預設模型仍是 `qwen_asr`、硬體策略 `auto`、CPU threads `16`。
+一般 NVIDIA 推論保持可用；**額外顯存鎖頻目前關閉**，因為沒有選定支援的
+頻率，`true` 配上 `0` MHz 會被新版拒絕。
 
----
+## Portainer 設定
 
-## 首次部署
+- Git Compose path：`CapsWriter-Offline-Container/docker-compose.yml`。
+- 將 `DF_API_KEY` 或 `CAPSWRITER_HTTP_API_KEY` 設為現有的 API key。
+  Compose 明確映射參數，可由 Portainer stack environment 覆寫；不依賴
+  `env_file` 把變數間接傳入容器。未提供 key 時，Compose 會直接報錯。
+- 主檔已包含 Web 與 HTTP port，無須另外加入 Web Compose 檔。
+- 只有要使用 Web 的服務端設定頁時，才在 Additional Compose files 最後
+  加入 `CapsWriter-Offline-Container/docker-compose.settings.yml`。
+- 這份 recipe 由 Portainer 拉取再部署；本機修改檔案不會改變既有容器。
+
+開啟 `http://axolotl.newhome:6018`，API root 預設為
+`http://axolotl.newhome:6017`；在頁面的 key 欄輸入 server token。
+`CAPSWRITER_WEB_API_KEY` 保持空白，不會把 server key 發布到 `/config.js`。
+
+Web 容器只提供頁面，**瀏覽器直接呼叫 API**。不要把 API root 設成
+`http://capswriter-server:6017`，也不要讓遠端瀏覽器使用它自己的 localhost。
+若改用其他主機名稱／IP，更新：
+
+```dotenv
+CAPSWRITER_WEB_HOST=axolotl.newhome
+CAPSWRITER_WEB_PORT=6018
+CAPSWRITER_HTTP_API_PORT=6017
+CAPSWRITER_WEB_API_BASE=http://${CAPSWRITER_WEB_HOST}:${CAPSWRITER_HTTP_API_PORT}
+CAPSWRITER_HTTP_API_CORS_ORIGINS=http://${CAPSWRITER_WEB_HOST}:${CAPSWRITER_WEB_PORT},http://localhost:${CAPSWRITER_WEB_PORT},http://127.0.0.1:${CAPSWRITER_WEB_PORT}
+```
+
+以 HTTPS 網域存取時，API root 也須使用瀏覽器可達的 HTTPS URL，並把完整的
+Web origin 加入 CORS。遠端瀏覽器錄音需要 HTTPS；LAN HTTP 頁面可上傳檔案，
+但不滿足麥克風的 secure-context 要求。Server／Web／HTTP 三個
+`*_PUBLISH_HOST` 可分別調整監聽介面。
+
+## 最新參數與設定頁
+
+`.env` 已列出 API 上傳／音訊秒數／佇列限制、WebSocket 接入限制、下載與
+worker timeout、Qwen／Fun-ASR 參數、Web runtime 設定與預加速控制。
+Portainer 的環境值優先於 `.env`；變更 server 參數後需要重建服務。
+
+選用 `docker-compose.settings.yml` 後，設定保存於
+`capswriter-server-settings:/app/settings`，需使用同一個 API key 驗證。
+`.env`／Portainer 中非空的日常參數會顯示為鎖定；要讓 GUI 管理某欄位，
+將對應變數清空或移除，並將這個 override 放在其他 override 之後。
+
+## 模型與熱詞持久化
+
+模型使用 `capswriter-server-models:/app/models`，logs 使用
+`capswriter-server-logs:/app/logs`，避免舊 NFS 模型 UID 與 `appuser` 不符。
+Portainer stack 名稱若為 `capswriter`，模型 volume 實際名稱通常是
+`capswriter_capswriter-server-models`。新的空 volume 會重新下載模型，
+不會自動匯入舊 NFS 資料。
+
+熱詞仍從 `/mnt/appdata/capswriter-offline/hot-server.txt` 唯讀掛載。
+該檔案必須先存在；recipe 不會把缺少的熱詞檔自動建成目錄。
+如需首次建立，可由操作人員執行：
 
 ```bash
-cd myServices/CapsWriter-Offline-Container
 mkdir -p /mnt/appdata/capswriter-offline
 cp hot-server.example.txt /mnt/appdata/capswriter-offline/hot-server.txt
-docker compose up -d
 ```
 
-第一次冷啟動可能會很久，因為容器會自動下載模型與 backend。
+等 Portainer 部署後確認實際掛載、`/ready` 與辨識正常，才能考慮移除舊
+`/mnt/appdata/capswriter-offline/models`；保留其父目錄與 `hot-server.txt`。
+`docker compose down -v` 會移除模型、logs 與選用的 settings volume。
 
-## 從舊模型掛載切換
+## NVIDIA 與預加速
 
-模型掛載已改為 `capswriter-server-models:/app/models`。以目前 Portainer stack
-名稱 `capswriter` 部署時，實際 volume 名稱是
-`capswriter_capswriter-server-models`。Docker 初次建立 volume 時會沿用映像內
-`/app/models` 的擁有者，避免 NFS 檔案 UID 與容器 `appuser` 不一致導致
-bootstrap lock 被拒絕。
+這份自部署主檔保留 NVIDIA device reservation，`CAPSWRITER_GPU_DEVICE_COUNT`
+只接受 `all` 或正整數。`CAPSWRITER_INFERENCE_HARDWARE=cpu` 可強制 CPU 推論，
+Qwen 也可設定 `CAPSWRITER_QWEN_PRESET=cpu_only`；`cpu_only` 不是硬體策略值。
+這些設定不會取消 Docker 的 NVIDIA 裝置需求；在沒有 NVIDIA runtime 的
+主機上使用時，需先移除 `deploy.resources.reservations.devices`。
+切換模型可設定 `CAPSWRITER_MODEL_TYPE=fun_asr_nano`。
 
-由 Portainer 自行拉取 recipe 更新並部署。新 volume 不會自動匯入舊 NFS
-目錄的模型；未預先複製時，服務會自動下載。
+額外鎖頻需先確認顯卡支援的 MHz，再同時設定
+`CAPSWRITER_GPU_BOOST_ENABLED=true` 與正的
+`CAPSWRITER_GPU_BOOST_MEMORY_CLOCK_MHZ`，並加入
+`docker-compose.nvidia-boost.yml`。該檔提供 root、`SYS_ADMIN`、
+`DAC_OVERRIDE`、`CHOWN`、`FOWNER` 與 150 秒停止寬限，不會自動選頻率。
 
-確認 Portainer 更新後，容器的 `/app/models` 已掛載上述 volume，且服務
-healthcheck 與 `/ready` 正常，再移除舊目錄
-`/mnt/appdata/capswriter-offline/models`。`hot-server.txt` 仍從 appdata 掛載，
-請保留 `/mnt/appdata/capswriter-offline` 與其中的熱詞檔。
+HTTP、錄音與檔案辨識都有預加速整合，閒置與正常退出會嘗試還原；命令失敗
+仍繼續辨識。強制 CPU／完整 CPU 回退不鎖頻，`low_vram_gpu` 保留 GPU 編碼器
+資格。鎖頻會影響同一實體 GPU 上的其他程式，多個實例沒有所有權協調。
+Hopper deferred clocks 不適用；強殺／斷電無法保證還原。
+Root 模式產生的資料可能需要修復為映像 `appuser` 的 UID/GID，才能退回非 root。
 
----
+官方說明：[NVIDIA SMI](https://docs.nvidia.com/deploy/nvidia-smi/index.html)。
 
-## 常用檢查
+## 部署後驗證
+
+以下由部署操作人員執行；修改 recipe 本身不代表已完成部署：
 
 ```bash
-cd myServices/CapsWriter-Offline-Container
-docker compose ps
-docker compose logs -f capswriter-server
+curl http://axolotl.newhome:6017/health
+curl http://axolotl.newhome:6017/ready
+curl http://axolotl.newhome:6018/health
 ```
 
-預設 WebSocket endpoint：
-
-```text
-ws://127.0.0.1:6016
-```
-
----
-
-## CPU-only 啟動
-
-把 `.env` 改成：
-
-```env
-CAPSWRITER_INFERENCE_HARDWARE=cpu
-CAPSWRITER_GPU_DEVICE_COUNT=0
-```
-
-之後重建：
-
-```bash
-docker compose up -d --force-recreate
-```
-
----
-
-## 切到 Fun-ASR-Nano
-
-把 `.env` 改成：
-
-```env
-CAPSWRITER_MODEL_TYPE=fun_asr_nano
-```
-
-然後重建：
-
-```bash
-docker compose up -d --force-recreate
-```
-
----
-
-## 啟用 OpenAI 相容 HTTP API
-
-1. 先在 `.env` 設定：
-
-```env
-CAPSWRITER_HTTP_API_ENABLE=true
-CAPSWRITER_HTTP_API_KEY=sk-change-me
-```
-
-2. 再把 `docker-compose.yml` 裡的 `6017` port mapping 取消註解。
-
-3. 重建服務：
-
-```bash
-docker compose up -d --force-recreate
-```
-
-啟用後 base URL 會是：
-
-```text
-http://127.0.0.1:6017/v1
-```
-
-如果你要對外暴露，**一定要設 `CAPSWRITER_HTTP_API_KEY`**。
-
----
-
-## 備註
-
-### v2.1 NVIDIA 預加速
-
-一般 GPU 推論使用現有的 `CAPSWRITER_INFERENCE_HARDWARE=auto` 與
-`CAPSWRITER_QWEN_PRESET`。額外的顯存鎖頻預加速需先使用發布後的 v2.1
-映像，再在這個目錄的 `.env` 設定：
-
-```env
-CAPSWRITER_GPU_BOOST_ENABLED=true
-CAPSWRITER_GPU_BOOST_DEVICE=0
-CAPSWRITER_GPU_BOOST_MEMORY_CLOCK_MHZ=6000
-CAPSWRITER_GPU_BOOST_IDLE_SECONDS=1
-CAPSWRITER_GPU_BOOST_TIMEOUT=5
-```
-
-`6000` 僅是設定格式示例，必須換成該顯卡實際支援的 MHz，不能直接照抄。
-裝置索引以容器可見的 NVIDIA 裝置為準；預設值 `0` MHz 表示未設定，不能
-啟用預加速。可先在主機唯讀查詢 `nvidia-smi -i 0 -q -d SUPPORTED_CLOCKS`。
-
-若選用預加速，Portainer 的 Additional Compose files 需加入同目錄的
-`docker-compose.nvidia-boost.yml`。它明確改用 root 並提供 NVIDIA 鎖頻所需
-的 `SYS_ADMIN` 與模型檔案存取能力；預設 recipe 不加這些權限。
-此檔只提供權限，不會替你啟用 `.env` 開關。
-
-HTTP、桌面錄音與檔案辨識都會觸發，閒置及正常退出會嘗試還原。權限不足、
-GPU 不支援或命令失敗時記錄警告並繼續辨識，不因此讓服務重啟。
-強制 CPU、`cpu_only` 及完整 CPU 回退時不鎖頻；仍使用 CUDA 的
-`low_vram_gpu` 保留預加速資格。
-Hopper 等需要 deferred memory clocks 的裝置不適用此即時鎖頻功能。
-強制 kill／主機斷電不能保證還原，需檢查主機時脈。
-
-這些修改必須先提交並推送到 Portainer 追蹤的 Git 分支；本機編輯不會改變
-Portainer 拉到的 recipe。映像發布與 recipe 推送是兩個步驟，發布後應使用
-不可變的 `sha-<完整 commit>` 映像 tag，確認 `/health` 的 `fork_version` 是
-`2.1.0`，再檢查 `/ready` 與模型掛載。
-
-官方說明：<https://docs.nvidia.com/deploy/nvidia-smi/index.html>
-
-- `hot-server.txt` 我刻意不直接綁 repo 內檔案，而是走 `/mnt/appdata/capswriter-offline/hot-server.txt`，這樣你在主機上調整熱詞比較直觀。
-- 模型與 logs 使用 Docker named volume；請確認 Docker 資料目錄位於本機磁碟。`docker compose down -v` 會刪除這些 volume 與模型快取。
+確認 Web 顯示正確的 API root，輸入 key 後跑診斷並上傳已知音訊。
+`/health` 表示 HTTP 程序存活，`/ready` 才檢查模型 worker 等辨識條件。
