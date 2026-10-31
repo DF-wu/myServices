@@ -132,3 +132,11 @@ services:
       - ${DSH_APPDATA_DIR:-/mnt/appdata/deepseek-harness}/workspace:/workspace
       # 4. Chromium 使用者資料（持久化容器內瀏覽器的登入狀態與 cookies）
       - ${DSH_APPDATA_DIR:-/mnt/appdata/deepseek-harness}/browser:/root/.config/chromium
+      # 5. 共用 skills：DSH 原生掃描 ~/.agents/skills；只讀取 skills，不掛載整個 host 家目錄。
+      #    來源由 axolotl 的 skills CLI 統一管理；缺目錄時直接報錯，避免自動建立空目錄。
+      - type: bind
+        source: ${DSH_SKILLS_DIR:-/home/df/.agents/skills}
+        target: /root/.agents/skills
+        read_only: true
+        bind:
+          create_host_path: false
