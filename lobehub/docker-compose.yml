@@ -1,0 +1,129 @@
+# author: df
+# LobeHub + official single-instance Agent/Device Gateway.
+# Portainer Git stack: lobehub/docker-compose.yml; setup: README.md.
+# Reuses ChatStack PG17/Valkey and OpenList S3. Prepare the database first.
+# Host ports: 43069 app, 43070 agent gateway, 43071 device gateway.
+
+services:
+  lobehub:
+    image: ${LOBEHUB_IMAGE:-lobehub/lobehub:2.2.21@sha256:01805eca5372cf4c99a7e895990596050959d68d890a3433015ced9fe538676e}
+    container_name: lobehub
+    restart: unless-stopped
+    # Keep the upstream nextjs user (1001); its writable /app belongs to that UID.
+    ports:
+      - "${LOBEHUB_HOST_PORT:-43069}:3210"
+    environment:
+      TZ: Asia/Taipei
+      HOSTNAME: 0.0.0.0
+      PORT: "3210"
+      APP_URL: ${LOBEHUB_APP_URL:-https://lobehub.dfder.tw}
+      INTERNAL_APP_URL: http://127.0.0.1:3210
+      DATABASE_DRIVER: node
+      DATABASE_URL: postgresql://lobehub:${LOBEHUB_POSTGRES_PASSWORD:?Set the URI-safe lobehub database password in Portainer}@chatstack-postgres17-pgvector:5432/lobehub
+      # This shared pgvector image has no pg_search. The upstream default would fail startup.
+      FTS_SEARCH_PROVIDER: pg_like
+      REDIS_URL: redis://chatstack-unified-redis:6379/9
+      REDIS_DATABASE: "9"
+      REDIS_PREFIX: lobehub
+      REDIS_TLS: "0"
+
+      KEY_VAULTS_SECRET: ${LOBEHUB_KEY_VAULTS_SECRET:?Generate and back up LOBEHUB_KEY_VAULTS_SECRET}
+      AUTH_SECRET: ${LOBEHUB_AUTH_SECRET:?Generate LOBEHUB_AUTH_SECRET}
+      AUTH_COOKIE_PREFIX: lobehub
+      AUTH_ALLOWED_EMAILS: ${LOBEHUB_AUTH_ALLOWED_EMAILS:?Set an explicit comma-separated list of allowed users}
+      AUTH_EMAIL_VERIFICATION: "0"
+      JWKS_KEY: ${LOBEHUB_JWKS_KEY:?Generate the private RS256 JWKS}
+
+      # Existing OpenList root S3 reverse proxy; do not append /s3 or the bucket here.
+      S3_ENDPOINT: ${LOBEHUB_S3_ENDPOINT:-https://s3.api.dfder.tw}
+      S3_BUCKET: ${LOBEHUB_S3_BUCKET:-s3-tmp}
+      S3_REGION: us-east-1
+      S3_ENABLE_PATH_STYLE: "1"
+      S3_SET_ACL: "0"
+      S3_ACCESS_KEY_ID: ${LOBEHUB_S3_ACCESS_KEY_ID:?Copy the access key ID from OpenList S3 settings}
+      S3_SECRET_ACCESS_KEY: ${LOBEHUB_S3_SECRET_ACCESS_KEY:?Copy the secret from OpenList S3 settings}
+      # Private objects use signed previews. No anonymous bucket policy is needed.
+      LLM_VISION_IMAGE_USE_BASE64: "1"
+
+      # A stable host address also matches the narrow SSRF IP allowlist below.
+      NEWAPI_PROXY_URL: ${LOBEHUB_NEWAPI_PROXY_URL:-http://192.168.10.13:43001}
+      NEWAPI_API_KEY: ${LOBEHUB_NEWAPI_API_KEY:?Create a dedicated LobeHub client token in new-api}
+      NEWAPI_MODEL_LIST: ${LOBEHUB_NEWAPI_MODEL_LIST:--all,+${LOBEHUB_CHAT_MODEL:-deepseek-v4-flash}}
+      DEFAULT_AGENT_CONFIG: "provider=newapi;model=${LOBEHUB_CHAT_MODEL:-deepseek-v4-flash};chatConfig.enableAgentMode=true;chatConfig.enableStreaming=true;chatConfig.disableGatewayMode=false"
+      SYSTEM_AGENT: default=newapi/${LOBEHUB_CHAT_MODEL:-deepseek-v4-flash}
+      SSRF_ALLOW_PRIVATE_IP_ADDRESS: "0"
+      SSRF_ALLOW_IP_ADDRESS_LIST: ${LOBEHUB_SSRF_ALLOW_IP_ADDRESS_LIST:-192.168.10.13,192.168.10.10}
+
+      ENABLE_AGENT_GATEWAY: "1"
+      AGENT_GATEWAY_URL: ${LOBEHUB_AGENT_GATEWAY_URL:-https://lobe-agent.dfder.tw}
+      AGENT_GATEWAY_INTERNAL_URL: http://lobehub-gateway:8787
+      AGENT_GATEWAY_PROTOCOL: "1"
+      AGENT_GATEWAY_SERVICE_TOKEN: ${LOBEHUB_GATEWAY_SERVICE_TOKEN:?Generate LOBEHUB_GATEWAY_SERVICE_TOKEN}
+      DEVICE_GATEWAY_URL: http://lobehub-gateway:8788
+      DEVICE_GATEWAY_PUBLIC_URL: ${LOBEHUB_DEVICE_GATEWAY_URL:-https://lobe-device.dfder.tw}
+      DEVICE_GATEWAY_SERVICE_TOKEN: ${LOBEHUB_GATEWAY_SERVICE_TOKEN:?Generate LOBEHUB_GATEWAY_SERVICE_TOKEN}
+    depends_on:
+      lobehub-gateway:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - /bin/node
+        - -e
+        - "fetch('http://127.0.0.1:3210/',{redirect:'manual',signal:AbortSignal.timeout(5000)}).then(r=>process.exit(r.status>=200&&r.status<400?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      start_period: 180s
+      retries: 5
+    networks:
+      - default
+      - chatstack
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  lobehub-gateway:
+    image: ${LOBEHUB_GATEWAY_IMAGE:-ghcr.io/lobehub/lobehub-gateway:0.5.0@sha256:63647fd8f97407dafd344dd08b509ff74a033b23292cf1d451d804cb09d35759}
+    container_name: lobehub-gateway
+    user: 3000:3000
+    restart: unless-stopped
+    # Gateway 0.5.0 trusts client-supplied serverUrl during API-key auth.
+    # Keep loopback until BOTH NPM hosts have trusted-client source ACLs.
+    # Then explicitly select the trusted LAN interface; see README security restriction.
+    ports:
+      - "${LOBEHUB_GATEWAY_BIND_IP:-127.0.0.1}:${LOBEHUB_AGENT_GATEWAY_HOST_PORT:-43070}:8787"
+      - "${LOBEHUB_GATEWAY_BIND_IP:-127.0.0.1}:${LOBEHUB_DEVICE_GATEWAY_HOST_PORT:-43071}:8788"
+    environment:
+      TZ: Asia/Taipei
+      SERVICE_TOKEN: ${LOBEHUB_GATEWAY_SERVICE_TOKEN:?Generate LOBEHUB_GATEWAY_SERVICE_TOKEN}
+      # Public JWKS only; never pass LOBEHUB_JWKS_KEY to this service.
+      JWKS_PUBLIC_KEY: ${LOBEHUB_JWKS_PUBLIC_KEY:?Generate the matching public RS256 JWKS}
+      LOBE_API_BASE_URL: http://lobehub:3210
+      AGENT_PORT: "8787"
+      DEVICE_PORT: "8788"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8787/health >/dev/null && wget -qO- http://127.0.0.1:8788/health >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  chatstack:
+    external: true
+    name: ${LOBEHUB_CHATSTACK_NETWORK:-chatstack_default}
