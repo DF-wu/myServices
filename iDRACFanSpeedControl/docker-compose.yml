@@ -29,7 +29,7 @@ services:
       # TrueNAS 看到的是 VMware Virtual NVMe Disk，其 SMART log 不可信。
       TEMPERATURE_SOURCES: idrac,remote_gpu
       WITH_GPU_TEMP: "false"
-      GPU_TEMP_OFFSET: "15"
+      GPU_TEMP_OFFSET: "10"
 
       LINUX_DISK_DEVICES: /dev/nvme0
       LINUX_DISK_TEMP_OFFSET: "0"
@@ -40,7 +40,7 @@ services:
       REMOTE_GPU_PASSWORD: REPLACE_TO_YOUR_AXOLOTL_SSH_PASSWORD
       REMOTE_GPU_SSH_KEY: ""
       REMOTE_GPU_SSH_PORT: "22"
-      REMOTE_GPU_TEMP_OFFSET: "15"
+      REMOTE_GPU_TEMP_OFFSET: "10"
       SSH_CONNECT_TIMEOUT: "10"
       SSH_STRICT_HOST_KEY_CHECKING: accept-new
 
