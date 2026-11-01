@@ -2,7 +2,7 @@
 
 直接整合在 `ChatStack/docker-compose.yml`，由既有 ChatStack 的 Portainer stack 管理，包含 `lobehub/lobehub:latest` 與 `ghcr.io/lobehub/lobehub-gateway:latest`。沿用既有 PostgreSQL、Redis、OpenList S3 與 new-api；本目錄保存設定範本、秘密產生器與資料庫前置 SQL，沒有另一份 Compose。
 
-實際網址、內網位址、連線字串、bucket 與憑證，只填在 Portainer Environment 或本機忽略的 `compose.env.local`，不要提交至 Git 或貼進 PR。
+對外網址、S3 bucket 與憑證，只填在 Portainer Environment 或本機忽略的 `compose.env.local`，不要提交至 Git 或貼進 PR。
 
 ## 設定
 
@@ -17,9 +17,9 @@ helper 不連網、不啟動容器；檔案權限為 `0600`，已有檔案時拒
 填完檔案中的空白欄位，再加入**既有 ChatStack** 的 Portainer Environment，保留原本其他服務的變數。完整欄位見 [compose.env.example](compose.env.example)：
 
 - `LOBEHUB_APP_URL`：應用程式對外 HTTPS 網址。
-- `LOBEHUB_DATABASE_URL`：專用 `lobehub` 資料庫的 PostgreSQL URI；帳號也是 `lobehub`。密碼與產生的 `LOBEHUB_POSTGRES_PASSWORD` 相同，URI 中的特殊字元須編碼。
-- `LOBEHUB_REDIS_URL`：既有 Redis／Valkey 連線網址，使用 DB **9**。先確認這個 DB 沒有被其他服務使用。
-- `LOBEHUB_NEWAPI_PROXY_URL`、`LOBEHUB_NEWAPI_API_KEY`：模型 API 入口與專用 client token。預設模型為 `deepseek-v4-flash`，可用 `LOBEHUB_CHAT_MODEL` 更改；先確認 token 的 group／額度可用該模型。
+- `LOBEHUB_POSTGRES_PASSWORD`：專用 `lobehub` 資料庫密碼。資料庫網址已直接使用同 stack 的 `chatstack-postgres17-pgvector:5432/lobehub`，不必另填 URL。helper 產生的是 URI-safe 十六進位密碼。
+- Redis 已直接設定 `redis://chatstack-unified-redis:6379/9`，不必另填 URL；DB **9** 須保留給 LobeHub。
+- `LOBEHUB_NEWAPI_API_KEY`：專用 client token；模型 API 已直接設定 `http://new-api:3000`，不必另填 URL。預設模型為 `deepseek-v4-flash`，可用 `LOBEHUB_CHAT_MODEL` 更改；先確認 token 的 group／額度可用該模型。
 - `LOBEHUB_S3_ENDPOINT`、`LOBEHUB_S3_BUCKET` 及兩個 S3 keys：現有 OpenList S3 設定。endpoint 必須讓瀏覽器連得到；若既有反代已將根路徑轉入 OpenList S3，請勿重複附加該路徑或 bucket。
 - `LOBEHUB_AGENT_GATEWAY_URL`、`LOBEHUB_DEVICE_GATEWAY_URL`：兩個 Gateway 的對外 HTTPS 網址，反代須支援 WebSocket。
 - `LOBEHUB_AUTH_ALLOWED_EMAILS`：允許建立帳號的 email 清單。這不是既有使用者的停權清單；未啟用郵件驗證時，首次註冊先限制管理者來源。
