@@ -1,25 +1,24 @@
 # LobeHub
 
-由 Portainer 部署的獨立 stack，包含 `lobehub/lobehub:latest` 與 `ghcr.io/lobehub/lobehub-gateway:latest`。沿用既有 PostgreSQL、Redis、OpenList S3 與 new-api；這份目錄只提供 recipe。
+直接整合在 `ChatStack/docker-compose.yml`，由既有 ChatStack 的 Portainer stack 管理，包含 `lobehub/lobehub:latest` 與 `ghcr.io/lobehub/lobehub-gateway:latest`。沿用既有 PostgreSQL、Redis、OpenList S3 與 new-api；本目錄保存設定範本、秘密產生器與資料庫前置 SQL，沒有另一份 Compose。
 
-實際網址、內網位址、連線字串、bucket、網路名稱與憑證，只填在 Portainer Environment 或本機忽略的 `compose.env.local`，不要提交至 Git 或貼進 PR。
+實際網址、內網位址、連線字串、bucket 與憑證，只填在 Portainer Environment 或本機忽略的 `compose.env.local`，不要提交至 Git 或貼進 PR。
 
 ## 設定
 
 在 repo 根目錄產生本機設定檔：
 
 ```sh
-node lobehub/generate-secrets.mjs lobehub/compose.env.local
+node ChatStack/lobehub/generate-secrets.mjs ChatStack/lobehub/compose.env.local
 ```
 
 helper 不連網、不啟動容器；檔案權限為 `0600`，已有檔案時拒絕覆蓋。備份原始 secrets，不要在既有部署上重新產生 vault key。
 
-填完檔案中的空白欄位，再匯入 Portainer Environment。完整欄位見 [compose.env.example](compose.env.example)：
+填完檔案中的空白欄位，再加入**既有 ChatStack** 的 Portainer Environment，保留原本其他服務的變數。完整欄位見 [compose.env.example](compose.env.example)：
 
 - `LOBEHUB_APP_URL`：應用程式對外 HTTPS 網址。
 - `LOBEHUB_DATABASE_URL`：專用 `lobehub` 資料庫的 PostgreSQL URI；帳號也是 `lobehub`。密碼與產生的 `LOBEHUB_POSTGRES_PASSWORD` 相同，URI 中的特殊字元須編碼。
 - `LOBEHUB_REDIS_URL`：既有 Redis／Valkey 連線網址，使用 DB **9**。先確認這個 DB 沒有被其他服務使用。
-- `LOBEHUB_CHATSTACK_NETWORK`：應用程式連線資料庫與 Redis 所需的既有 Docker network。
 - `LOBEHUB_NEWAPI_PROXY_URL`、`LOBEHUB_NEWAPI_API_KEY`：模型 API 入口與專用 client token。預設模型為 `deepseek-v4-flash`，可用 `LOBEHUB_CHAT_MODEL` 更改；先確認 token 的 group／額度可用該模型。
 - `LOBEHUB_S3_ENDPOINT`、`LOBEHUB_S3_BUCKET` 及兩個 S3 keys：現有 OpenList S3 設定。endpoint 必須讓瀏覽器連得到；若既有反代已將根路徑轉入 OpenList S3，請勿重複附加該路徑或 bucket。
 - `LOBEHUB_AGENT_GATEWAY_URL`、`LOBEHUB_DEVICE_GATEWAY_URL`：兩個 Gateway 的對外 HTTPS 網址，反代須支援 WebSocket。
@@ -33,7 +32,7 @@ Gateway 只取得公開 JWKS；私有 JWKS、vault key 與模型憑證只送入�
 由你將 `<postgres-container>` 換成既有 PostgreSQL 容器名稱，再執行：
 
 ```sh
-docker exec -i <postgres-container> psql -U postgres -d postgres < lobehub/init-db.sql
+docker exec -i <postgres-container> psql -U postgres -d postgres < ChatStack/lobehub/init-db.sql
 docker exec -it <postgres-container> psql -U postgres -d postgres -c '\password lobehub'
 ```
 
@@ -41,8 +40,8 @@ docker exec -it <postgres-container> psql -U postgres -d postgres -c '\password 
 
 ## Portainer 與反代
 
-1. 選擇本 repo，Compose path 填 `lobehub/docker-compose.yml`，匯入環境變數。
-2. 確認既有 DB／Redis 已啟動、Docker network 存在、S3 bucket 可用。
+1. 使用既有 ChatStack stack，Compose path 維持 `ChatStack/docker-compose.yml`；將 `LOBEHUB_*` 變數加入現有 Environment，不建立另一個 stack。
+2. 先建立專用資料庫，確認既有 S3 bucket 可用。LobeHub 與 Gateway 使用 ChatStack 預設網路；應用程式會等待 PostgreSQL 啟動、Redis 和 Gateway 健康，以及 new-api 啟動。不需要額外 external network 或 `LOBEHUB_CHATSTACK_NETWORK`。
 3. 應用程式 host port 預設 **43069**；Agent／Device Gateway 預設 **43070／43071**。反代目標使用部署主機和對應埠，開啟 HTTPS、WebSocket，關閉串流 buffering，適度放寬 read/send timeout。
 4. Gateway 預設只綁 `127.0.0.1`。反代在其他主機時，先為兩個 Gateway 入口設定可信來源限制，再在 Portainer 指定 `LOBEHUB_GATEWAY_BIND_IP` 為可供反代連線的介面。維持 loopback 時，遠端反代無法串流；請勿直接將 Gateway 埠轉發至公網。
 
@@ -53,11 +52,13 @@ docker exec -it <postgres-container> psql -U postgres -d postgres -c '\password 
 部署前可只解析設定，不啟動服務：
 
 ```sh
-docker compose --env-file lobehub/compose.env.local -f lobehub/docker-compose.yml config -q
+docker compose --env-file <chatstack-env-file> --env-file ChatStack/lobehub/compose.env.local -f ChatStack/docker-compose.yml config -q
 ```
 
 由你部署後確認：登入、預設 agent 串流回覆、標題生成、Gateway WebSocket `101`，以及 S3 上傳／預覽／刪除。S3 使用 path-style 和簽名讀取，`S3_SET_ACL=0`；不要求公開 bucket。
 
+`<chatstack-env-file>` 需包含其他既有服務的變數。這份整合配置不使用 profile；更新 ChatStack 前必須填完 LobeHub 必要設定。若先前已建立獨立的 LobeHub stack，請先由你停止舊的兩個服務，再更新 ChatStack，以免容器名稱或埠衝突；保留並沿用原資料庫、S3 和 secrets。
+
 本次只做靜態設定驗證，沒有實際部署或執行上述流程。檔案可用性取決於 OpenList 和其底層儲存；請將應用程式物件視為持久資料保存。
 
-更新時由 Portainer 重新拉取兩個 `latest`。更新前備份資料庫、S3 檔案與 secrets；schema migration 後只換回舊映像未必能復原。撤回時只停止此 stack，保留資料，不清空共用 Redis 或整個 S3 bucket。
+更新時由 Portainer 重新拉取兩個 `latest`。更新前備份資料庫、S3 檔案與 secrets；schema migration 後只換回舊映像未必能復原。停用 LobeHub 時，只停止 `lobehub` 和 `lobehub-gateway` 兩個服務，保留資料；不要對整個 ChatStack 執行 `down`，也不要清空共用 Redis 或整個 S3 bucket。
