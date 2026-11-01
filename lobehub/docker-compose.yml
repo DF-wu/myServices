@@ -6,7 +6,7 @@
 
 services:
   lobehub:
-    image: ${LOBEHUB_IMAGE:-lobehub/lobehub:2.2.21@sha256:01805eca5372cf4c99a7e895990596050959d68d890a3433015ced9fe538676e}
+    image: lobehub/lobehub:latest
     container_name: lobehub
     restart: unless-stopped
     # Keep the upstream nextjs user (1001); its writable /app belongs to that UID.
@@ -16,13 +16,13 @@ services:
       TZ: Asia/Taipei
       HOSTNAME: 0.0.0.0
       PORT: "3210"
-      APP_URL: ${LOBEHUB_APP_URL:-https://lobehub.dfder.tw}
+      APP_URL: ${LOBEHUB_APP_URL:?Set the public HTTPS application URL}
       INTERNAL_APP_URL: http://127.0.0.1:3210
       DATABASE_DRIVER: node
-      DATABASE_URL: postgresql://lobehub:${LOBEHUB_POSTGRES_PASSWORD:?Set the URI-safe lobehub database password in Portainer}@chatstack-postgres17-pgvector:5432/lobehub
+      DATABASE_URL: ${LOBEHUB_DATABASE_URL:?Set the dedicated PostgreSQL connection URL}
       # This shared pgvector image has no pg_search. The upstream default would fail startup.
       FTS_SEARCH_PROVIDER: pg_like
-      REDIS_URL: redis://chatstack-unified-redis:6379/9
+      REDIS_URL: ${LOBEHUB_REDIS_URL:?Set the Redis connection URL using database 9}
       REDIS_DATABASE: "9"
       REDIS_PREFIX: lobehub
       REDIS_TLS: "0"
@@ -35,8 +35,8 @@ services:
       JWKS_KEY: ${LOBEHUB_JWKS_KEY:?Generate the private RS256 JWKS}
 
       # Existing OpenList root S3 reverse proxy; do not append /s3 or the bucket here.
-      S3_ENDPOINT: ${LOBEHUB_S3_ENDPOINT:-https://s3.api.dfder.tw}
-      S3_BUCKET: ${LOBEHUB_S3_BUCKET:-s3-tmp}
+      S3_ENDPOINT: ${LOBEHUB_S3_ENDPOINT:?Set the browser-accessible S3 endpoint}
+      S3_BUCKET: ${LOBEHUB_S3_BUCKET:?Set the existing S3 bucket}
       S3_REGION: us-east-1
       S3_ENABLE_PATH_STYLE: "1"
       S3_SET_ACL: "0"
@@ -45,22 +45,22 @@ services:
       # Private objects use signed previews. No anonymous bucket policy is needed.
       LLM_VISION_IMAGE_USE_BASE64: "1"
 
-      # A stable host address also matches the narrow SSRF IP allowlist below.
-      NEWAPI_PROXY_URL: ${LOBEHUB_NEWAPI_PROXY_URL:-http://192.168.10.13:43001}
+      # Configure the model endpoint and any required private-IP exceptions in Portainer.
+      NEWAPI_PROXY_URL: ${LOBEHUB_NEWAPI_PROXY_URL:?Set the model API base URL}
       NEWAPI_API_KEY: ${LOBEHUB_NEWAPI_API_KEY:?Create a dedicated LobeHub client token in new-api}
       NEWAPI_MODEL_LIST: ${LOBEHUB_NEWAPI_MODEL_LIST:--all,+${LOBEHUB_CHAT_MODEL:-deepseek-v4-flash}}
       DEFAULT_AGENT_CONFIG: "provider=newapi;model=${LOBEHUB_CHAT_MODEL:-deepseek-v4-flash};chatConfig.enableAgentMode=true;chatConfig.enableStreaming=true;chatConfig.disableGatewayMode=false"
       SYSTEM_AGENT: default=newapi/${LOBEHUB_CHAT_MODEL:-deepseek-v4-flash}
       SSRF_ALLOW_PRIVATE_IP_ADDRESS: "0"
-      SSRF_ALLOW_IP_ADDRESS_LIST: ${LOBEHUB_SSRF_ALLOW_IP_ADDRESS_LIST:-192.168.10.13,192.168.10.10}
+      SSRF_ALLOW_IP_ADDRESS_LIST: ${LOBEHUB_SSRF_ALLOW_IP_ADDRESS_LIST:-}
 
       ENABLE_AGENT_GATEWAY: "1"
-      AGENT_GATEWAY_URL: ${LOBEHUB_AGENT_GATEWAY_URL:-https://lobe-agent.dfder.tw}
+      AGENT_GATEWAY_URL: ${LOBEHUB_AGENT_GATEWAY_URL:?Set the public HTTPS Agent Gateway URL}
       AGENT_GATEWAY_INTERNAL_URL: http://lobehub-gateway:8787
       AGENT_GATEWAY_PROTOCOL: "1"
       AGENT_GATEWAY_SERVICE_TOKEN: ${LOBEHUB_GATEWAY_SERVICE_TOKEN:?Generate LOBEHUB_GATEWAY_SERVICE_TOKEN}
       DEVICE_GATEWAY_URL: http://lobehub-gateway:8788
-      DEVICE_GATEWAY_PUBLIC_URL: ${LOBEHUB_DEVICE_GATEWAY_URL:-https://lobe-device.dfder.tw}
+      DEVICE_GATEWAY_PUBLIC_URL: ${LOBEHUB_DEVICE_GATEWAY_URL:?Set the public HTTPS Device Gateway URL}
       DEVICE_GATEWAY_SERVICE_TOKEN: ${LOBEHUB_GATEWAY_SERVICE_TOKEN:?Generate LOBEHUB_GATEWAY_SERVICE_TOKEN}
     depends_on:
       lobehub-gateway:
@@ -89,7 +89,7 @@ services:
         max-file: "3"
 
   lobehub-gateway:
-    image: ${LOBEHUB_GATEWAY_IMAGE:-ghcr.io/lobehub/lobehub-gateway:0.5.0@sha256:63647fd8f97407dafd344dd08b509ff74a033b23292cf1d451d804cb09d35759}
+    image: ghcr.io/lobehub/lobehub-gateway:latest
     container_name: lobehub-gateway
     user: 3000:3000
     restart: unless-stopped
@@ -126,4 +126,4 @@ services:
 networks:
   chatstack:
     external: true
-    name: ${LOBEHUB_CHATSTACK_NETWORK:-chatstack_default}
+    name: ${LOBEHUB_CHATSTACK_NETWORK:?Set the existing database and Redis network}

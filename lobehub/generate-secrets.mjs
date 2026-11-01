@@ -15,6 +15,15 @@ const values = {
   LOBEHUB_JWKS_KEY: jwks(privateKey),
   LOBEHUB_JWKS_PUBLIC_KEY: jwks(publicKey),
   LOBEHUB_GATEWAY_SERVICE_TOKEN: randomBytes(32).toString('hex'),
+  LOBEHUB_APP_URL: '',
+  LOBEHUB_DATABASE_URL: '',
+  LOBEHUB_REDIS_URL: '',
+  LOBEHUB_CHATSTACK_NETWORK: '',
+  LOBEHUB_AGENT_GATEWAY_URL: '',
+  LOBEHUB_DEVICE_GATEWAY_URL: '',
+  LOBEHUB_NEWAPI_PROXY_URL: '',
+  LOBEHUB_S3_ENDPOINT: '',
+  LOBEHUB_S3_BUCKET: '',
   LOBEHUB_AUTH_ALLOWED_EMAILS: '',
   LOBEHUB_NEWAPI_API_KEY: '',
   LOBEHUB_S3_ACCESS_KEY_ID: '',
@@ -27,7 +36,7 @@ try {
     flag: 'wx',
     mode: 0o600,
   });
-  console.log(`Created ${output}. Fill the four blank values, back it up, and import it into Portainer.`);
+  console.log(`Created ${output}. Fill the blank deployment settings, back it up, and import it into Portainer.`);
 } catch (error) {
   if (error.code !== 'EEXIST') throw error;
   console.error(`Refusing to overwrite ${output}. Existing deployment secrets must be retained.`);
