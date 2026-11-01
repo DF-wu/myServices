@@ -29,6 +29,7 @@
 # - 43069 | lobehub（設定見 ChatStack/lobehub/）
 # - 43070 | lobehub-gateway（Agent WebSocket）
 # - 43071 | lobehub-gateway（Device WebSocket）
+# - 43072 | searxng（LAN only; port published by searxng-vpn）
 # - 43080 | telegram-chatbot (legacy profile)
 # - 59998 | tika
 
@@ -66,11 +67,17 @@ services:
       # Allow larger streaming chunks for long responses.
       - CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE=20971520
 
-      - ENABLE_RAG_WEB_SEARCH=true
-      # - RAG_WEB_SEARCH_ENGINE="searxng"
-      # - RAG_WEB_SEARCH_RESULT_COUNT=5
-      # - RAG_WEB_SEARCH_CONCURRENT_REQUESTS=10
-      # - SEARXNG_QUERY_URL=http://axolotl.newhome:43004/search?safesearch=0&language=auto&format=json&q=<query>
+      # Also update the matching persisted settings; existing DB values override env.
+      - ENABLE_WEB_SEARCH=true
+      - WEB_SEARCH_ENGINE=searxng
+      - WEB_SEARCH_RESULT_COUNT=8
+      - WEB_SEARCH_CONCURRENT_REQUESTS=2
+      - SEARXNG_QUERY_URL=http://searxng:8080/search
+      - SEARXNG_LANGUAGE=zh-TW
+      # Use search snippets: the normal WebUI page loader has its own direct egress.
+      # This keeps the integrated search flow within the mandatory-VPN boundary.
+      - BYPASS_WEB_SEARCH_WEB_LOADER=true
+      - BYPASS_WEB_SEARCH_EMBEDDING_AND_RETRIEVAL=true
     volumes:
       - /mnt/appdata/ChatStack/ollama:/root/.ollama
       - /mnt/appdata/ChatStack/open-webui:/app/backend/data
@@ -90,7 +97,7 @@ services:
   # Database 分配：
   # - Database 1: open-webui (WebSocket 支援)
   # - Database 2: new-api (API distributor; DB name kept as veloera_db)
-  # - Database 3: searxng (搜尋引擎快取) - TODO: 需配置 searxng settings.yml
+  # - Database 3: reserved (SearXNG now uses its own loopback Valkey inside its VPN)
   # - Database 5: lilac-mono
   # - Database 6: sub2api (CRS 2.0)
   # - Database 7: lilac-mono-claudia
@@ -585,96 +592,131 @@ services:
   #   depends_on:
   #     - chatstack-postgres17-pgvector
 
-  # SearXNG candidates and Redis integration notes.
-  # another choice : https://searx.perennialte.ch/
-  # another choice : https://searxng.ddaodan.cc/search?q=<query>&safesearch=0&language=auto&format=json
-  #
-  # TODO: SearXNG Redis 配置
-  # 目前 searxng 依賴統一 Redis，但尚未完全整合
-  # 需要完成以下步驟：
-  # 1. 在 /mnt/appdata/ChatStack/searxng/settings.yml 中添加：
-  #    redis:
-  #      url: redis://chatstack-unified-redis:6379/3
-  # 2. 測試 searxng 是否能正常使用統一 Redis 進行快取
-  # 3. 確認搜尋功能運作正常後，可移除對獨立 Redis 的依賴
-  # searxng:
-  #   container_name: searxng
-  #   image: docker.io/searxng/searxng:latest
-  #   user: 3000:3000
-  #   restart: unless-stopped
-  #   # x 因為使用 network_mode: "service:gluetun-jp-2"，所以不能設定 ports
-  #   ports:
-  #     - "43004:43004"
-  #   volumes:
-  #     - /mnt/appdata/ChatStack/searxng:/etc/searxng:rw
-  #   environment:
-  #     # default url : https://${SEARXNG_HOSTNAME:-localhost}
-  #     - BIND_ADDRESS=0.0.0.0:43004
-  #     # - SE  ARXNG_BASE_URL=https://searx.perennialte.ch/search?safesearch=0&language=auto&q=<query>
-  #     - SEARXNG_BASE_URL=http://localhost:43004
-  #     - TZ=Asia/Taipei
-  #     - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-32}
-  #     - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-32}
-  #   cap_drop:
-  #     - ALL
-  #   cap_add:
-  #     - CHOWN
-  #     - SETGID
-  #     - SETUID
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #       max-size: "1m"
-  #       max-file: "1"
-  #   # network_mode: "service:gluetun-jp-2"
-  #   depends_on:
-  #     - chatstack-unified-redis
+  # Private SearXNG with a dedicated WireGuard kill switch. Setup: searxng/README.md
+  # Only the VPN owns an interface; DNS, images and all search traffic stay inside it.
+  searxng-vpn:
+    image: qmcgaw/gluetun@sha256:4af0c804003481e100180e1f8d4d5e9c48163fedc0f88d061881b615aef9d183
+    container_name: searxng-vpn
+    restart: unless-stopped
+    cap_drop: [ALL]
+    cap_add: [NET_ADMIN, NET_RAW, CHOWN, SETUID, SETGID, DAC_OVERRIDE]
+    security_opt:
+      - no-new-privileges:true
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      net.ipv6.conf.all.disable_ipv6: "1"
+    ports:
+      - "${SEARXNG_BIND_IP:?Set private LAN bind address in Portainer}:${SEARXNG_HOST_PORT:-43072}:8080"
+    networks:
+      default:
+        aliases: [searxng]
+    env_file:
+      - /mnt/appdata/ChatStack/searxng/vpn.env
+    environment:
+      TZ: Asia/Taipei
+      VPN_SERVICE_PROVIDER: surfshark
+      VPN_TYPE: wireguard
+      WIREGUARD_ADDRESSES: 10.14.0.2/16
+      # Select a different region from other peers using the same WireGuard key.
+      SERVER_COUNTRIES: ${SEARXNG_VPN_COUNTRY:-Japan}
+      FIREWALL_INPUT_PORTS: "8080"
+      FIREWALL_OUTBOUND_SUBNETS: ""
+      DNS_UPSTREAM_RESOLVER_TYPE: doh
+      DNS_UPSTREAM_RESOLVERS: cloudflare,quad9
+      DNS_UPSTREAM_IPV6: "off"
+      DNS_CACHING: "on"
+      DNS_UPDATE_PERIOD: "0"
+      HEALTH_TARGET_ADDRESSES: 1.1.1.1:443
+      HTTP_CONTROL_SERVER_ADDRESS: 127.0.0.1:8000
+      HTTPPROXY: "off"
+      SHADOWSOCKS: "off"
+      SOCKS5_ENABLED: "off"
+    volumes:
+      - /mnt/appdata/ChatStack/searxng/vpn:/gluetun
+      - /mnt/appdata/ChatStack/searxng/control-auth.toml:/gluetun/auth/config.toml:ro
+    mem_limit: 256m
+    cpus: "1.0"
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
 
-  # gluetun-jp-2:
-  #   image: qmcgaw/gluetun
-  #   # container_name: gluetun
-  #   # line above must be uncommented to allow external containers to connect.
-  #   # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
-  #   ports:
-  #     - 43004:8080 # for searxng
-  #   cap_add:
-  #     - NET_ADMIN
+  # Local bot-detection/engine state, not a general search-result cache.
+  # Loopback avoids a LAN exception or Docker DNS bypass in the VPN namespace.
+  searxng-valkey:
+    image: valkey/valkey:8-alpine@sha256:2602ace2be6569bc2bbb06f873776516ab9089821525be34f4305c67eb9db02a
+    container_name: searxng-valkey
+    user: "3000:3000"
+    restart: unless-stopped
+    network_mode: service:searxng-vpn
+    depends_on:
+      searxng-vpn:
+        condition: service_healthy
+        restart: true
+    command: [valkey-server, --bind, "127.0.0.1", --save, "", --appendonly, "no", --maxmemory, 128mb, --maxmemory-policy, allkeys-lru]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,uid=3000,gid=3000
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: [CMD, valkey-cli, -h, "127.0.0.1", ping]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    mem_limit: 192m
+    cpus: "0.5"
+    pids_limit: 64
+    logging:
+      driver: json-file
+      options: {max-size: "5m", max-file: "2"}
 
-  #     #  because is Portainer deployment issue, manually add the env in bashrc
-  #   # env_file:
-  #   #   - ./.secret.env
-  #   #   - ./.secret.env.local
-  #   devices:
-  #     - /dev/net/tun:/dev/net/tun
-  #   # ports:
-  #     # - 28888:8888/tcp # HTTP proxy
-  #     # - 28388:8388/tcp # Shadowsocks
-  #     # - 28388:8388/udp # Shadowsocks
-  #   volumes:
-  #       # /gluetun/wireguard/wg0.conf  is the wireguard configuration file
-  #     - /mnt/appdata/gluetun:/gluetun
-  #     # - /mnt/appdata/gluetun/wireguard/jp.conf:/gluetun/wg0.conf
-
-  #   environment:
-  #     # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
-  #     - VPN_SERVICE_PROVIDER=surfshark
-  #     - VPN_TYPE=wireguard
-  #     # OpenVPN:
-  #     # - OPENVPN_USER=
-  #     # - OPENVPN_PASSWORD=
-  #     # Wireguard:
-
-  #     # - WIREGUARD_PUBLIC_KEY=bI5kgFePO/UfyU/Apd7AYtd168PZ8MiaV97csUYGvlk=
-  #     - WIREGUARD_PRIVATE_KEY=${SURFSHARK_WIREGUARD_PRIVATE_KEY}
-  #     - WIREGUARD_ADDRESSES=10.14.0.6/16
-  #     - SERVER_COUNTRIES=Japan
-  #     # - WIREGUARD_ENDPOINT_PORT=
-  #     # - WIREGUARD_ENDPOINT_IP=1.2.3.4
-  #     # Timezone for accurate log times
-  #     - TZ=Asia/Taipei
-  #     # Server list updater
-  #     # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
-  #     - UPDATER_PERIOD= 24h
+  searxng:
+    image: docker.io/searxng/searxng:2026.11.1-9ded3bec1@sha256:2d8d40c0d69d8b458d394701d284ccb052b25a19c18c930d8920296953caafe2
+    container_name: searxng
+    user: "977:977"
+    restart: unless-stopped
+    # Docker restart policies do not re-evaluate Compose depends_on at host boot.
+    entrypoint: [/usr/local/searxng/.venv/bin/python, /etc/searxng/wait-for-network.py]
+    network_mode: service:searxng-vpn
+    depends_on:
+      searxng-vpn:
+        condition: service_healthy
+        restart: true
+      searxng-valkey:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Taipei
+      FORCE_OWNERSHIP: "false"
+      GRANIAN_HOST: 0.0.0.0
+      GRANIAN_PORT: "8080"
+      GRANIAN_BLOCKING_THREADS: "4"
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - /mnt/appdata/ChatStack/searxng/config:/etc/searxng:ro
+      - /mnt/appdata/ChatStack/searxng/cache:/var/cache/searxng
+      - /mnt/appdata/ChatStack/searxng/resolv.conf:/etc/resolv.conf:ro
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,uid=977,gid=977,mode=1700
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: [CMD, /usr/local/searxng/.venv/bin/python, /etc/searxng/wait-for-network.py, --check]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    mem_limit: 1g
+    cpus: "2.0"
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
 
   # chatgpt-next-web:
   #   image: yidadaa/chatgpt-next-web
