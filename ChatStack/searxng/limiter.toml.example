@@ -1,0 +1,13 @@
+# Direct private ingress only. Inherit upstream's loopback-only proxy trust.
+# Its TOML loader EXTENDS lists: trusted_proxies=[] would not remove defaults.
+# No LAN or Docker address is trusted to supply forwarded headers.
+[botdetection]
+
+[botdetection.ip_limit]
+link_token = false
+
+[botdetection.ip_lists]
+# Replace documentation-only networks with the actual trusted client ranges.
+# JSON clients otherwise hit upstream's browser-oriented API limit (4/hour).
+pass_ip = ['127.0.0.1', '::1', '192.0.2.0/24', '198.51.100.0/24']
+pass_searxng_org = false
