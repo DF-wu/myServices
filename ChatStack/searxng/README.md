@@ -20,6 +20,29 @@ JSON API 支援 `q`、`format=json`、`language`、`engines`、`categories`、`p
 
 在既有 ChatStack 的 Portainer Environment 設定 `SEARXNG_BIND_IP` 為真正的 LAN 位址。此值不寫入 repo；未設定時 Compose 拒絕啟動，避免誤綁公網或靜默改成別的入口。主機端埠可用 `SEARXNG_HOST_PORT` 覆寫。
 
+### 既有 Stack 升級與 pull 失敗
+
+啟用這份 recipe 前，先把 [`portainer.env.example`](portainer.env.example) 中必要的變數**合併**到既有 ChatStack 的 Portainer Environment。不要用這份僅含 SearXNG 的範本取代整份 Stack env，否則其他應用的設定與密鑰會遺失。已在運作的 instance 應沿用目前 `searxng-vpn` 的私人 LAN port binding。
+
+若 Portainer 回報以下錯誤，代表 Compose 在下載映像前就解析失敗：
+
+```text
+error while interpolating services.searxng-vpn.ports.[]:
+required variable SEARXNG_BIND_IP is missing a value
+```
+
+請在 **ChatStack → Environment** 新增有效的 `SEARXNG_BIND_IP`，保留其餘所有變數，再透過 Portainer 的 Git pull/redeploy 更新。`vpn.env` 是 VPN 容器的 `env_file`，不能代替 Portainer 用來插值 Compose 的 Stack env；只在外部 shell 設變數也不會保存進 Portainer。不要透過移除必填檢查、寫入真實位址或改成 `0.0.0.0` 來消除錯誤。
+
+使用 Portainer API 時，先確認實際版本的 endpoint 行為。2.45.2 的 Git redeploy 使用 `PUT /api/stacks/{id}/git/redeploy?endpointId={endpointId}`：
+
+- 只拉取與重新部署且無 env 變更時，省略 `Env` 欄位會沿用已保存的 Stack env。
+- 需要新增變數時，先讀取最新 Stack，備份完整私有 env，在原清單中合併變更，並把**完整清單**放入 `Env`；空陣列會清空原值。
+- 保存 Git 設定的 `POST /api/stacks/{id}/git` 有不同語意：會直接替換 `Env` 與 `AutoUpdate`，不能套用上述省略欄位的做法。
+- Git Stack 不要改走一般 `PUT /api/stacks/{id}`；該路徑會解除 Git workflow。Git 憑證與 reference 應沿用原設定。
+- 操作完成後獨立讀回 Stack，比對全部 env 的名稱與值、Git reference 與更新設定。備份和 API 回應可能含密鑰，只保存在權限受限的私人位置。
+
+Stack 若啟用了自動更新，新的 repo revision 可能由排程觸發部署。先備妥所有私有設定與必要 env，再安排更新；只拉取 Git 來源不代表新 recipe 已可部署。
+
 實際設定與 secrets 留在 Compose 指定的 appdata，權限限制為擁有者可讀：
 
 - `config/settings.yml`：instance signing key、引擎及功能設定。
