@@ -96,7 +96,7 @@ services:
   # - Database 7: lilac-mono-claudia
   # - Database 9: lobehub
   chatstack-unified-redis:
-    image: docker.io/valkey/valkey:8-alpine
+    image: docker.io/valkey/valkey:9-alpine
     container_name: chatstack-unified-redis
     user: 3000:3000
     volumes:
