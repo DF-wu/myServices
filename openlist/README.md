@@ -10,9 +10,13 @@
 
 Chromium 僅用於正常登入與定期提供 Cookie 快照，記憶體快取預設五分鐘；不參與每個檔案的資料中繼。`impit` 由 npm 安裝平台預編譯套件，不需要自行 build 映像或編譯程式。這是固定瀏覽器 profile 的模擬，並非完整重現登入瀏覽器的所有特徵，也不保證不可辨識；套件或 profile 更新時需重新驗證。`browser` 僅保留為明確選用的診斷模式，不會自動切回。
 
-此學校端點可能忽略 Range 並回 200；配額 API 則可能因 Cookie 驗證回 403。HTTP 模式不依賴該配額 API 判斷健康，未知配額不會虛報為零；HEAD 透過檔案中繼資料提供大小。租戶若拒絕回收非空資料夾，bridge 會保留失敗，不自動遞迴刪除。
+此學校端點可能忽略 Range 並回 200；配額 API 則可能因 Cookie 驗證回 403。HTTP 模式不依賴該配額 API 判斷健康，未知配額不會虛報為零；HEAD 透過檔案中繼資料提供大小。對此租戶明確回報的非空資料夾回收錯誤，bridge 會完整列舉所有分頁與深層內容，檢查路徑及 UniqueId，再由子至父逐項回收。權限錯誤不觸發此流程；子項失敗或出現並行變更即停止，已回收的項目保留在回收筒，整體不是原子交易。站台與 Documents 文件庫根禁止刪除。
 
-bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。執行版本為 `9f0bfbbf393964f2f2bbfa757eb2641d4531b439`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/9f0bfbbf393964f2f2bbfa757eb2641d4531b439`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
+2026-11-01 在 OneDrive 根目錄 `TESTDIR` 的獨立 UUID 子目錄完成三輪實機 CRUD，最終 27/27 組通過，涵蓋經 OpenList 的空檔、64 MiB 檔案、SHA-256 核對、覆寫、特殊檔名、檔案／多層資料夾複製、移動、重新命名與刪除；另有 25 項條件式寫入與兩種物件替換競態實測。回收與刪除計畫的列目錄使用物件 ID，避免刪除同路徑的替代內容。218 項本機回歸全數通過。測試程序與臨時 storage 均已清理，原 `/Sinclair_OD` 設定不變。結果報告保留在 `TESTDIR/CRUD-report-*.md`。這些結果來自另外載入的候選程序，正式 bridge 仍待 Portainer 套用新版本，沒有自行重新部署。
+
+寫入條件不符回 412；無法保證原子性的條件式修改回 501，避免靜默覆蓋／刪除已變更的內容。原始碼內 `npm test` 可重跑本機回歸測試；`deploy/verify-crud.js` 須明確設定 `OD_BRIDGE_VERIFY_CRUD=TESTDIR` 才會建立合成測試資料，不會自動隨容器啟動。
+
+bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。執行版本為 `1013860602ee7c581cf32129c396f4fdc139c905`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/1013860602ee7c581cf32129c396f4fdc139c905`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
 
 更新 bridge 的流程是：在私有 repo 修復、驗證並提交，以 `bash deploy/stage-runtime.sh <新的主機版本目錄>` 備妥原始碼，再更新本 recipe 的來源路徑交由 Portainer 更新。全程不需要 `docker build`。不會在容器內保存 GitHub 認證或於每次重啟拉取未固定的程式碼。
 
