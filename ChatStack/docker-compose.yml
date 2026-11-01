@@ -1104,10 +1104,10 @@ services:
       APP_URL: ${LOBEHUB_APP_URL:?Set the public HTTPS application URL}
       INTERNAL_APP_URL: http://127.0.0.1:3210
       DATABASE_DRIVER: node
-      DATABASE_URL: ${LOBEHUB_DATABASE_URL:?Set the dedicated PostgreSQL connection URL}
+      DATABASE_URL: postgresql://lobehub:${LOBEHUB_POSTGRES_PASSWORD:?Set the dedicated lobehub database password}@chatstack-postgres17-pgvector:5432/lobehub
       # This shared pgvector image has no pg_search. The upstream default would fail startup.
       FTS_SEARCH_PROVIDER: pg_like
-      REDIS_URL: ${LOBEHUB_REDIS_URL:?Set the Redis connection URL using database 9}
+      REDIS_URL: redis://chatstack-unified-redis:6379/9
       REDIS_DATABASE: "9"
       REDIS_PREFIX: lobehub
       REDIS_TLS: "0"
@@ -1131,7 +1131,7 @@ services:
       LLM_VISION_IMAGE_USE_BASE64: "1"
 
       # Configure the model endpoint and any required private-IP exceptions in Portainer.
-      NEWAPI_PROXY_URL: ${LOBEHUB_NEWAPI_PROXY_URL:?Set the model API base URL}
+      NEWAPI_PROXY_URL: http://new-api:3000
       NEWAPI_API_KEY: ${LOBEHUB_NEWAPI_API_KEY:?Create a dedicated LobeHub client token in new-api}
       NEWAPI_MODEL_LIST: ${LOBEHUB_NEWAPI_MODEL_LIST:--all,+${LOBEHUB_CHAT_MODEL:-deepseek-v4-flash}}
       DEFAULT_AGENT_CONFIG: "provider=newapi;model=${LOBEHUB_CHAT_MODEL:-deepseek-v4-flash};chatConfig.enableAgentMode=true;chatConfig.enableStreaming=true;chatConfig.disableGatewayMode=false"
