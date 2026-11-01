@@ -29,19 +29,3 @@ _ARCHIVE/.DS_Store
 .DS_Store
 _CRONJOBS/lottery-automation/dfcookie.txt
 df-voice-app/
-
-# SearXNG private operational records and runtime data. Keep examples publishable.
-/ChatStack/reports/SEARXNG_DEPLOYMENT_*.md
-/ChatStack/reports/SEARXNG_ENGINE_PROBES_*.json
-/ChatStack/reports/SEARXNG_REENABLE_PLAN_*.md
-/ChatStack/reports/SEARXNG_UPSTREAM_RESEARCH_*.md
-/ChatStack/searxng/config/
-/ChatStack/searxng/cache/
-/ChatStack/searxng/vpn/
-/ChatStack/searxng/*.env
-/ChatStack/searxng/settings.yml
-/ChatStack/searxng/limiter.toml
-/ChatStack/searxng/control-auth.toml
-/ChatStack/searxng/control-api.key
-/ChatStack/searxng/deployment.compose.yml
-/ChatStack/searxng/*private*
