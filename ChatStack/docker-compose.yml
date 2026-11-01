@@ -94,7 +94,6 @@ services:
   # - Database 5: lilac-mono
   # - Database 6: sub2api (CRS 2.0)
   # - Database 7: lilac-mono-claudia
-  # - Database 8: librechat（既有獨立容器）
   # - Database 9: lobehub（獨立 stack，見 lobehub/）
   chatstack-unified-redis:
     image: docker.io/valkey/valkey:8-alpine
