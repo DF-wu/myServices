@@ -1,6 +1,7 @@
 # Add as a Portainer additional Compose file only when clock control is wanted.
 # Requires the v2.1 image, ENABLED=true, and a supported frequency in .env.
 # The base recipe already requests NVIDIA GPU access.
+# CAPSWRITER_TESLA_P4_OPTIMIZATION is independent and needs no such override.
 services:
   capswriter-server:
     user: "0:0"

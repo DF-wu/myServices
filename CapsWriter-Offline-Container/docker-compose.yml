@@ -1,7 +1,8 @@
-# 參照 CapsWriter master a674e40；Portainer 單一主檔包含 NVIDIA server 與 Web。
+# 參照 CapsWriter master 54e6b887382458f48b3aaa4d48872f002e02bef6；axolotl Tesla P4 recipe。
+# 只從 GHCR 拉取已發布映像，不在部署主機 build；詳見 README 的部署前檢查。
 services:
   capswriter-server:
-    image: ${CAPSWRITER_SERVER_IMAGE:-ghcr.io/df-wu/capswriter-offline-server:latest}
+    image: ${CAPSWRITER_SERVER_IMAGE:-ghcr.io/df-wu/capswriter-offline-server:sha-54e6b887382458f48b3aaa4d48872f002e02bef6}
     container_name: capswriter-server
     restart: unless-stopped
     pull_policy: always
@@ -22,10 +23,16 @@ services:
       # qwen_asr (default) | fun_asr_nano
       CAPSWRITER_MODEL_TYPE: ${CAPSWRITER_MODEL_TYPE:-qwen_asr}
 
-      # qwen preset: default | low_vram_gpu
+      # qwen preset: default | low_vram_gpu | cpu_only
       CAPSWRITER_QWEN_PRESET: ${CAPSWRITER_QWEN_PRESET:-default}
 
-      # auto = prefer GPU and fall back to CPU; gpu = try GPU first; cpu = force CPU
+      # axolotl 的 Tesla P4 使用 bundled CUDA 11.8 / SM61 decoder；不調整時脈。
+      # auto 依 P4 旗標選擇；明確 cpu/vulkan 或 Qwen CPU/low-VRAM preset 優先。
+      CAPSWRITER_LLAMA_BACKEND: ${CAPSWRITER_LLAMA_BACKEND:-auto}
+      CAPSWRITER_TESLA_P4_OPTIMIZATION: ${CAPSWRITER_TESLA_P4_OPTIMIZATION:-true}
+
+      # auto/gpu 優先 GPU；選定 P4 CUDA 後若 probe 失敗會拒絕啟動，不回退 CPU。
+      # cpu = force CPU
       CAPSWRITER_INFERENCE_HARDWARE: ${CAPSWRITER_INFERENCE_HARDWARE:-auto}
 
       # true = remove downloaded archives after extraction
@@ -117,7 +124,7 @@ services:
       retries: 5
 
   capswriter-web:
-    image: ${CAPSWRITER_WEB_IMAGE:-ghcr.io/df-wu/capswriter-offline-web:latest}
+    image: ${CAPSWRITER_WEB_IMAGE:-ghcr.io/df-wu/capswriter-offline-web:sha-54e6b887382458f48b3aaa4d48872f002e02bef6}
     container_name: capswriter-web
     restart: unless-stopped
     pull_policy: always
