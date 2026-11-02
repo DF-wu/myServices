@@ -63,6 +63,11 @@ services:
       # 使用統一 Redis 的 Database 1
       - WEBSOCKET_REDIS_URL="redis://chatstack-unified-redis:6379/1"
 
+      # 常駐連線池大小
+      - DATABASE_POOL_SIZE=24
+      # 忙碌時允許額外建立的連線
+      - DATABASE_POOL_MAX_OVERFLOW=256
+
       # Allow larger streaming chunks for long responses.
       - CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE=20971520
 
@@ -493,6 +498,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      # init db name.
       POSTGRES_DB: openwebui_db
     volumes:
       - /mnt/appdata/ChatStack/postgres:/var/lib/postgresql/data
