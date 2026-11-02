@@ -29,7 +29,7 @@ services:
       - "127.0.0.1:58110:6080"
     volumes:
       - type: bind
-        source: ${SINCLAIR_BRIDGE_SOURCE:-/mnt/appdata/openlist-sinclair/runtime/1013860602ee7c581cf32129c396f4fdc139c905}
+        source: ${SINCLAIR_BRIDGE_SOURCE:-/mnt/appdata/openlist-sinclair/runtime/179da46892e5a090622d25d8215faccec6cb250c}
         target: /opt/od-bridge
         read_only: true
         bind:
@@ -42,12 +42,21 @@ services:
       BRIDGE_HOST: 0.0.0.0
       BRIDGE_PORT: "8110"
       BRIDGE_TRANSPORT: http
+      BRIDGE_MAX_UPLOADS: "4"
+      BRIDGE_MAX_PENDING_UPLOADS: "32"
+      BRIDGE_UPSTREAM_CONCURRENCY: "8"
+      BRIDGE_MAX_TRANSFERS: "16"
+      BRIDGE_MAX_PENDING_REQUESTS: "128"
+      BRIDGE_QUEUE_TIMEOUT_MS: "60000"
+      BRIDGE_CLEANUP_TIMEOUT_MS: "180000"
+      BRIDGE_READ_RETRIES: "2"
+      BRIDGE_RETRY_BASE_MS: "1000"
       BRIDGE_USERNAME: openlist
       BRIDGE_PASSWORD_FILE: /var/lib/od-bridge/private/bridge-password
       CDP_URL: http://127.0.0.1:9222
       OD_HOST: sinclaircc-my.sharepoint.com
       OD_SITE_PATH: /personal/gage_gil_sinclair_edu
-      OD_BRIDGE_REVISION: 1013860602ee7c581cf32129c396f4fdc139c905
+      OD_BRIDGE_REVISION: 179da46892e5a090622d25d8215faccec6cb250c
       OD_AUTO_LOGIN: "true"
       OD_CREDENTIALS_FILE: /var/lib/od-bridge/private/account.json
       OPENLIST_URL: http://openlist:5244

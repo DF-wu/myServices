@@ -16,7 +16,11 @@ Chromium 僅用於正常登入與定期提供 Cookie 快照，記憶體快取預
 
 寫入條件不符回 412；無法保證原子性的條件式修改回 501，避免靜默覆蓋／刪除已變更的內容。原始碼內 `npm test` 可重跑本機回歸測試；`deploy/verify-crud.js` 須明確設定 `OD_BRIDGE_VERIFY_CRUD=TESTDIR` 才會建立合成測試資料，不會自動隨容器啟動。
 
-bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。執行版本為 `1013860602ee7c581cf32129c396f4fdc139c905`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/1013860602ee7c581cf32129c396f4fdc139c905`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
+2026-11-02 批次備份修正保留 4 個同時上傳名額，改以有界 FIFO 等候，避免 8 個用戶端傳輸直接撞到 503。中繼資料、寫入與完整下載共用 8 個上游名額；429／503 遵守 Retry-After 共用冷卻，只對安全讀取有限重試，寫入不盲目重播。recipe 明確列出佇列、等候與清理預算；不需要提高學校端併發。失敗上傳的暫存清理會等待同一冷卻，且 digest 更新也受清理期限約束；預算不足時仍可能留下暫存檔。
+
+272 項本機測試通過；實際 rclone → 既有 OpenList → bridge → 合成上游，8 路傳輸的 32 個檔案由舊版缺 12 個改為 32/32 雜湊一致、零錯誤。另有學校 TESTDIR 的 32 KiB 小量實機驗證，測試目錄及臨時掛載已清理。OpenList 可能把底層上傳錯誤轉成 405，應併看其檔案日誌與 bridge audit；原正式 502 的確切來源尚未確認。這些測試不代表整批 TrueNAS 備份已完成；工作與排程沒有被修改，正式套用仍交由既有 Portainer 流程。
+
+bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。本 recipe 指定版本為 `179da46892e5a090622d25d8215faccec6cb250c`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/179da46892e5a090622d25d8215faccec6cb250c`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
 
 更新 bridge 的流程是：在私有 repo 修復、驗證並提交，以 `bash deploy/stage-runtime.sh <新的主機版本目錄>` 備妥原始碼，再更新本 recipe 的來源路徑交由 Portainer 更新。全程不需要 `docker build`。不會在容器內保存 GitHub 認證或於每次重啟拉取未固定的程式碼。
 
