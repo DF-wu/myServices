@@ -20,7 +20,17 @@ Chromium 僅用於正常登入與定期提供 Cookie 快照，記憶體快取預
 
 272 項本機測試通過；實際 rclone → 既有 OpenList → bridge → 合成上游，8 路傳輸的 32 個檔案由舊版缺 12 個改為 32/32 雜湊一致、零錯誤。另有學校 TESTDIR 的 32 KiB 小量實機驗證，測試目錄及臨時掛載已清理。OpenList 可能把底層上傳錯誤轉成 405，應併看其檔案日誌與 bridge audit；原正式 502 的確切來源尚未確認。這些測試不代表整批 TrueNAS 備份已完成；工作與排程沒有被修改，正式套用仍交由既有 Portainer 流程。
 
-bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。本 recipe 指定版本為 `179da46892e5a090622d25d8215faccec6cb250c`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/179da46892e5a090622d25d8215faccec6cb250c`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
+2026-11-03 大型備份 profile 將同時上傳調為 8，配合目前 8 路用戶端工作。二進位上傳請求與下載共用 8 個 data 名額，上游總名額 12，讓資料請求無法單獨占滿列目錄所需的空間。等待上傳最多 64 個，上游／data gate 各最多等候 128 個，兩段取得名額共用同一次排隊預算；這些是同時請求的上限，不是整批備份檔案總數。全部已改為 `${變數:-預設值}`，可由 Portainer Stack 的環境設定覆蓋。
+
+`BRIDGE_REQUEST_TIMEOUT_MS` 預設 0，停用單檔固定總期限，避免仍在正常傳輸的大檔被一小時限制切斷。用戶端及上游閒置各 10 分鐘，上傳與上游排隊各 30 分鐘，列目錄等 metadata 總期限 30 分鐘，失敗清理總期限 10 分鐘。讀取用戶端內容的 idle 計時不包含上游處理及冷卻等待；下載保護持續到最後輸出完成。仍保留 60 秒標頭期限、取消及資源上限。程式本身仍接受正值總期限，以上是 recipe 的備份 profile，不是學校公布的容量或效能保證。
+
+單檔大小（預設 250 GiB）、metadata 回應大小（8 MiB）與單次列舉項目數（100000）也可透過 `BRIDGE_MAX_UPLOAD_BYTES`、`BRIDGE_MAX_METADATA_BYTES`、`BRIDGE_MAX_LIST_ITEMS` 覆蓋；它們不限制整個備份的總容量。提高 metadata 上限會增加單目錄的記憶體需求，仍須以實際目錄分布驗證。
+
+本機完整回歸 290 項通過，包含 512 檔／8 worker、220 MiB 串流上傳 SHA-256、持續有進度與真正停住的逾時分流、最後輸出清理、資料名額隔離及原有 CRUD／TLS 測試。實際 rclone／OpenList 合成上游與 TESTDIR 32 KiB smoke test 重跑通過；沒有冒稱已完成數小時的真實整批備份。
+
+目前查核的 OpenList v4.2.9 WebDav client 沒有固定 30 秒上傳限制，但 TrueNAS 的 rclone v1.70.2 預設 `--timeout 5m` 仍會限制 I/O 閒置及送完 body 後等待回應。可在 Cloud Sync 額外 rclone 參數加入 `--timeout 1h --contimeout 1m`，保留原有其他參數，與上述 profile 配合；一小時是無進度／等候回應期限，不是整個備份期限。這個 TrueNAS 設定沒有被自動修改，bridge 更新也不會替它調整。來源：[rclone 預設](https://github.com/rclone/rclone/blob/v1.70.2/fs/config.go)、[HTTP 回應期限](https://github.com/rclone/rclone/blob/v1.70.2/fs/fshttp/http.go)、[OpenList client](https://github.com/OpenListTeam/OpenList/blob/v4.2.9/pkg/gowebdav/client.go)。
+
+bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。本 recipe 指定版本為 `cd9c1ccba41bfe56e3602984e94aa2241a22bfa4`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/cd9c1ccba41bfe56e3602984e94aa2241a22bfa4`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
 
 更新 bridge 的流程是：在私有 repo 修復、驗證並提交，以 `bash deploy/stage-runtime.sh <新的主機版本目錄>` 備妥原始碼，再更新本 recipe 的來源路徑交由 Portainer 更新。全程不需要 `docker build`。不會在容器內保存 GitHub 認證或於每次重啟拉取未固定的程式碼。
 
