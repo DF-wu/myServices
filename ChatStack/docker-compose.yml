@@ -70,7 +70,7 @@ services:
       # An existing persisted terminal list takes precedence; see open-terminal/README.md.
       # Empty access grants keep this shared workspace admin-only.
       - >-
-        TERMINAL_SERVER_CONNECTIONS=[{"id":"chatstack-terminal","name":"ChatStack Terminal","enabled":true,"url":"http://open-terminal:8000","key":"${OPEN_TERMINAL_API_KEY:?Set a 64-character hex OPEN_TERMINAL_API_KEY in Portainer}","auth_type":"bearer","config":{"access_grants":[]}}]
+        TERMINAL_SERVER_CONNECTIONS=[{"id":"chatstack-terminal","name":"ChatStack Terminal","enabled":true,"url":"http://open-terminal:8000","key":"${OPEN_TERMINAL_API_KEY:-${DF_PASSWORD}}","auth_type":"bearer","config":{"access_grants":[]}}]
 
       - ENABLE_RAG_WEB_SEARCH=true
       # - RAG_WEB_SEARCH_ENGINE="searxng"
@@ -102,7 +102,7 @@ services:
     command: ["run", "--host", "0.0.0.0", "--port", "8000"]
     environment:
       TZ: Asia/Taipei
-      OPEN_TERMINAL_API_KEY: ${OPEN_TERMINAL_API_KEY:?Set a 64-character hex OPEN_TERMINAL_API_KEY in Portainer}
+      OPEN_TERMINAL_API_KEY: ${OPEN_TERMINAL_API_KEY:-${DF_PASSWORD}}
       OPEN_TERMINAL_MULTI_USER: "false"
     volumes:
       - /mnt/appdata/ChatStack/open-terminal:/home/user
