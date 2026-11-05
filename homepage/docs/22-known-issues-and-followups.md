@@ -73,7 +73,7 @@ The curated snapshot lives in `config-template/config/services.yaml`.
   DB, Redis, SOCKS, Shadowsocks, RPC-only, and unreachable control ports remain
   stat-only cards without `href` / `siteMonitor`.
 - More near-duplicates remain (public-route card + Docker card for the same app, e.g.
-  Open WebUI, API Conversion, AutoBangumi/Ani, TrueNAS/Truenas). Merge to one card
+  Open WebUI, AutoBangumi/Ani, TrueNAS/Truenas). Merge to one card
   with the best `href` + `siteMonitor` + `widget`.
 - Hide noisy infra containers (Redis/Valkey/Postgres/mosquitto/notify-push/imaginary)
   or move them to a collapsed "Internal" group — they add stat cards but no UI to open.

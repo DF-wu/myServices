@@ -296,15 +296,6 @@
         siteMonitor: "http://status.dfder.tw"
 
 - AI & LLM:
-    - api-conversion:
-        id: ai-llm-api-conversion
-        icon: mdi-docker
-        href: "http://axolotl.newhome:43061"
-        description: "Docker: chatstack/api-conversion (ghcr.io/chinrain/api-conversion:0.2.4)"
-        siteMonitor: "http://axolotl.newhome:43061"
-        server: local-docker
-        container: "api-conversion"
-        showStats: true
     - chatstack-postgres17-pgvector:
         id: ai-llm-chatstack-postgres17-pgvector
         icon: mdi-docker
@@ -441,12 +432,6 @@
         server: local-docker
         container: "tika"
         showStats: true
-    - API Conversion:
-        id: ai-llm-api-conversion
-        icon: mdi-docker
-        href: "https://api-conversion.dfder.tw"
-        description: "Public reverse proxy route to http://axolotl.newhome:43061"
-        siteMonitor: "https://api-conversion.dfder.tw"
     - Deep Research:
         id: ai-llm-deep-research
         icon: mdi-docker
