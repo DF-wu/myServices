@@ -122,6 +122,12 @@ services:
       OPEN_TERMINAL_MULTI_USER: "false"
     volumes:
       - /mnt/appdata/ChatStack/open-terminal:/home/user
+      - type: bind
+        source: /home/df/.agents/skills
+        target: /home/user/.agents/skills
+        read_only: true
+        bind:
+          create_host_path: false
     networks:
       - terminal
     cpus: 2
