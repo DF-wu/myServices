@@ -48,7 +48,7 @@ services:
       # 聽說加這個可以解神奇的問題
       - OPENAI_API_KEY=0
       - GLOBAL_LOG_LEVEL="DEBUG"
-
+      - WEBUI_NAME="DF-Ming-Chyuan-AI-Frontier-Lab"
       # Listen on all container interfaces for the Ollama-compatible endpoint.
       - OLLAMA_HOST=0.0.0.0
       - TZ=Asia/Taipei
