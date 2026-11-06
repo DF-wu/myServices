@@ -438,13 +438,6 @@ services:
       retries: 3
       start_period: 30s
 
-  # Official zero-config proxy; no persistent storage or config files.
-  infinite-canvas-proxy:
-    image: node:24-bookworm-slim
-    init: true
-    restart: unless-stopped
-    command: ["npx", "--yes", "@basketikun/canvas-proxy@latest", "--host", "0.0.0.0"]
-
   # # Whisper-FastAPI - Speech-to-Text service (OpenAI Whisper-compatible)
   # # repo: https://github.com/heimoshuiyu/whisper-fastapi
   # # endpoints:
