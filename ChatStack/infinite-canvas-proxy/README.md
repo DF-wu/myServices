@@ -1,21 +1,21 @@
-# Infinite Canvas Proxy
+# Infinite Canvas 與 WebDAV
 
-已加入 `ChatStack/docker-compose.yml`，使用公開的 `node:24-bookworm-slim` image，直接執行官方指令：
+Canvas 使用既有公開 image `ghcr.io/basketikun/infinite-canvas:latest`，保留映像原本的啟動指令。
 
-```sh
-npx --yes @basketikun/canvas-proxy@latest --host 0.0.0.0
-```
+## WebDAV 同步
 
-單一容器，使用官方預設 port `23210`，不發布主機 port。不需 build image、環境變數、設定檔或持久化掛載；啟動時需要連線 npm registry。
+在既有站點管理器替 Canvas 配置 HTTPS 入口，並將該站點的 `/webdav/` 固定轉送到指定 WebDAV 資料夾。這些站點與上游設定由管理器保存，不在公開 repo 寫入私人網域、位址或帳密。
 
-既有 Infinite Canvas 入口會將 `/canvas-proxy/` 轉送到此 proxy，沿用畫布的網址與 port；不需為 proxy 另建網域或調整外部反向代理。路由在容器啟動時加入映像內的 Nginx 設定，不掛載主機設定檔。
+在 Infinite Canvas 設定：
 
-更新 ChatStack 的 `infinite-canvas` 與 `infinite-canvas-proxy` 後：
+1. 關閉「本地代理」。
+2. WebDAV URL 填入 Canvas 站點的 `/webdav/` 完整網址，例如 `https://canvas.example.com/webdav/`。
+3. 填入原有 WebDAV 帳密，設定同步子目錄，再測試連線與同步。
 
-1. 在 Infinite Canvas「配置 → 本地代理」填入 **目前畫布網址的 Origin + `/canvas-proxy`**，例如 `https://canvas.example.com/canvas-proxy`，啟用開關並測試連線。不要填 Docker 服務名稱。
-2. 在 WebDAV 設定填入原本的 WebDAV URL、帳號、密碼及同步目錄，再測試連線。這些資料只在瀏覽器填寫，不放進 Compose。
-3. 連線成功後執行同步；官方同步包含畫布、我的資產與工作台媒體檔。
+同站點路徑可避免瀏覽器的跨站 CORS 問題。若要從原本的區網 Canvas 同步既有資產，站點的 WebDAV 路徑也須允許該區網 Origin 的預檢、Authorization 與 WebDAV 方法。換網站網址會使用另一份瀏覽器本地資料；先在舊網址同步原有資產，再到新站點同步。
 
-WebDAV 測試與同步都會透過此路由。瀏覽器只連畫布本身，跨站的 WebDAV 請求由官方 proxy 轉送，可避開 WebDAV 伺服器未允許 CORS 預檢的問題。
+## 可選官方代理
 
-來源：[官方 zero-config proxy 文件](https://github.com/basketikun/infinite-canvas/blob/9cd3deacbcc598361807afc16c059a80dd18b6f9/canvas-proxy/README.md)。
+`infinite-canvas-proxy` 使用公開的 `node:24-bookworm-slim` image，直接執行 `npx --yes @basketikun/canvas-proxy@latest --host 0.0.0.0`。單一容器，官方預設 port `23210`，不發布主機 port；不需 build image、設定檔或持久化掛載。此服務不需要用於上述 WebDAV 同步方式。
+
+來源：[官方 proxy 文件](https://github.com/basketikun/infinite-canvas/blob/9cd3deacbcc598361807afc16c059a80dd18b6f9/canvas-proxy/README.md)、[官方 WebDAV 同步程式](https://github.com/basketikun/infinite-canvas/blob/9cd3deacbcc598361807afc16c059a80dd18b6f9/web/src/services/webdav-sync.ts)。
