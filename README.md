@@ -1,6 +1,8 @@
 # myServices
 Personal Home Lab Services Configuration 👊😎💥
 
+代理修改部署前請先閱讀 [部署原則（AGENTS.md）](AGENTS.md)。
+
 Master branch is development branch = production environment (YOLO)
 
 ## Setup Notes

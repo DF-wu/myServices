@@ -1,3 +1,35 @@
-# Rule
+# 部署原則（給代理）
 
-1. This is a public repo. DO NOT EXPOSE any connecting information in my homelab. e.g. WAN IP, my domains. ID/password that can access from public service.
+本檔是本 repo 的代理部署政策，以擁有者 DF 的明確要求為準；通用最佳實務不得取代其偏好。
+現有 recipe 與歷史 PR 只供查證，不代表擁有者授權沿用其中的例外或擴張部署。
+
+1. **公開 repo，保護隱私。** 延續原有規則：不得公開 homelab 連線資訊，包含 WAN／私網 IP、私人網域、可用帳密與憑證。
+   Recipe、文件、PR 與報告只放必要範本，不加入實際連線字串、主機盤點或部署細節；真值留在私有設定。
+
+2. **預設使用 `latest`。** 不自行新增固定版本、digest 或映像覆寫選項。
+   保留上游功能所需的 variant tag 與擁有者已核准的相容性例外；不因本政策批次改寫既有 recipe。
+   發現既有 pinning 時先查來源，不能把它當作新增 pinning 的授權；需要新例外時提出理由供 DF 決定。
+
+3. **能用一個容器完成，就用一個。** 採用最小可運作架構，不為「更完整」自行增加服務。
+   不擅加編譯／init／proxy sidecar 或相容性建置流程，也不擅用自訂執行檔替換官方 runtime；需要偏離時先向 DF 說明。
+   確認上游支援與實際連線可用後，優先沿用既有 DB、cache、proxy 與 network；不可默默另建專用實例，也不強併本質不同的依賴。
+
+4. **掛載只為實際需求。** 只加入持久化、設定或裝置存取真正需要的 mount，先弄清楚 source、target 與用途。
+   保留既有路徑、bind／volume 類型、名稱、權限與 DB 資料；不得為方便遷移資料、改成匿名／named volume，或用新 volume 掩蓋權限錯誤。
+   本機模型、儲存及上游要求的掛載可以有必要例外；不套用統一掛載路徑，也不一律禁止 volume。
+
+5. **先確認，再改來源。** 查清實際 project、host、port、network、資料位置及上游支援，不能把猜測寫成設定。
+   無法確認會影響部署或資料的關鍵事實時，先回報缺口；不要靠新增容器、參數或掛載碰運氣。
+
+6. **Portainer Git source 是受管 stack 的權威來源。** 準備 repo 來源變更，由獲授權的部署流程套用。
+   不手改 Portainer checkout；未取得部署授權，不執行 `compose up`、rebuild、重啟，或修改執行環境與儲存。
+   提交、push 或開 PR 的授權不等於部署授權。
+
+7. **環境變數要走實際部署流程。** 新變數須由正確 stack 的 Portainer Environment 經 Compose 插值／映射傳入容器。
+   不假設 Git 部署存在 `.env`，也不以本機 shell 有值代表 Portainer 有值；提供必要範本與填寫位置，保留既有變數。
+
+8. **只改被要求的服務與必要範圍。** 不順便重構、升級其他服務或新增可選開關；跨服務變更先說明必要性。
+   保留他人未提交的工作，不 reset、stash、覆蓋或清理無關變更。
+
+9. **驗證與回報保持精簡。** 檢查完整 diff、格式、文件連結及政策衝突，依變更選擇必要的解析或功能驗證。
+   文件修改不強迫重測或啟動服務；回報改了什麼、驗證結果、影響，以及適用時的復原方式與資料限制。
