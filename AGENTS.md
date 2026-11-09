@@ -6,7 +6,7 @@
 
 - Use one container when sufficient. No unsolicited build/init/proxy services or official runtime replacements. Reuse verified shared dependencies where supported; do not force unrelated dependencies together.
 
-- Add only required persistence/config/device mounts; source mounts need a demonstrated requirement or request. Know source, target and purpose. Preserve paths, mount types/names, permissions and data; never hide permission errors with new volumes.
+- Add only required persistence/config/device mounts; source mounts need a requirement or request. Know source, target and purpose. Preserve paths, mount types/names, permissions and data; never hide permission errors with new volumes.
 
 - Keep image-based deployment simple. Do not invent manually staged, mounted and switched commit/SHA-versioned host runtime/source directories, or gratuitous configuration/path override knobs.
 
