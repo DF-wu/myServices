@@ -25,7 +25,7 @@
    不手改 Portainer checkout；未取得部署授權，不執行 `compose up`、rebuild、重啟，或修改執行環境與儲存。
    提交、push 或開 PR 的授權不等於部署授權。
 
-7. **環境變數要走實際部署流程。** 新變數須由正確 stack 的 Portainer Environment 經 Compose 插值／映射傳入容器。
+7. **環境變數要走實際部署流程。** Portainer 管理的 stack，新增變數須由正確 stack 的 Portainer Environment 經 Compose 插值／映射傳入容器。
    不假設 Git 部署存在 `.env`，也不以本機 shell 有值代表 Portainer 有值；提供必要範本與填寫位置，保留既有變數。
 
 8. **只改被要求的服務與必要範圍。** 不順便重構、升級其他服務或新增可選開關；跨服務變更先說明必要性。
