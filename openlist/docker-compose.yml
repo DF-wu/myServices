@@ -1,29 +1,6 @@
 services:
-  openlist-compat-build:
-    image: golang:1.27.3-bookworm@sha256:dc0963f32053e4bc451d24d87e3892d42d01021b61f093e98eb95c0352bb84b0
-    restart: "no"
-    command: ["bash", "/opt/od-bridge/deploy/build-openlist.sh"]
-    cpus: 2.0
-    mem_limit: 8g
-    environment:
-      OPENLIST_BUILD_ROOT: /cache
-      OPENLIST_ARTIFACT_ROOT: /artifacts
-    volumes:
-      - type: bind
-        source: ${SINCLAIR_BRIDGE_SOURCE:-/mnt/appdata/openlist-sinclair/runtime/c171234b270c34d864aa0ca17ecc2ecb6face630}
-        target: /opt/od-bridge
-        read_only: true
-        bind:
-          create_host_path: false
-      - openlist-build-cache:/cache
-      - openlist-compat:/artifacts
-
   openlist:
-    image: openlistteam/openlist:v4.2.9@sha256:897563beb674e7ad04edff14b0037dc8443ca3978570614005519df7eae06434
-    command: ["/opt/openlist-compat/current/openlist", "server", "--no-prefix"]
-    depends_on:
-      openlist-compat-build:
-        condition: service_completed_successfully
+    image: openlistteam/openlist:latest
     restart: unless-stopped
     container_name: openlist
     ports:
@@ -36,10 +13,8 @@ services:
     volumes:
       # appdata config
       - /mnt/appdata/openlist:/opt/openlist/data
-      - openlist-compat:/opt/openlist-compat:ro
     environment:
       - TZ=Asia/Taipei
-      - OPENLIST_COMPAT_REVISION=c171234b270c34d864aa0ca17ecc2ecb6face630
 
   sinclair-od-bridge:
     image: node:24-bookworm-slim
@@ -54,7 +29,7 @@ services:
       - "127.0.0.1:58110:6080"
     volumes:
       - type: bind
-        source: ${SINCLAIR_BRIDGE_SOURCE:-/mnt/appdata/openlist-sinclair/runtime/c171234b270c34d864aa0ca17ecc2ecb6face630}
+        source: ${SINCLAIR_BRIDGE_SOURCE:-/mnt/appdata/openlist-sinclair/runtime/ee0fe252a3024a8ff75f8486616a5906b05c4526}
         target: /opt/od-bridge
         read_only: true
         bind:
@@ -90,7 +65,7 @@ services:
       CDP_URL: http://127.0.0.1:9222
       OD_HOST: sinclaircc-my.sharepoint.com
       OD_SITE_PATH: /personal/gage_gil_sinclair_edu
-      OD_BRIDGE_REVISION: c171234b270c34d864aa0ca17ecc2ecb6face630
+      OD_BRIDGE_REVISION: ee0fe252a3024a8ff75f8486616a5906b05c4526
       OD_AUTO_LOGIN: "true"
       OD_CREDENTIALS_FILE: /var/lib/od-bridge/private/account.json
       OPENLIST_URL: http://openlist:5244
@@ -108,8 +83,4 @@ services:
       timeout: 15s
       start_period: 10m
       retries: 3
-
-volumes:
-  openlist-build-cache:
-  openlist-compat:
 
