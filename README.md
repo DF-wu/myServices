@@ -1,6 +1,8 @@
 # myServices
 Personal Home Lab Services Configuration 👊😎💥
 
+Read the [deployment principles](AGENTS.md) before changing deployments.
+
 Master branch is development branch = production environment (YOLO)
 
 ## Setup Notes
