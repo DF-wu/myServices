@@ -2,6 +2,16 @@
 
 本 stack 由 Portainer 的 Git 更新流程部署；不要在主機另外執行 Compose 或重新建立容器。
 
+## 部署結構
+
+2026-11-09 修正分成 bridge 與 OpenList 兩層。bridge 在 SharePoint classic 列舉回報清單門檻錯誤時，改用 OneDrive v2 children 完整分頁；實機原本失敗的大目錄已由候選程序列出 6,237 個子項。原始上游狀態、錯誤內容、Retry-After 及 request ID 會繼續傳給 OpenList；本機傳輸故障另提供不含敏感內容的固定分類。
+
+OpenList 使用原始官方 `openlistteam/openlist:latest`，保留官方預設啟動方式。bridge 只有 `sinclair-od-bridge` 一個 container／service，使用公開 Node image 加啟動腳本；沒有額外編譯服務、自訂 OpenList binary、相依 init container 或建置 volume。
+
+目前 TrueNAS rclone v1.70.2 的 WebDAV backend 會辨認 429／503 等可重試狀態，但不像原生 OneDrive backend 解析 Retry-After。因此 bridge 的上游 cooldown 仍保留；轉送標頭讓客戶端取得提示，不能宣稱未修改的 rclone 已會遵守它。沒有自動修改 TrueNAS binary、工作參數或排程。
+
+bridge 自身保留上游狀態、錯誤內容與重試標頭；OpenList 再往外轉送的行為由官方 latest 決定，不會為此另外修改或編譯 OpenList。正式套用交由 Portainer，禁止自行 restart 或 redeploy。
+
 ## 免 build 的 bridge 子服務
 
 `sinclair-od-bridge` 使用 Docker 官方 `node:24-bookworm-slim` 公開映像，不含 `build:`，也不需要自行建置映像。啟動腳本會在新容器內安裝 Debian Chromium、Xvfb、noVNC 與鎖定版本的 npm 依賴；同一容器重新啟動會沿用已安裝的系統套件。容器被重新建立時，安裝系統套件仍需要網路，首次啟動可能需數分鐘。
@@ -30,7 +40,7 @@ Chromium 僅用於正常登入與定期提供 Cookie 快照，記憶體快取預
 
 目前查核的 OpenList v4.2.9 WebDav client 沒有固定 30 秒上傳限制，但 TrueNAS 的 rclone v1.70.2 預設 `--timeout 5m` 仍會限制 I/O 閒置及送完 body 後等待回應。可在 Cloud Sync 額外 rclone 參數加入 `--timeout 1h --contimeout 1m`，保留原有其他參數，與上述 profile 配合；一小時是無進度／等候回應期限，不是整個備份期限。這個 TrueNAS 設定沒有被自動修改，bridge 更新也不會替它調整。來源：[rclone 預設](https://github.com/rclone/rclone/blob/v1.70.2/fs/config.go)、[HTTP 回應期限](https://github.com/rclone/rclone/blob/v1.70.2/fs/fshttp/http.go)、[OpenList client](https://github.com/OpenListTeam/OpenList/blob/v4.2.9/pkg/gowebdav/client.go)。
 
-bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。本 recipe 指定版本為 `cd9c1ccba41bfe56e3602984e94aa2241a22bfa4`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/cd9c1ccba41bfe56e3602984e94aa2241a22bfa4`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
+bridge 原始碼來自私有的 `DF-wu/od-openlist-bridge`。本 recipe 指定版本為 `ee0fe252a3024a8ff75f8486616a5906b05c4526`，已預先放在主機 `/mnt/appdata/openlist-sinclair/runtime/ee0fe252a3024a8ff75f8486616a5906b05c4526`，以唯讀 bind mount 載入，不把私有原始碼或 GitHub token 放入此公開 repo。`SINCLAIR_BRIDGE_SOURCE` 可在 Portainer 指向另一個已備妥的版本目錄；同時更新 `OD_BRIDGE_REVISION`，啟動時會核對版本。bind 設定禁止自動建立空的原始碼目錄，路徑有誤時會明確失敗。
 
 更新 bridge 的流程是：在私有 repo 修復、驗證並提交，以 `bash deploy/stage-runtime.sh <新的主機版本目錄>` 備妥原始碼，再更新本 recipe 的來源路徑交由 Portainer 更新。全程不需要 `docker build`。不會在容器內保存 GitHub 認證或於每次重啟拉取未固定的程式碼。
 

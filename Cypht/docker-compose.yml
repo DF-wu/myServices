@@ -1,0 +1,69 @@
+services:
+  db:
+    image: mariadb:11.8.9@sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: cypht
+      MARIADB_USER: cypht
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set a unique database password}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set a separate root password}
+    volumes:
+      - ${DB_DATA_DIR:-/home/df/_serverDataAndScript/cypht/mysql}:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [database]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  cypht:
+    image: cypht/cypht:2.14.0@sha256:141ec827dc5faf01a056a6d61c49c7a43366e967b7535c254b39ff6b7b26a4e1
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${BIND_IP:?Set the private host address reachable by the proxy}:${HTTP_PORT:-58090}:80"
+    environment:
+      AUTH_TYPE: DB
+      USER_CONFIG_TYPE: DB
+      SESSION_TYPE: DB
+      DB_DRIVER: mysql
+      DB_CONNECTION_TYPE: host
+      DB_HOST: db
+      DB_NAME: cypht
+      DB_USER: cypht
+      DB_PASS: ${DB_PASSWORD:?Set a unique database password}
+      AUTH_USERNAME: ${AUTH_USERNAME:-}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-}
+      ATTACHMENT_DIR: /var/lib/hm3/attachments
+      ENABLE_REDIS: "false"
+      ENABLE_MEMCACHED: "false"
+      ENABLE_DEBUG: "false"
+      XDEBUG_MODE: "off"
+      DISABLE_ORIGIN_CHECK: "false"
+    volumes:
+      - ${ATTACHMENT_DIR:-/mnt/appdata/Cypht/attachments}:/var/lib/hm3/attachments
+      - type: bind
+        source: ${NGINX_CONFIG_PATH:-/home/df/_serverDataAndScript/cypht/nginx.conf}
+        target: /etc/nginx/nginx.conf
+        read_only: true
+        bind:
+          create_host_path: false
+    networks: [database, outbound]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  database:
+    internal: true
+  outbound:

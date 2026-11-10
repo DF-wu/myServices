@@ -438,13 +438,6 @@ services:
       retries: 3
       start_period: 30s
 
-  # Official zero-config proxy; no persistent storage or config files.
-  infinite-canvas-proxy:
-    image: node:24-bookworm-slim
-    init: true
-    restart: unless-stopped
-    command: ["npx", "--yes", "@basketikun/canvas-proxy@latest", "--host", "0.0.0.0"]
-
   # # Whisper-FastAPI - Speech-to-Text service (OpenAI Whisper-compatible)
   # # repo: https://github.com/heimoshuiyu/whisper-fastapi
   # # endpoints:
@@ -908,6 +901,7 @@ services:
       - LILAC_NATIVE_LOCAL_USERNAME=${LILAC_NATIVE_LOCAL_USERNAME}
       - LILAC_NATIVE_LOCAL_PASSWORD_HASH=${LILAC_NATIVE_LOCAL_PASSWORD_HASH}
       - LILAC_NATIVE_SESSION_SECRET=${LILAC_NATIVE_SESSION_SECRET}
+      - LILAC_NATIVE_DISCORD_WEBHOOK_URL=${LILAC_CATALINA_NATIVE_DISCORD_WEBHOOK_URL-${LILAC_NATIVE_DISCORD_WEBHOOK_URL:-}}
 
       # smart-search runtime config (shared env names; values injected by host env)
       - SMART_SEARCH_CONFIG_DIR=/data/.config/smart-search
@@ -1045,6 +1039,7 @@ services:
       - LILAC_NATIVE_LOCAL_USERNAME=${LILAC_NATIVE_LOCAL_USERNAME}
       - LILAC_NATIVE_LOCAL_PASSWORD_HASH=${LILAC_NATIVE_LOCAL_PASSWORD_HASH}
       - LILAC_NATIVE_SESSION_SECRET=${LILAC_NATIVE_SESSION_SECRET_CLAUDIA}
+      - LILAC_NATIVE_DISCORD_WEBHOOK_URL=${LILAC_CLAUDIA_NATIVE_DISCORD_WEBHOOK_URL:-}
 
       # smart-search runtime config (shared env names; values injected by host env)
       - SMART_SEARCH_CONFIG_DIR=/data/.config/smart-search
