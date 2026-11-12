@@ -22,7 +22,7 @@ services:
       - glance-internal
 
   glance:
-    image: glanceapp/glance:latest
+    image: glanceapp/glance:latest@sha256:4d7445bc7971836858ffddee5d7501f1efbabb6e694a45b1dde1a789bb1943bb
     container_name: glance
     restart: unless-stopped
     depends_on:

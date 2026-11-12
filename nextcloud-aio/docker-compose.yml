@@ -2,7 +2,7 @@ name: nextcloud-aio
 
 services:
   nextcloud-aio-mastercontainer:
-    image: ghcr.io/nextcloud-releases/all-in-one:latest
+    image: ghcr.io/nextcloud-releases/all-in-one:latest@sha256:07c82cd4fbf672c5ca3f98c98bfd55e5f369734041ab19845fb4bef7c720d40c
     init: true
     restart: always
     container_name: nextcloud-aio-mastercontainer

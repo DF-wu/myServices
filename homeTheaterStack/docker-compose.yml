@@ -18,7 +18,7 @@ services:
       - JELLYFIN_TYPE=jellyfin
 
   jellyfin:
-    image: lscr.io/linuxserver/jellyfin:latest
+    image: lscr.io/linuxserver/jellyfin:latest@sha256:2f708001387aa9853e744a4a4d572d9970927c479c56d6c9e199f789c5173535
     restart: unless-stopped
     container_name: jellyfin
     ports:
@@ -80,7 +80,7 @@ services:
   jackett:
     restart: unless-stopped
     container_name: jackett
-    image: lscr.io/linuxserver/jackett
+    image: lscr.io/linuxserver/jackett@sha256:c7415fe5b81b8754bef96c06788a89bb096d81d5f6fcd146093c6b84146e3405
     ports:
       # webui 
       - 9117:9117
