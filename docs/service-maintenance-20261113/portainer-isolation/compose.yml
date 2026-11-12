@@ -1,0 +1,15 @@
+services:
+  active:
+    image: redis:alpine
+    pull_policy: never
+    command:
+    - sleep
+    - '900'
+    network_mode: none
+  held:
+    image: redis:alpine
+    pull_policy: never
+    command:
+    - sleep
+    - '900'
+    network_mode: none

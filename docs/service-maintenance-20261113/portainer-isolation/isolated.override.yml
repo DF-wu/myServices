@@ -1,0 +1,11 @@
+services:
+  held:
+    profiles:
+    - maintenance-held
+  active:
+    environment:
+      MAINTENANCE_REVISION: isolated
+    depends_on:
+      held:
+        condition: service_started
+        required: false
