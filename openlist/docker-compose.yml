@@ -17,7 +17,7 @@ services:
       - TZ=Asia/Taipei
 
   sinclair-od-bridge:
-    image: node:24-bookworm-slim
+    image: node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54
     container_name: sinclair-od-bridge
     hostname: sinclair-od-bridge
     restart: unless-stopped
@@ -29,7 +29,7 @@ services:
       - "127.0.0.1:58110:6080"
     volumes:
       - type: bind
-        source: ${SINCLAIR_BRIDGE_SOURCE:-/mnt/appdata/openlist-sinclair/runtime/cd9c1ccba41bfe56e3602984e94aa2241a22bfa4}
+        source: ${SINCLAIR_BRIDGE_SOURCE:-/mnt/appdata/openlist-sinclair/runtime/ee0fe252a3024a8ff75f8486616a5906b05c4526}
         target: /opt/od-bridge
         read_only: true
         bind:
@@ -65,7 +65,7 @@ services:
       CDP_URL: http://127.0.0.1:9222
       OD_HOST: sinclaircc-my.sharepoint.com
       OD_SITE_PATH: /personal/gage_gil_sinclair_edu
-      OD_BRIDGE_REVISION: cd9c1ccba41bfe56e3602984e94aa2241a22bfa4
+      OD_BRIDGE_REVISION: ee0fe252a3024a8ff75f8486616a5906b05c4526
       OD_AUTO_LOGIN: "true"
       OD_CREDENTIALS_FILE: /var/lib/od-bridge/private/account.json
       OPENLIST_URL: http://openlist:5244
