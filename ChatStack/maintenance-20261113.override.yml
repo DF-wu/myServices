@@ -1,0 +1,75 @@
+# Isolate this maintenance batch under the existing Portainer Git owner.
+# Existing services in the held profile remain running; do not enable that profile.
+services:
+  open-webui:
+    profiles:
+    - maintenance-held
+  chatstack-unified-redis:
+    profiles:
+    - maintenance-held
+  tika:
+    profiles:
+    - maintenance-held
+  new-api:
+    profiles:
+    - maintenance-held
+  cline-pass-switcher:
+    profiles:
+    - maintenance-held
+  claude-code-router:
+    profiles:
+    - maintenance-held
+  sub2api:
+    profiles:
+    - maintenance-held
+  infinite-canvas:
+    profiles:
+    - maintenance-held
+  chatstack-postgres17-pgvector:
+    profiles:
+    - maintenance-held
+  telegram-chatbot:
+    profiles:
+    - maintenance-held
+  sillytavern:
+    profiles:
+    - maintenance-held
+  astrbot:
+    profiles:
+    - maintenance-held
+  gluetun-proxy:
+    profiles:
+    - maintenance-held
+  lilac-catalina:
+    profiles:
+    - maintenance-held
+  lilac-claudia:
+    profiles:
+    - maintenance-held
+  lobehub-gateway:
+    profiles:
+    - maintenance-held
+  cli-proxy-api:
+    depends_on:
+      gluetun-proxy:
+        condition: service_started
+        required: false
+    network_mode: container:gluetun-proxy
+    image: eceasy/cli-proxy-api:latest@sha256:2e098c0b3c79571f0c3150c8f27725ab2645b6a463cf6c4f862e4e86343466a1
+  lobehub:
+    depends_on:
+      chatstack-postgres17-pgvector:
+        condition: service_started
+        required: false
+      chatstack-unified-redis:
+        condition: service_healthy
+        required: false
+      new-api:
+        condition: service_started
+        required: false
+      lobehub-gateway:
+        condition: service_healthy
+        required: false
+    image: lobehub/lobehub:latest@sha256:0981b4653a233d8d2b226416fdad0bf34875fcabb1dedc7f5c3320d8c8d23c60
+  open-terminal:
+    image: ghcr.io/open-webui/open-terminal:latest@sha256:1c73dea87a6507c998f42a46b5935dc432d5103c81950269e7b8e93daa6893c8
