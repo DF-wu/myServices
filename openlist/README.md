@@ -73,6 +73,16 @@ CDP 9222 只監聽容器內 loopback；WebDAV 8110 僅在 Docker 內網提供，
 
 ## 驗證與復原
 
+### SQLite 交易錯誤的離線緩解
+
+官方 `latest` 在 2026-11-13 仍為 v4.2.9。該版本有 WebDAV PROPFIND 長交易及取消請求後 SQLite 連線池污染問題，可能持續回報 `cannot start a transaction within a transaction`。上游修正尚未合併：[OpenList #3342](https://github.com/OpenListTeam/OpenList/pull/3342)。提高 bridge 併發無法清除 OpenList 記憶體裡已失效的交易狀態。
+
+可先透過 Portainer 停止 **OpenList**，在主機執行 `python3 openlist/repair-sqlite.py /mnt/appdata/openlist/data.db`，完成後再由 Portainer 啟動 OpenList。工具不會停止、啟動或重新部署任何容器；它會確認容器已停止、檢查 SQLite、建立受限權限的完整邏輯備份，然後將既有資料庫改為持久的 WAL 模式。若容器仍運行、無法確認狀態或資料庫檢查失敗，工具會拒絕變更。已是 WAL 時只檢查並回報，不重複備份。
+
+這是降低讀寫鎖衝突的緩解措施，**不是取消請求 bug 的完整修復**；官方修正發布前仍可能復發。既有受污染的程序需要結束後重新啟動才能清除記憶體狀態，因此不會在運行中的備份上自動執行。OpenList image、啟動命令、資料掛載及 bridge 的單一 service 均不變。長期方案是等待官方修正進入 `latest`，或另外規劃遷移至官方支援的既有 MySQL／PostgreSQL；本工具不進行資料庫遷移。
+
+若需復原，先透過 Portainer 停止 OpenList，保留目前 SQLite 主檔及 WAL／SHM 檔，再從工具回報的備份復原；不要直接覆蓋運行中的資料庫或單獨刪除 WAL 檔。
+
 `/__live` 只回報 bridge 程序存活；`/__health` 會查驗實際上游 API，登入失效時回 503。這些端點不回傳 Cookie、URL、帳號或檔名。
 
 部署前會以隔離環境驗證 WebDAV、串流、權限、錯誤路徑與啟動腳本；真正的學校登入、文件庫列目錄及 OpenList 全鏈路仍要在 Portainer 部署後確認。原有 `/Sinclair_OD` 的完整設定備份只存放在本機 `state/private/openlist-storage-before.json`。
