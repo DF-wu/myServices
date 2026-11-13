@@ -160,7 +160,8 @@ services:
     user: 3000:3000
     volumes:
       - /mnt/appdata/ChatStack/unified-redis:/data
-    command: "valkey-server --save 30 1"
+    # Complete the live RDB-to-AOF migration before redeploying; see valkey/README.md.
+    command: "valkey-server --appendonly yes --appendfsync everysec --save 3600 1"
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       start_period: 20s
