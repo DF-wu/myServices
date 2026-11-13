@@ -973,6 +973,10 @@ services:
       - LILAC_LLM_WIRE_DEBUG_MAX_BODY_BYTES=65536
       - LILAC_LLM_WIRE_DEBUG_MAX_EVENTS=400
 
+      # mirror logs to discord channel 
+      - LILAC_NATIVE_DISCORD_WEBHOOK_URL=${LILAC_NATIVE_DISCORD_WEBHOOK_URL}
+      - LILAC_NATIVE_DISCORD_ROUTING=${LILAC_NATIVE_DISCORD_ROUTING}
+
     volumes:
       - /mnt/appdata/ChatStack/lilac-mono/data:/data
       - /home/df/.agents:/home/Catalina/.agents
