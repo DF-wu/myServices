@@ -26,7 +26,8 @@ services:
       - ARCANE_APP_URL=http://localhost:3552
       - PUID=1000
       - PGID=1000
-      - ARCANE_ENCRYPTION_KEY=df
+      # 32 chars long
+      - ARCANE_ENCRYPTION_KEY=${ARCANE_ENCRYPTION_KEY}
       - ARCANE_PROJECTS_DIRECTORY=/opt/docker
     cgroup: host
 
