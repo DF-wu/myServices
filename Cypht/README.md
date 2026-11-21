@@ -6,9 +6,7 @@ migration. Mail stays on the configured providers; Cypht is not a mail server.
 
 ## Before deployment
 
-At commit `c96289fd821381adfba04bbe6e6f48520e79de66`, Compose has a top-level
-`Volumes` key. It must be lowercase `volumes` before deployment. This documentation
-update does not change Compose. Account bootstrapping remains owner-managed.
+Account bootstrapping remains owner-managed.
 
 Deploy from Git through Portainer using `Cypht/docker-compose.yml`; supply stack
 variables in Portainer's Environment editor. A local `.env` or shell environment
