@@ -1,5 +1,5 @@
 # author: df
-# prepared: 2026-06-08
+# prepared: 2026-11-22
 # description: Arcane manager evaluation deployment, isolated from existing Portainer ports.
 # upstream compose ref: https://github.com/getarcaneapp/arcane/blob/v2.0.0/docker/examples/compose.basic.yaml
 #
@@ -9,25 +9,27 @@ name: arcane
 
 services:
   arcane:
-    image: ghcr.io/getarcaneapp/manager:v2.0.0
+    image: ghcr.io/getarcaneapp/manager:latest
     container_name: arcane
     restart: unless-stopped
     ports:
-      - "55004:3552"
+      - "53552:3552"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - arcane-data:/app/data
+      - /opt/docker:/opt/docker
     env_file:
       - path: ./compose.env
       - path: ./compose.env.local
         required: false
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /mnt/appdata/Arcane/data:/app/data
-      - /mnt/appdata/Arcane/projects:/mnt/appdata/Arcane/projects
-      - /mnt/appdata/Arcane/builds:/builds
-    # Arcane upstream recommends host cgroup namespace for self container detection.
+    environment:
+      - ARCANE_APP_URL=http://localhost:3552
+      - PUID=1000
+      - PGID=1000
+      - ARCANE_ENCRYPTION_KEY=df
+      - ARCANE_PROJECTS_DIRECTORY=/opt/docker
     cgroup: host
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:3552/api/health"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 15s
+
+
+volumes:
+  arcane-data:
