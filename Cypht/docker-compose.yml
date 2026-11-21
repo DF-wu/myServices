@@ -1,21 +1,20 @@
 services:
   db:
-    image: mariadb:latest
+    image: mariadb:10
     restart: unless-stopped
     environment:
       MARIADB_DATABASE: cypht
       MARIADB_USER: cypht
-      MARIADB_PASSWORD: ${DB_PASSWORD:?Set a unique database password}
-      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set a separate root password}
+      MARIADB_PASSWORD: cypht
+      MARIADB_ROOT_PASSWORD: cypht
     volumes:
-      - ${DB_DATA_DIR:-/home/df/_serverDataAndScript/cypht/mysql}:/var/lib/mysql
+      - cypht-db:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
-    networks: [database]
     logging:
       driver: json-file
       options:
@@ -29,7 +28,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "${BIND_IP:?Set the private host address reachable by the proxy}:${HTTP_PORT:-58090}:80"
+      - "${HTTP_PORT:-58090}:80"
     environment:
       AUTH_TYPE: DB
       USER_CONFIG_TYPE: DB
@@ -39,9 +38,9 @@ services:
       DB_HOST: db
       DB_NAME: cypht
       DB_USER: cypht
-      DB_PASS: ${DB_PASSWORD:?Set a unique database password}
-      AUTH_USERNAME: ${AUTH_USERNAME:-}
-      AUTH_PASSWORD: ${AUTH_PASSWORD:-}
+      DB_PASS: cypht
+      AUTH_USERNAME: ${AUTH_USERNAME:-df}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-${DF_PASSWORD}}
       ATTACHMENT_DIR: /var/lib/hm3/attachments
       ENABLE_REDIS: "false"
       ENABLE_MEMCACHED: "false"
@@ -50,20 +49,11 @@ services:
       DISABLE_ORIGIN_CHECK: "false"
     volumes:
       - ${ATTACHMENT_DIR:-/mnt/appdata/Cypht/attachments}:/var/lib/hm3/attachments
-      - type: bind
-        source: ${NGINX_CONFIG_PATH:-/home/df/_serverDataAndScript/cypht/nginx.conf}
-        target: /etc/nginx/nginx.conf
-        read_only: true
-        bind:
-          create_host_path: false
-    networks: [database, outbound]
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
-
-networks:
-  database:
-    internal: true
-  outbound:
+Volumes:
+  cypht-db:
+    driver: local
