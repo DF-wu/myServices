@@ -1,7 +1,8 @@
 # Cypht
 
-Standalone webmail aggregator: Cypht 2.14.0 and a dedicated MariaDB 11.8.9 LTS.
-Both images are pinned to registry index digests with Linux AMD64 support.
+Standalone webmail aggregator using `cypht/cypht:latest` and a dedicated
+`mariadb:latest`. This procedure starts with a **fresh installation and empty
+database directory**; it is not an in-place MariaDB major-version migration.
 Database authentication, sessions and user settings live in MariaDB; no users-file
 mount is needed. Mail remains on the configured IMAP servers: this is **not a mail
 server or mailbox backup**. No MX changes or inbound mail ports are needed.
@@ -21,7 +22,7 @@ sudo install -m 0644 Cypht/nginx.conf /home/df/_serverDataAndScript/cypht/nginx.
 Keep the database on **local disk**, not the NFS appdata mount. Override
 `DB_DATA_DIR` if necessary. The MariaDB entrypoint initializes and owns its dedicated
 data directory. Cypht starts as root and chowns its attachment directory to
-`www-data` (verified UID/GID 33:33 in the pinned image). Do not set PUID/PGID or
+`www-data` (verified UID/GID 33:33 in the tested image). Do not set PUID/PGID or
 force a non-root container user. On NFS with root squashing, have the storage
 administrator pre-create only the dedicated attachment directory as UID/GID 33:33
 with mode 0700; startup must still be able to perform the entrypoint's chown.
@@ -105,13 +106,17 @@ new-session authentication; do not treat it as a general proxy origin firewall.
 2. Through the final HTTPS hostname, login succeeds and `hm_session` / `hm_id`
    cookies carry `Secure` and `HttpOnly`. A login POST from an unrelated Origin is
    rejected. Check that CDN responses are not cached.
-3. Add a test IMAP/SMTP account, explicitly save settings, log out, then log in
-   from a fresh browser session. Recreate Cypht and repeat: settings must survive.
-   Verify send/receive with the operator's test mailbox only.
+3. With authorized test accounts from **two providers**, explicitly save settings,
+   log out, then log in from a fresh browser session. Recreate Cypht and repeat:
+   settings must survive. Verify the combined inbox, read/unread and other flags,
+   folder operations, sending and sent-folder mapping for each provider, attachment
+   upload/download, and mobile-browser use through the final HTTPS hostname.
 4. Remove bootstrap variables, redeploy and verify the same login still works.
 5. Confirm the backend is accessible only from the proxy and DB port is unpublished.
 
-OAuth provider registration is separate and out of scope. Upstream names are
+These are deployment acceptance checks, not claims of exercised mailbox flows.
+Real-account onboarding, OAuth provider registration and attachment-bind redesign
+are separate and out of scope. Upstream names are
 `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_CLIENT_URI`; `OUTLOOK_CLIENT_ID`,
 `OUTLOOK_CLIENT_SECRET`, `OUTLOOK_CLIENT_URI`; and `OFFICE365_CLIENT_ID`,
 `OFFICE365_CLIENT_SECRET`, `OFFICE365_CLIENT_URI`. Add the selected variables to the
@@ -120,62 +125,130 @@ to register the actual redirect URI; do not assume a callback URL from this reci
 
 ## Backup, restore and upgrade
 
-Keep encrypted off-host backups of a **consistent logical database dump**, the
-recipe revision, staged Nginx config, and references to retrievable DB secrets.
-Cypht stores sensitive user/server settings in the DB; protect dumps accordingly.
+No existing Cypht data needs migration for this fresh installation. Once data
+exists, keep encrypted off-host backups of a **consistent logical database dump**,
+the recipe revision, staged Nginx config, deployed image digests, and references to
+securely retrievable DB secrets **and the matching Cypht login secret for each
+retained backup**. Saved settings are encrypted with the login password; a DB dump
+and a newer password alone may not unlock an older backup. Keep secret versions in
+a protected secret manager, never in this repository or plaintext backup manifests.
 Optionally back up attachment staging while Cypht is stopped. Do not copy live
 MariaDB data files as a substitute for a consistent backup.
 
 For local Compose (or equivalent commands against this stack's containers on the
-endpoint), stop Cypht to freeze writes, dump InnoDB tables, then restart it. Store
-the dump outside this public checkout with restrictive permissions (replace
-`/secure/backup` below with an existing protected backup directory). The variable
-below is expanded **inside** the dedicated DB container, not printed in a command:
+endpoint), run the following in **sh** with Cypht initially running. Replace
+`/secure/backup` with an existing protected backup directory outside this checkout.
+Each run creates a private unique directory; only a successful, nonempty dump is
+published as `database.sql`. A failed attempt removes its partial dump, preserves
+previous backups, and attempts to resume Cypht even if stopping/dumping fails or a
+catchable signal arrives. A restart failure returns failure and requires operator
+intervention; no trap can recover from power loss or SIGKILL. Check the exit status
+and restore-test the artifact before considering it a usable backup.
 
 ```sh
-umask 077
-docker compose stop cypht
-docker compose exec -T db sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" mariadb-dump -uroot --single-transaction --routines --events --triggers cypht' > /secure/backup/cypht.sql
-# Confirm the dump command succeeded and the file is nonempty before proceeding.
-docker compose start cypht
+(
+    set -eu
+    umask 077
+    backup_dir=$(mktemp -d /secure/backup/cypht.XXXXXXXX)
+    finish() {
+        status=$?
+        trap - 0 HUP INT TERM
+        if ! rm -f "$backup_dir/partial.sql"; then status=1; fi
+        rmdir "$backup_dir" 2>/dev/null || : # Keep a published backup.
+        if ! docker compose start cypht; then
+            echo 'ERROR: resume Cypht manually before leaving maintenance' >&2
+            status=1
+        fi
+        exit "$status"
+    }
+    trap finish 0
+    trap 'exit 129' HUP
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    docker compose stop cypht
+    docker compose exec -T db sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" mariadb-dump -uroot --single-transaction --routines --events --triggers cypht' > "$backup_dir/partial.sql"
+    test -s "$backup_dir/partial.sql"
+    mv "$backup_dir/partial.sql" "$backup_dir/database.sql"
+    printf 'Backup: %s\n' "$backup_dir/database.sql"
+)
 ```
 
-Restore-test off-host on an isolated stack: initialize an empty dedicated DB with
-the pinned MariaDB image and original DB credentials, leave Cypht stopped, import
-the dump using `MYSQL_PWD="$MARIADB_ROOT_PASSWORD" mariadb -uroot cypht` inside the
-DB container, restore config/optional files with the dedicated ownership above,
-then start the matching Cypht image **without bootstrap credentials**. Verify login
-and saved settings. Never point the test at production mailbox operations.
+For a supported login-password change, use upstream's
+[`scripts/update_password.php`](https://github.com/cypht-org/cypht/blob/v2.14.0/scripts/update_password.php)
+with **username, old password and new password** in that order. It authenticates,
+decrypts and re-encrypts saved settings. Omitting the old password is a destructive
+reset, not a credential rotation; do not confirm a decryption-failure override.
+Use a protected administrative session, avoid shell history/process-list exposure,
+and verify the success message and saved settings (the script can report errors
+without a nonzero exit). Preserve the old secret version for retained backups;
+changing bootstrap variables does not perform this flow.
 
-Before upgrades, read upstream migration/release notes, take and verify a backup,
-and test the new image/digest on a restored isolated DB. Update explicit tags and
-digests together, stage matching Nginx config, then redeploy. Entrypoint runs
-`setup_database.php` on every start. After schema changes, rolling back only the
-app image is insufficient: restore the matching pre-upgrade DB backup and recipe.
-Do not delete persistent directories or use volume removal as an upgrade step.
+Restore-test off-host on a disposable isolated stack. **Before the restored app's
+first boot**, enforce default-deny outbound provider access, including IMAP, SMTP
+and HTTPS/OAuth (and IPv6); allow only the isolated DB and test client as needed.
+An internal-only test network without any outbound attachment is one option.
+Do not rely on avoiding clicks: [restored settings](https://github.com/cypht-org/cypht/blob/v2.14.0/modules/core/handler_modules.php#L764-L778)
+can trigger [background requests](https://github.com/cypht-org/cypht/blob/v2.14.0/modules/imap/site.js#L1310-L1319).
+Initialize an empty dedicated DB with the recorded recovery image and original DB
+credentials, leave Cypht stopped, import the dump using
+`MYSQL_PWD="$MARIADB_ROOT_PASSWORD" mariadb -uroot cypht` inside the DB container,
+restore config/optional files with the dedicated ownership above, then start the
+matching Cypht image **without bootstrap credentials**. Verify login with the
+backup's matching secret and readable saved settings while provider egress remains
+blocked. Never point the drill at production mailbox operations.
+
+Before pulling updates, record each running container's image ID and repository
+digest (`docker inspect --format '{{.Image}}' CONTAINER` and
+`docker image inspect --format '{{json .RepoDigests}}' IMAGE_ID`) in the protected
+backup inventory. Keep these recovery references and access to the images;
+**Compose remains on `latest`**, with no digest pins or image overrides. Read
+upstream migration/release notes, take and verify a backup, pull and record the new
+resolved digests, and test on a restored isolated DB before redeploying. MariaDB
+`latest` can cross major versions: validate the supported upgrade path separately;
+fresh initialization does not prove an existing data directory can be upgraded.
+Stage matching Nginx config before recreation. Entrypoint runs `setup_database.php`
+on every start. After schema changes, rolling back only the app image is
+insufficient: restore the matching pre-upgrade DB backup, images and recipe in an
+isolated recovery procedure. Do not delete persistent directories or use volume
+removal as an upgrade step.
 
 ## Verified upstream references
 
 - Cypht v2.14.0 resolves to immutable commit
   [`06395f146096bcad8d2594b27dc56ee553a36286`](https://github.com/cypht-org/cypht/tree/06395f146096bcad8d2594b27dc56ee553a36286/docker).
-  The official image was built 2026-11-06; its registry index digest is pinned in
-  Compose. The [deprecated cypht-docker image](https://github.com/cypht-org/cypht-docker/blob/554b38d972a54f0c85cc7d856a3f552eeb68b63f/README.md)
+  This is a source reference for the tested behavior, not an image pin. The [deprecated cypht-docker image](https://github.com/cypht-org/cypht-docker/blob/554b38d972a54f0c85cc7d856a3f552eeb68b63f/README.md)
   and old `CYPHT_*` variables are unused.
 - [Bootstrap](https://github.com/cypht-org/cypht/blob/06395f146096bcad8d2594b27dc56ee553a36286/scripts/setup_system.sh),
   [account creation](https://github.com/cypht-org/cypht/blob/06395f146096bcad8d2594b27dc56ee553a36286/lib/account_manager.php),
   [TLS detection](https://github.com/cypht-org/cypht/blob/06395f146096bcad8d2594b27dc56ee553a36286/lib/request.php),
   [cookies](https://github.com/cypht-org/cypht/blob/06395f146096bcad8d2594b27dc56ee553a36286/lib/session_base.php),
   [environment names](https://github.com/cypht-org/cypht/blob/06395f146096bcad8d2594b27dc56ee553a36286/.env.example).
-- MariaDB 11.8 is [community-maintained through June 2028](https://github.com/mariadb-corporation/mariadb-docs/blob/8c8b9f3ab211561eb0c2b0dc8a59b5fc2d38e47e/release-notes/community-server/11.8/11.8.9.md).
-  The pinned 11.8.9 AMD64 image identifies official build revision
-  [`bdfe641466a5312bb97d06a1a4e1fb411c49e6b6`](https://github.com/MariaDB/mariadb-docker/tree/bdfe641466a5312bb97d06a1a4e1fb411c49e6b6/11.8).
+- [Official MariaDB image initialization and healthcheck documentation](https://github.com/MariaDB/mariadb-docker).
 
-## Recipe validation (2026-11-06)
+## Recipe validation (2026-11-21)
 
-Compose interpolation and missing/blank required-variable checks passed. With
-pinned images, dummy credentials, temporary local storage and no published ports:
-startup/health, Nginx syntax, login, Secure/HttpOnly cookies, cross-origin login
-rejection, saved preference persistence after logout/fresh login, and DB/app
-recreation without bootstrap credentials passed. The temporary stack was removed.
-Portainer, the real proxy/CDN/firewall path, NFS permissions, mailbox/OAuth flows,
-and off-host backup restoration require operator acceptance; they were not exercised.
+Compose rendering resolves `cypht/cypht:latest` and `mariadb:latest`; blank required
+variables fail. A fresh disposable Linux AMD64 stack used dummy credentials,
+temporary local binds and no published ports. The pulled images identified Cypht
+2.14.0 and MariaDB 13.0.2, with repository digests:
+
+- Cypht: `sha256:141ec827dc5faf01a056a6d61c49c7a43366e967b7535c254b39ff6b7b26a4e1`
+- MariaDB: `sha256:54f493ea0d60b621a5bff84e5b20100f8b86b6efa6b79158e04756c5194a5e4d`
+
+These are test evidence, not Compose pins. Fresh DB initialization/health, app
+migration/boot, Nginx syntax, same-origin login, Secure/HttpOnly cookies,
+cross-origin authentication rejection, saved preference retrieval in a fresh
+session, and recreation of both containers without bootstrap credentials passed.
+HTTP requests ran only inside the disposable network, carrying the cookies as a
+TLS proxy would; this did not exercise a public TLS ingress or browser UI.
+The documented backup snippet produced distinct protected artifacts; an injected
+failed dump preserved previous artifact hashes, removed partial output and resumed
+Cypht. Empty-dump, stop-failure and resume-failure paths also returned failure
+without changing earlier dumps; resume failure was injected after a real start.
+A successful dump imported into a disposable scratch schema. The temporary stack and its data were removed after testing.
+
+Portainer, proxy/CDN/firewall behavior, NFS permissions, multi-provider mailbox and
+OAuth flows, attachments and mobile-browser acceptance, password rotation,
+signal/power-loss recovery and a full off-host app restore were not exercised.
+They remain operator acceptance work; the older MariaDB 11.8.9 smoke test is not
+evidence for an existing-database upgrade to 13.0.2.

@@ -1,6 +1,6 @@
 services:
   db:
-    image: mariadb:11.8.9@sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd
+    image: mariadb:latest
     restart: unless-stopped
     environment:
       MARIADB_DATABASE: cypht
@@ -23,7 +23,7 @@ services:
         max-file: "3"
 
   cypht:
-    image: cypht/cypht:2.14.0@sha256:141ec827dc5faf01a056a6d61c49c7a43366e967b7535c254b39ff6b7b26a4e1
+    image: cypht/cypht:latest
     restart: unless-stopped
     depends_on:
       db:
