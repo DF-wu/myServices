@@ -24,6 +24,7 @@ services:
         required: false
     environment:
       - ARCANE_APP_URL=http://localhost:3552
+      - TZ=Asia/Taipei
       - PUID=1000
       - PGID=1000
       # 32 chars long
