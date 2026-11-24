@@ -11,13 +11,20 @@ services:
   arcane:
     image: ghcr.io/getarcaneapp/manager:latest
     container_name: arcane
+    # Run directly as PUID/PGID because the NFS export rejects chown.
+    user: "1000:1000"
+    group_add:
+      - "960"
     restart: unless-stopped
     ports:
       - "53552:3552"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      # /mnt/appdata/arcane-data:/app/data
-      - arcane-data:/app/data
+      - type: bind
+        source: /mnt/appdata/arcane-data
+        target: /app/data
+        bind:
+          create_host_path: false
       - /opt/docker:/opt/docker
     # env_file:
     #   - path: ./compose.env
@@ -28,11 +35,9 @@ services:
       - TZ=Asia/Taipei
       - PUID=1000
       - PGID=1000
+      # SQLite WAL requires local storage. This DSN also configures the Francis database.
+      - "ARCANE_DATABASE_URL=file:data/arcane.db?_pragma=journal_mode(DELETE)&_pragma=synchronous(FULL)&_pragma=busy_timeout(10000)&_txlock=immediate"
       # 32 chars long
       - ARCANE_ENCRYPTION_KEY=${ARCANE_ENCRYPTION_KEY}
       - ARCANE_PROJECTS_DIRECTORY=/opt/docker
     cgroup: host
-
-
-volumes:
-  arcane-data:
