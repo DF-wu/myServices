@@ -16,6 +16,7 @@ services:
       - "53552:3552"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      # /mnt/appdata/arcane-data:/app/data
       - arcane-data:/app/data
       - /opt/docker:/opt/docker
     # env_file:
